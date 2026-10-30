@@ -7,10 +7,10 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPointF,QRect,QEvent
 from PySide6.QtWidgets import QApplication
-from popscore.app import MainWindow
-from popscore.model import Project,Note
-from popscore.exportdialog import ExportDialog
-from popscore import i18n
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note
+from lingfeng.ui.export_dialog import ExportDialog
+import lingfeng.platform.i18n as i18n
 
 APP=QApplication.instance() or QApplication([])
 
@@ -30,7 +30,7 @@ class ScoreInformationTests(unittest.TestCase):
         self.saving.stop();i18n.set_language(self.language)
 
     def rename(self,title,accepted=True):
-        with patch('popscore.app.QInputDialog.getText',return_value=(title,accepted)):
+        with patch('lingfeng.ui.main_window.QInputDialog.getText',return_value=(title,accepted)):
             self.w.project_info()
         APP.processEvents()
 

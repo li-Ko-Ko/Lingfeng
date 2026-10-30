@@ -5,11 +5,11 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord,Measure
-from popscore.rhythm import analyze
-from popscore.keybindings import load_bindings
-from popscore import theme
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord, Measure
+from lingfeng.music.rhythm import analyze
+from lingfeng.ui.keybindings import load_bindings
+import lingfeng.ui.theme as theme
 
 APP=QApplication.instance() or QApplication([])
 
@@ -85,7 +85,7 @@ class InterfaceTests(unittest.TestCase):
 
 class KeyMigrationTests(unittest.TestCase):
     def test_imported_legato_chord_rearticulations_are_not_merged_to_block(self):
-        from popscore.midi_import import MidiData,MidiTrack,apply_midi
+        from lingfeng.audio.midi_import import MidiData, MidiTrack, apply_midi
         notes=[Note(t,min(980,3840-t),pitch,80+i) for i,t in enumerate(range(0,3840,960)) for pitch in (48,52,55)]
         data=MidiData([MidiTrack('Legato',notes,3840)],[],[]);p=Project()
         apply_midi(p,data,[0],'chords',0)

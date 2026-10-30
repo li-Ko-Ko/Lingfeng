@@ -5,12 +5,12 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPoint,QEvent
 from PySide6.QtWidgets import QApplication,QDialog
-from popscore.model import Project,Chord,Context,MODES,Note
-from popscore import theme
-from popscore.dialogs import ChordDialog,chord_edit_defaults
-from popscore.progressions import CaptureProgressionDialog,ProgressionDialog,ProgressionManagerDialog
-from popscore.editor import PianoRoll
-from popscore.app import MainWindow
+from lingfeng.music.model import Project, Chord, Context, MODES, Note
+import lingfeng.ui.theme as theme
+from lingfeng.ui.dialogs import ChordDialog, chord_edit_defaults
+from lingfeng.ui.progression_dialogs import CaptureProgressionDialog, ProgressionDialog, ProgressionManagerDialog
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.ui.main_window import MainWindow
 APP=QApplication.instance() or QApplication([])
 
 EXPECTED={
@@ -87,7 +87,7 @@ class ModalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder);legacy=dict(root=8,bass=11,quality='m7',pattern='up',gate=60,velocity=75,octave=2,regenerate=False)
             (path/'preferences.json').write_text(json.dumps(dict(chord_edit_options=legacy)),'utf-8')
-            with patch('popscore.app.user_data_dir',return_value=path):
+            with patch('lingfeng.ui.main_window.user_data_dir',return_value=path):
                 w=MainWindow(project());w.timer.stop();w.autosave.stop()
                 try:
                     expected=dict(quality='m7',pattern='up',gate=60,velocity=75)

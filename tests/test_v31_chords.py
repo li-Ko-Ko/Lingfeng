@@ -2,11 +2,11 @@
 import copy,os,unittest
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
-from popscore.model import Project,Chord,Context,Note,PPQ,PATTERNS,QUALITIES,MODES,pitch_name
-from popscore.chordops import change_chords,chord_details,contextual_chord_name,chord_pitch_name,chord_degree_text
-from popscore.chordspelling import scale_tones,NATURALS,Tone
-from popscore.dialogs import ChordDialog
-from popscore.rhythm import analyze,regenerate,Rhythm
+from lingfeng.music.model import Project, Chord, Context, Note, PPQ, PATTERNS, QUALITIES, MODES, pitch_name
+from lingfeng.music.chord_operations import change_chords, chord_details, contextual_chord_name, chord_pitch_name, chord_degree_text
+from lingfeng.music.chord_spelling import scale_tones, NATURALS, Tone
+from lingfeng.ui.dialogs import ChordDialog
+from lingfeng.music.rhythm import analyze, regenerate, Rhythm
 from tests.music_reference import bar_events
 
 APP=QApplication.instance() or QApplication([])
@@ -99,7 +99,7 @@ class QualityTests(unittest.TestCase):
         self.assertIsNone(c.bass);self.assertEqual(analyze(c,p).pattern,'quarters')
 
     def test_standard_voicings_still_match_default_for_every_quality_pair(self):
-        from popscore.chordops import quality_voicing
+        from lingfeng.music.chord_operations import quality_voicing
         for old in QUALITIES:
             for new in QUALITIES:
                 for bass in (None,4,10):

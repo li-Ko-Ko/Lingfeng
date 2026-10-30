@@ -6,9 +6,9 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPoint,QEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QAbstractSlider
-from popscore.app import MainWindow
-from popscore.model import PPQ
-from popscore.editor import KEY_W
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import PPQ
+from lingfeng.ui.piano_roll import KEY_W
 from tests.test_v501_follow import song
 
 APP=QApplication.instance() or QApplication([])
@@ -17,7 +17,7 @@ APP=QApplication.instance() or QApplication([])
 class RollBrowseTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir='tmp');self.addCleanup(self.temp.cleanup)
-        self.paths=patch('popscore.app.user_data_dir',return_value=Path(self.temp.name));self.paths.start();self.addCleanup(self.paths.stop)
+        self.paths=patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(self.temp.name));self.paths.start();self.addCleanup(self.paths.stop)
         self.saving=patch.object(MainWindow,'save_preferences');self.saving.start();self.addCleanup(self.saving.stop)
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda kind,value,tb:self.errors.append(str(value)));self.hook.start();self.addCleanup(self.hook.stop)
         self.w=MainWindow(song());self.w.change_language('zh',False);self.w.timer.stop();self.w.autosave.stop()

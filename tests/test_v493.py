@@ -3,11 +3,11 @@ import copy,os,tempfile,unittest
 from pathlib import Path
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
-from popscore.model import Project,Measure,Context,Note,demo_project
-from popscore.app import MainWindow
-from popscore.lyrics import apply_range,range_source,events,sections,tokenize,plan_range,matching_issues
-from popscore.midi import event_list
-from popscore.notation import ScoreLayout
+from lingfeng.music.model import Project, Measure, Context, Note, demo_project
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.engraving.lyrics import apply_range, range_source, events, sections, tokenize, plan_range, matching_issues
+from lingfeng.audio.midi import event_list
+from lingfeng.engraving.notation import ScoreLayout
 
 APP=QApplication.instance() or QApplication([])
 

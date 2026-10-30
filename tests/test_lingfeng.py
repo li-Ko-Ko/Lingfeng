@@ -6,16 +6,15 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord,PPQ
-from popscore.operations import NoteClipboard
-from popscore.presentation import (same_segment,compression_candidate,add_compression,active_compressions,
-    visible_bars,forced_row_allowed,apply_forced_row,annotation_allowed,add_annotation)
-from popscore.notation import ScoreLayout,fragments_for_bar
-from popscore.scoreview import ScoreView
-from popscore.editor import PianoRoll
-from popscore.midi import export_midi
-from popscore.i18n import set_language
-from popscore.theme import set_roll_palettes,roll_color,apply_theme
+from lingfeng.music.model import Project, Note, Chord, PPQ
+from lingfeng.music.note_operations import NoteClipboard
+from lingfeng.engraving.presentation import same_segment, compression_candidate, add_compression, active_compressions, visible_bars, forced_row_allowed, apply_forced_row, annotation_allowed, add_annotation
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar
+from lingfeng.ui.score_view import ScoreView
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.audio.midi import export_midi
+from lingfeng.platform.i18n import set_language
+from lingfeng.ui.theme import set_roll_palettes, roll_color, apply_theme
 
 APP=QApplication.instance() or QApplication([])
 TEMP=Path('tmp/tests');TEMP.mkdir(parents=True,exist_ok=True)

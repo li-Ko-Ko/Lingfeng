@@ -6,11 +6,11 @@ import unittest
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QImage,QPainter,QColor
-from popscore.model import Project,Note,Chord,PPQ,spelling,BACKGROUND_COLORS,NOTE_COLORS
-from popscore.notation import ScoreLayout,fragments_for_bar
-from popscore.editor import PianoRoll
-from popscore.controls import GridSelector
-from popscore.midi import export_midi
+from lingfeng.music.model import Project, Note, Chord, PPQ, spelling, BACKGROUND_COLORS, NOTE_COLORS
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.ui.controls import GridSelector
+from lingfeng.audio.midi import export_midi
 from tests.test_music import read_midi,TEST_TEMP
 
 APP=QApplication.instance() or QApplication([])

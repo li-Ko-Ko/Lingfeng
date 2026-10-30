@@ -5,11 +5,12 @@ from pathlib import Path
 
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
-from popscore import i18n
-from popscore.helpview import HelpDialog,HELP_CATEGORIES,TOPICS
-from popscore.gm_instruments import NAMES
-from popscore.model import Project
-from popscore.midi import export_daw_bundle
+import lingfeng.platform.i18n as i18n
+from lingfeng.ui.help_dialog import HelpDialog
+from lingfeng.platform.help_content import HELP_CATEGORIES, TOPICS
+from lingfeng.audio.gm_instruments import NAMES
+from lingfeng.music.model import Project
+from lingfeng.audio.midi import export_daw_bundle
 from scripts.audit_text import audit
 import tempfile
 import zipfile
@@ -52,7 +53,7 @@ class HelpTests(unittest.TestCase):
         dialog.search.setText('personal settings');self.assertTrue(self.visible(dialog))
         self.assertIn('升级',dialog.browser.toPlainText())
     def test_about_keeps_current_version_and_licensing(self):
-        from popscore import __version__
+        from lingfeng import __version__
         for language in ('zh','en'):
             dialog=self.dialog(language,True);text=dialog.browser.toPlainText()
             self.assertIn(__version__,text);self.assertIn('MIT',text);self.assertIn('37',text)

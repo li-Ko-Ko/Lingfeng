@@ -5,13 +5,13 @@ from unittest.mock import patch
 from PySide6.QtWidgets import QApplication,QDialog,QMenuBar,QMenu
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord,Measure,Context,PPQ
-from popscore.midi import export_midi,track_bytes,meta
-from popscore.midi_import import read_midi,apply_midi,MidiData,MidiTrack
-from popscore.importdialog import MidiImportDialog
-from popscore.timing import grid_points,grid_bucket,selected_measures
-from popscore.i18n import set_language
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord, Measure, Context, PPQ
+from lingfeng.audio.midi import export_midi, track_bytes, meta
+from lingfeng.audio.midi_import import read_midi, apply_midi, MidiData, MidiTrack
+from lingfeng.ui.import_dialog import MidiImportDialog
+from lingfeng.music.timing import grid_points, grid_bucket, selected_measures
+from lingfeng.platform.i18n import set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -115,7 +115,7 @@ class EditingTests(unittest.TestCase):
 
     def test_marker_dialog_broadcast_is_undoable_and_cancel_is_inert(self):
         w=self.w;w.open_harmony();w.harmony_window.setFloating(True);before=w.project.to_dict();fake=type('Dialog',(),{'exec':lambda s:QDialog.DialogCode.Accepted,'value':lambda s:dict(tonic=53,mode='Dorian',numerator=3,denominator=4)})
-        with patch('popscore.app.MarkerDialog',return_value=fake()):w.edit_context([[100,300],[8000,8300]])
+        with patch('lingfeng.ui.main_window.MarkerDialog',return_value=fake()):w.edit_context([[100,300],[8000,8300]])
         self.assertEqual(w.project.marker_value(0)[2:],(53,'Dorian'));self.assertEqual(w.project.marker_value(1)[2:],(48,'Ionian'));self.assertEqual(w.project.marker_value(2)[2:],(53,'Dorian'))
         self.assertEqual(w.harmony_window.roll.selection,[w.project.starts[i:i+2] for i in (0,2)])
         w.undo();self.assertEqual(w.project.to_dict(),before)
@@ -125,9 +125,9 @@ class EditingTests(unittest.TestCase):
         dialog=MidiImportDialog(w.project,data,'melody',0,w);self.assertFalse(dialog.meter.isChecked());self.assertFalse(dialog.tempo.isChecked());self.assertEqual(dialog.indices(),[0]);dialog.close()
         with tempfile.TemporaryDirectory(dir=Path("tmp").resolve()) as folder:
             source=Project();source.notes=[Note(0,240,70)];path=Path(folder)/'input.mid';export_midi(source,path);before=w.project.to_dict()
-            with patch('popscore.app.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Accepted):w.import_midi('melody')
+            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Accepted):w.import_midi('melody')
             self.assertEqual(w.project.notes[0].pitch,70);w.undo();self.assertEqual(w.project.to_dict(),before)
-            with patch('popscore.app.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Rejected):w.import_midi('melody')
+            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Rejected):w.import_midi('melody')
             self.assertEqual(w.project.to_dict(),before)
 
     def test_brand_aligns_menu_and_grid_is_at_right_in_both_languages(self):

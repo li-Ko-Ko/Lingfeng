@@ -6,9 +6,9 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication,QAbstractSlider,QStyleOptionSlider,QStyle
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.editor import PianoRoll,KEY_W
-from popscore.model import Project,Note,Chord,PPQ,demo_project
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.piano_roll import PianoRoll, KEY_W
+from lingfeng.music.model import Project, Note, Chord, PPQ, demo_project
 from tests.test_v14 import Synth
 
 APP=QApplication.instance() or QApplication([])

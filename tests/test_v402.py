@@ -6,15 +6,15 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtWidgets import QApplication,QDialog
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.controls import DurationSelector
-from popscore.model import Project,Chord,Note,Context,Measure,PPQ,QUALITIES,PATTERNS
-from popscore.chordops import chord_details,change_chords,quality_items,set_quality_order
-from popscore.progressions import resolve,capture,apply
-from popscore.recognition import recognize
-from popscore.rhythm import analyze
-from popscore.dialogs import ChordDialog,NoteDialog
-from popscore.i18n import set_language
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.controls import DurationSelector
+from lingfeng.music.model import Project, Chord, Note, Context, Measure, PPQ, QUALITIES, PATTERNS
+from lingfeng.music.chord_operations import chord_details, change_chords, quality_items, set_quality_order
+from lingfeng.music.progressions import resolve, capture, apply
+from lingfeng.music.recognition import recognize
+from lingfeng.music.rhythm import analyze
+from lingfeng.ui.dialogs import ChordDialog, NoteDialog
+from lingfeng.platform.i18n import set_language
 APP=QApplication.instance() or QApplication([])
 
 class QualityTests(unittest.TestCase):
@@ -60,14 +60,14 @@ class QualityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             file=Path(folder)/'flat-five.lfs';p.save(file);q=Project.load(file)
             self.assertEqual(q.to_dict(),p.to_dict())
-            from popscore.midi import export_midi
-            from popscore.midi_import import read_midi
+            from lingfeng.audio.midi import export_midi
+            from lingfeng.audio.midi_import import read_midi
             midi=Path(folder)/'flat-five.mid';export_midi(p,midi)
             data=read_midi(midi);notes=data.notes_for(range(len(data.tracks)));self.assertEqual({n.pitch%12 for n in notes},{0,4,6,10})
 
 class DurationTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.paths=patch('popscore.app.user_data_dir',return_value=Path(self.temp.name));self.paths.start()
+        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.paths=patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(self.temp.name));self.paths.start()
         self.w=MainWindow(Project());self.w.timer.stop();self.w.autosave.stop();self.w.show();self.r=self.w.roll
         self.r.center_pitch(60);APP.processEvents()
     def tearDown(self):
@@ -123,7 +123,7 @@ class DurationTests(unittest.TestCase):
         self.assertIsNone(self.r.previous_duration);self.assertEqual(self.w.length.currentData(),-1)
     def test_failed_edit_does_not_replace_remembered_duration(self):
         self.w.add_note(Note(0,720,60));before=(self.r.previous_note_id,self.r.previous_duration)
-        with patch('popscore.app.QMessageBox.warning'):
+        with patch('lingfeng.ui.main_window.QMessageBox.warning'):
             self.assertFalse(self.w.edit_notes(self.r,[Note(960,0,64)],[]))
         self.assertEqual((self.r.previous_note_id,self.r.previous_duration),before)
     def test_cross_chord_continuous_note_tracks_whole_event(self):

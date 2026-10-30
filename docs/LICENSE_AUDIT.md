@@ -1,6 +1,6 @@
 # 许可核对 / License review — 0.41.0
 
-核对日期：2026-10-29。范围：`popscore/`、`main.py`、资源生成脚本、固定版本构建依赖以及 Windows 目录式发行包中的动态库。以下是源码与分发内容核对，不是对商标、专利或所有司法辖区的法律保证。
+核对日期：2026-10-29；0.51 路径整理：2026-10-30。范围：`lingfeng/`、`main.py`、资源生成脚本、固定版本构建依赖以及 Windows 目录式发行包中的动态库。以下是源码与分发内容核对，不是对商标、专利或所有司法辖区的法律保证。
 
 Reviewed on 2026-10-29: application source, resource-generation scripts, pinned build dependencies and DLLs in the Windows portable release. This is a source/distribution review, not a guarantee about trademarks, patents or every jurisdiction.
 
@@ -73,4 +73,4 @@ The application no longer distributes sfizz or recorded sample banks. Three ligh
 
 原生包静态编译所用 Zig 0.14.1 / libc++ / libc++abi / libunwind / MinGW 运行库许可随包保存在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度不一致的问题；未修改已安装的 SoundCard 包。
 
-0.44 增加 Sitar、BlowHole、BlowBotl、Recorder、PercFlut、FMVoices，沿用同一 STK 5.0.1 许可；修改的 Sitar 线性延迟、桥接滤波和力度响应随源码提供。实际包包含源码与 Zig 运行库许可；本地候选目录与鼓素材不分发。
+0.44 增加 Sitar、BlowHole、BlowBotl、Recorder、PercFlut、FMVoices，沿用同一 STK 5.0.1 许可；修改的 Sitar 线性延迟、桥接滤波和力度响应随源码提供。实际包包含对应源码与 Zig 运行库许可。

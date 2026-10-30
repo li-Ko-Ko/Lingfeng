@@ -7,10 +7,10 @@ from PySide6.QtCore import Qt,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Measure,Context
-from popscore.notation import ScoreLayout,PAPER_W,PAPER_H,MARGIN
-from popscore.presentation import apply_forced_row,add_compression,visible_bars
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Measure, Context
+from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
+from lingfeng.engraving.presentation import apply_forced_row, add_compression, visible_bars
 APP=QApplication.instance() or QApplication([])
 
 def song(count=9,step=480,style='traditional'):
@@ -134,7 +134,7 @@ class FontLimitTests(unittest.TestCase):
         w.mutate('dense',lambda p:setattr(p,'notes',song(step=120).notes))
         self.assertIs(canvas.layout,old);self.assertEqual(w.note_font.maximum(),cap)
         w.switch_workspace('compose')
-        with patch('popscore.scoreview.ScoreLayout',wraps=ScoreLayout) as build:
+        with patch('lingfeng.ui.score_view.ScoreLayout',wraps=ScoreLayout) as build:
             w.refresh();w.show_cursor(120);build.assert_not_called()
         w.switch_workspace('score');self.assertLess(w.note_font.maximum(),cap);self.assertEffective()
 

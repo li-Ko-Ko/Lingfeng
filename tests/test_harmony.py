@@ -5,9 +5,9 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from popscore.model import Project,Note,Chord,PATTERNS,PPQ,demo_project
-from popscore.recognition import recognize
-from popscore.midi import export_midi,export_daw_bundle,event_list
+from lingfeng.music.model import Project, Note, Chord, PATTERNS, PPQ, demo_project
+from lingfeng.music.recognition import recognize
+from lingfeng.audio.midi import export_midi, export_daw_bundle, event_list
 from tests.test_music import TEST_TEMP,read_midi
 
 

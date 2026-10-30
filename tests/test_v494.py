@@ -5,10 +5,10 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QImage,QPainter,QPainterPath
-from popscore.model import Project,Note,demo_project
-from popscore.notation import ScoreLayout,export_pdf,PAPER_W,PAPER_H
-from popscore.presentation import apply_forced_row
-from popscore.midi import export_midi
+from lingfeng.music.model import Project, Note, demo_project
+from lingfeng.engraving.notation import ScoreLayout, export_pdf, PAPER_W, PAPER_H
+from lingfeng.engraving.presentation import apply_forced_row
+from lingfeng.audio.midi import export_midi
 
 APP=QApplication.instance() or QApplication([])
 

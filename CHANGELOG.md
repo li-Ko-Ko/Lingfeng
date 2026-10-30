@@ -6,6 +6,19 @@ Public release notes. See [README](README.md) and [HELP](docs/HELP.md) for usage
 
 ## 0.5 系列 / 0.5 family
 
+### 0.51 — 可维护稳定基线 / Maintainable baseline
+
+日期 / Date: 2026-10-30；基于 / Based on: 0.50.2
+
+- 源码统一为 `lingfeng` 包，按音乐、制谱、音频、界面、基础服务和诊断分配模块；活动文件采用小写下划线命名，图标、线程及主题属性移除旧产品名。
+- 分离设备路由与播放控制，共用路径、事件裁切、COM 生命周期及窗口边框服务；分开进行/结构规则与界面，消除相应反向连接与重复实现。
+- 启动入口统一支持 `main.py`、`python -m lingfeng` 和 `--version`；静态帮助脱离 Qt，文件关联与安装自检分离。
+- 归档失效的历史手工探针，删除未用控件和不可能通过当前校验的旧 schema 分支；保留有用途的备用播放、旧工程 schema 5/6、用户偏好迁移及接口别名。
+- 构建、翻译审计和源码校验递归覆盖全部子包/资源；统一源码清单，回归按模块隔离用户数据，支持两段版本号。
+- 工程 schema 6、偏好 schema 1、音源 ABI 1 不变；13 个随附工程与 0.50.2 的完整数据、播放事件和 MIDI 导出字节对比一致。
+
+Version 0.51 reorganizes 0.50.2 into the consistently named `lingfeng` package and separates shared services and UI/business responsibilities. Recursive source packaging and isolated regression runs support reproducible builds and tests. Supported projects, preference migrations and audio contracts retain their compatibility. All 13 bundled projects preserve their complete data, performed events and MIDI bytes against 0.50.2.
+
 ### 0.50.2 — Windows 停音与视图跟随 / Windows note release and view following
 
 日期 / Date: 2026-10-30

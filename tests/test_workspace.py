@@ -6,13 +6,13 @@ from PySide6.QtWidgets import QApplication,QMessageBox
 from PySide6.QtCore import QPoint,Qt
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord,Measure,PPQ
-from popscore.chordops import blank_chord,change_chords
-from popscore.presentation import pair_candidate,add_compression,lyric_verses
-from popscore.notation import ScoreLayout,PAPER_W,PAPER_H
-from popscore.midi import export_midi
-from popscore.dialogs import ChordDialog
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord, Measure, PPQ
+from lingfeng.music.chord_operations import blank_chord, change_chords
+from lingfeng.engraving.presentation import pair_candidate, add_compression, lyric_verses
+from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H
+from lingfeng.audio.midi import export_midi
+from lingfeng.ui.dialogs import ChordDialog
 
 APP=QApplication.instance() or QApplication([])
 
@@ -65,7 +65,7 @@ class StructureTests(unittest.TestCase):
             self.assertTrue(all(y>s.top+s.grid_bottom for _,_,_,y in layout.lyric_positions))
             ys=[y for nid,_,_,y in layout.lyric_positions if nid in (p.notes[0].id,p.notes[4].id)];self.assertEqual(ys[1]-ys[0],17 if style=='traditional' else 22)
     def test_lower_directions_do_not_overlap_lyrics(self):
-        from popscore.presentation import add_annotation
+        from lingfeng.engraving.presentation import add_annotation
         p=repeated();add_annotation(p,'rit',7*3840,p.end);add_annotation(p,'fine',7*3840,p.end)
         layout=ScoreLayout(p);image=QImage(PAPER_W,PAPER_H,QImage.Format.Format_ARGB32);q=QPainter(image);layout.draw(q,0);q.end()
         s=layout.systems[-1];lyrics=[y for nid,_,_,y in layout.lyric_positions if nid==p.notes[-1].id]

@@ -6,11 +6,11 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord,MODES,PPQ
-from popscore.operations import NoteClipboard,shift_in_scale,can_join,join_notes,can_split,split_notes,resize_chord
-from popscore.notation import ScoreLayout,export_pdf
-from popscore.editor import PianoRoll
-from popscore.i18n import EN,set_language
+from lingfeng.music.model import Project, Note, Chord, MODES, PPQ
+from lingfeng.music.note_operations import NoteClipboard, shift_in_scale, can_join, join_notes, can_split, split_notes, resize_chord
+from lingfeng.engraving.notation import ScoreLayout, export_pdf
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.platform.i18n import EN, set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -103,7 +103,9 @@ class SelectionTests(unittest.TestCase):
     def test_english_catalog_covers_ui_sources_and_placeholders(self):
         import string
         formatter=string.Formatter()
-        for path in Path('popscore').glob('*.py'):
+        paths=list(Path('lingfeng').rglob('*.py'))
+        self.assertGreater(len(paths),40)
+        for path in paths:
             if path.name=='i18n.py':continue
             for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
                 if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='tr' and node.args and isinstance(node.args[0],ast.Constant):

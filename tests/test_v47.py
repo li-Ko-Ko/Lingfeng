@@ -6,10 +6,10 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtCore import QPointF
-from popscore.model import Project,Note,Measure,Context
-from popscore.notation import ScoreLayout,fragment_style,PAPER_W,PAPER_H,MARGIN
-from popscore.scoreview import ScoreCanvas
-from popscore.midi import export_midi
+from lingfeng.music.model import Project, Note, Measure, Context
+from lingfeng.engraving.notation import ScoreLayout, fragment_style, PAPER_W, PAPER_H, MARGIN
+from lingfeng.ui.score_view import ScoreCanvas
+from lingfeng.audio.midi import export_midi
 APP=QApplication.instance() or QApplication([])
 
 def song(durations=(720,120,120,960,1920),style='spatial'):
@@ -119,11 +119,11 @@ class CompactTraditionalTests(unittest.TestCase):
                 self.assertGreaterEqual(dy,(layout.vertical_extents(f)[0]+layout.vertical_extents(g)[1])*s.symbol_scale)
 
     def test_compose_does_not_rebuild_repaint_or_seek_cached_score(self):
-        from popscore.app import MainWindow
+        from lingfeng.ui.main_window import MainWindow
         with patch.object(MainWindow,'save_preferences'):
             w=MainWindow(song());w.timer.stop();w.autosave.stop();w.show();w.switch_workspace('score');APP.processEvents()
             canvas=w.score_view.canvas;layout=canvas.layout;count=canvas.cache_renders;w.switch_workspace('compose')
-            with patch('popscore.scoreview.ScoreLayout',wraps=ScoreLayout) as build,patch.object(canvas,'update') as update,patch.object(w.score_view,'locate_bar') as locate:
+            with patch('lingfeng.ui.score_view.ScoreLayout',wraps=ScoreLayout) as build,patch.object(canvas,'update') as update,patch.object(w.score_view,'locate_bar') as locate:
                 w.show_cursor(720);w.mutate('edit',lambda p:setattr(p.notes[0],'pitch',69));w.return_to_start();APP.processEvents()
                 build.assert_not_called();update.assert_not_called();locate.assert_not_called()
                 self.assertIs(layout,canvas.layout);self.assertEqual(count,canvas.cache_renders);self.assertTrue(canvas.suspended)

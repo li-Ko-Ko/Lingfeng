@@ -10,12 +10,12 @@ from unittest.mock import patch
 
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
-from popscore import __version__
-from popscore.preferences import load_preferences,save_preferences,atomic_json,read_object
-from popscore.progressions import load_library,presets,make_preset,ProgressionDialog
-from popscore.progression_catalog import CATALOG_VERSION
-from popscore.model import Project
-from popscore import soundbanks as banks
+from lingfeng import __version__
+from lingfeng.platform.preferences import load_preferences, save_preferences, atomic_json, read_object
+from lingfeng.music.progressions import load_library, presets, make_preset; from lingfeng.ui.progression_dialogs import ProgressionDialog
+from lingfeng.music.progression_catalog import CATALOG_VERSION
+from lingfeng.music.model import Project
+import lingfeng.audio.soundbanks as banks
 
 APP=QApplication.instance() or QApplication([])
 ROOT=Path(__file__).resolve().parent.parent
@@ -42,7 +42,7 @@ class PreferencesTests(unittest.TestCase):
 
     def test_failed_atomic_replace_leaves_old_json_intact(self):
         atomic_json(self.path,{'theme':'dark'})
-        with patch('popscore.preferences.os.replace',side_effect=OSError('busy')):
+        with patch('lingfeng.platform.preferences.os.replace',side_effect=OSError('busy')):
             with self.assertRaises(OSError):atomic_json(self.path,{'theme':'light'})
         self.assertEqual(read_object(self.path),{'theme':'dark'})
         self.assertEqual(list(self.folder.glob('*.tmp')),[])
@@ -87,11 +87,11 @@ class PreferencesTests(unittest.TestCase):
         self.assertEqual(load_library(kept,CATALOG_VERSION+1),presets(kept))
 
     def test_window_restart_migrates_once_without_overwriting_choices(self):
-        from popscore.app import MainWindow
+        from lingfeng.ui.main_window import MainWindow
         old=dict(language='en',theme='dark',keybindings={'play':''},progression_presets=[],
                  progression_catalog_version=CATALOG_VERSION,another_setting='preserved')
         atomic_json(self.path,old)
-        with patch('popscore.app.user_data_dir',return_value=self.folder):
+        with patch('lingfeng.ui.main_window.user_data_dir',return_value=self.folder):
             for _ in range(2):
                 w=MainWindow(Project());w.timer.stop();w.autosave.stop()
                 try:

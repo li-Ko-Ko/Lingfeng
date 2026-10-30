@@ -1,4 +1,4 @@
-# 伶风 Lingfeng — For Pop Music · 0.50.2
+# 伶风 Lingfeng — For Pop Music · 0.51
 
 **伶风——为流行音乐而生**
 
@@ -15,6 +15,10 @@ This is a personally maintained open-source desktop project. **Windows x64** is 
 - [操作帮助 / User guide](docs/HELP.md)
 - [源码运行与构建 / Source and builds](#6-帮助源码与重建--help-source-and-rebuilding)
 - [更新日志 / Changelog](CHANGELOG.md) · [参与贡献 / Contributing](CONTRIBUTING.md) · [MIT 许可 / License](LICENSE)
+
+0.51 基于 0.50.2 整理源码结构：统一到 `lingfeng/`，按职责分包，共用基础服务，并完善递归构建检查。工程 schema、用户偏好和音源 ABI 保持原兼容规则。
+
+Version 0.51 reorganizes 0.50.2 into a consistently named `lingfeng/` package with focused modules, shared services and recursive build checks. Project, preference and synth compatibility rules remain unchanged.
 
 ## 1. 开始使用 / Getting started
 
@@ -238,7 +242,7 @@ Release `source/` contains rebuild inputs, synth packs include their sources/lic
 
 | 路径 / Path | 内容 / Contents |
 | --- | --- |
-| `popscore/` | 音乐模型、编辑器、谱面、歌词、音频与中英文界面 / Model, editors, scores, lyrics, audio and bilingual UI |
+| `lingfeng/` | 音乐模型、编辑器、谱面、歌词、音频与中英文界面 / Model, editors, scores, lyrics, audio and bilingual UI |
 | `scripts/`、`build.ps1` | 检查、音源构建与 Windows 打包 / Checks, synth building and Windows packaging |
 | `tests/` | 模型、交互、排版与音频回归 / Model, interaction, engraving and audio regressions |
 | `docs/` | 操作帮助、格式、音源与第三方说明 / User guide, format, synths and third-party notices |

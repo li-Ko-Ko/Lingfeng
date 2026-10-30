@@ -6,13 +6,13 @@ from PySide6.QtCore import Qt,QPoint
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication,QDialog,QMenuBar
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord,PPQ,QUALITIES
-from popscore.lyrics import tokenize,bind,apply_section,events,matching_issues,sections,delete_section,put
-from popscore.chordops import change_chords,quality_items,set_quality_order
-from popscore.notation import ScoreLayout,fragments_for_bar
-from popscore.audio import Transport
-from popscore.app import MainWindow
-from popscore.i18n import set_language
+from lingfeng.music.model import Project, Note, Chord, PPQ, QUALITIES
+from lingfeng.engraving.lyrics import tokenize, bind, apply_section, events, matching_issues, sections, delete_section, put
+from lingfeng.music.chord_operations import change_chords, quality_items, set_quality_order
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar
+from lingfeng.audio.transport import Transport
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.platform.i18n import set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -47,7 +47,7 @@ class LyricsTests(unittest.TestCase):
         for style in ('traditional','spatial','compact'):
             p.notation['style']=style;layout,_=draw(p)
             self.assertEqual([t for t,k,x,y in layout.unpitched_positions if k=='x'],[0,90,150])
-        from popscore.midi import event_list
+        from lingfeng.audio.midi import event_list
         self.assertEqual(event_list(p),[])
 
     def test_missing_onset_detected_even_if_a_note_is_sustained(self):
@@ -71,7 +71,7 @@ class LyricsTests(unittest.TestCase):
         p=Project();p.notes=[Note(0,480,60)];apply_section(p,'风',0)
         with tempfile.TemporaryDirectory(dir=Path('tmp').resolve()) as folder:
             file=Path(folder)/'lyric.lfs';p.save(file);q=Project.load(file);self.assertEqual(sections(q),sections(p))
-        from popscore.midi_import import MidiData,MidiTrack,apply_midi
+        from lingfeng.audio.midi_import import MidiData, MidiTrack, apply_midi
         before=events(p);apply_midi(p,MidiData([MidiTrack('track',[Note(480,480,62)],1920)],[],[]),[0],'melody',0)
         self.assertEqual(events(p),before);self.assertTrue(matching_issues(p))
 
@@ -145,7 +145,7 @@ class AudioTests(unittest.TestCase):
             def __init__(self):self.events=[]
             def send(self,*args):self.events.append(args)
         t=Transport();t.synth=Synth();callbacks=[]
-        with patch('popscore.audio.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):
+        with patch('lingfeng.audio.transport.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):
             t.audition([60]);t.begin_audition([64],True);last=len(t.synth.events)
             self.assertIn((0x82,60),t.synth.events);self.assertEqual(t.synth.events[-1],(0x93,64,80));callbacks[0][1]();self.assertEqual(len(t.synth.events),last)
         t.synth=None
@@ -155,7 +155,7 @@ class AudioTests(unittest.TestCase):
             def __init__(self):self.events=[]
             def send(self,*args):self.events.append(args)
         t=Transport();t.synth=Synth();callbacks=[];c=Chord(1920,1920,notes=[Note(0,240,60,45),Note(480,320,64,99)])
-        with patch('popscore.audio.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):t.begin_chord_audition(c,120)
+        with patch('lingfeng.audio.transport.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):t.begin_chord_audition(c,120)
         self.assertEqual(t.synth.events,[(0x93,60,45)]);self.assertEqual([ms for ms,fn in callbacks],[125,250,417])
         callbacks[0][1]();callbacks[1][1]();self.assertEqual(t.synth.events[-2:],[(0x83,60),(0x93,64,99)])
         t.begin_audition([67]);count=len(t.synth.events);callbacks[2][1]();self.assertEqual(len(t.synth.events),count);t.synth=None
@@ -186,7 +186,7 @@ class WindowTests(unittest.TestCase):
 
     def test_score_switch_does_not_gate_unmatched_lyrics(self):
         w=self.w;put(w.project,240,'错');w.refresh()
-        with patch('popscore.lyricpanel.LyricsGateDialog.exec') as gate:
+        with patch('lingfeng.ui.lyric_panel.LyricsGateDialog.exec') as gate:
             self.assertTrue(w.switch_workspace('score'));gate.assert_not_called()
         self.assertEqual(w.workspace,'score');self.assertTrue(matching_issues(w.project))
         self.assertEqual(w.score_tabs.count(),4)
@@ -200,7 +200,7 @@ class WindowTests(unittest.TestCase):
         w=self.w;c=Chord(0,3840);w.project.chords=[c];w.refresh();menu=w.chord_lane.context_menu(QPoint(round(w.chord_lane.x_at(240)),20))
         menus={a.text():a.menu() for a in menu.actions() if a.menu()}
         self.assertEqual(len(menus['和弦根音'].actions()),12);self.assertEqual(len(menus['和弦性质'].actions()),len(QUALITIES));self.assertEqual(len(menus['替换低音'].actions()),12)
-        from popscore.dialogs import ChordPreferenceDialog
+        from lingfeng.ui.dialogs import ChordPreferenceDialog
         d=ChordPreferenceDialog(w);d.list.setCurrentRow(1);d.move_item(-1);self.assertEqual(d.value()[0],'m');d.close()
 
     def test_lyric_draft_survives_language_but_not_project_replacement(self):

@@ -6,16 +6,16 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QRect,QEvent
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord
-from popscore.helpview import HelpDialog
-from popscore import theme
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.ui.help_dialog import HelpDialog
+import lingfeng.ui.theme as theme
 
 APP=QApplication.instance() or QApplication([])
 
 class WindowDisplayTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.prefs=patch('popscore.app.user_data_dir',return_value=Path(self.temp.name));self.prefs.start()
+        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.prefs=patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(self.temp.name));self.prefs.start()
         p=Project();p.notes=[Note(0,1920,60),Note(2400,960,61)];p.chords=[Chord(0,3840,notes=[Note(0,1920,60),Note(2400,960,61)])]
         self.w=MainWindow(p);self.w.show();self.w.resize(1200,850);self.w.timer.stop();self.w.autosave.stop();self.w.open_harmony()
         self.w.melody_window.setFloating(True);self.w.harmony_window.setFloating(True);QTest.qWait(15)

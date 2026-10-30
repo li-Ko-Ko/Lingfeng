@@ -6,10 +6,10 @@ from PySide6.QtCore import Qt,QPoint,QPointF,QEvent,QRectF
 from PySide6.QtGui import QWheelEvent,QMouseEvent
 from PySide6.QtTest import QTest,QSignalSpy
 from PySide6.QtWidgets import QApplication
-from popscore.model import Project,Note,Measure,Context
-from popscore.notation import ScoreLayout,TRADITIONAL_BEAT_GAP,PAPER_W,PAPER_H
-from popscore.scoreview import ScoreView
-from popscore.app import MainWindow
+from lingfeng.music.model import Project, Note, Measure, Context
+from lingfeng.engraving.notation import ScoreLayout, TRADITIONAL_BEAT_GAP, PAPER_W, PAPER_H
+from lingfeng.ui.score_view import ScoreView
+from lingfeng.ui.main_window import MainWindow
 APP=QApplication.instance() or QApplication([])
 
 def song(count=24):
@@ -91,7 +91,7 @@ class ViewTests(unittest.TestCase):
         v.locate_bar(23);self.assertEqual(position,(v.horizontalScrollBar().value(),v.verticalScrollBar().value()))
         self.assertFalse(v.locate_bar(100))
     def test_hidden_repeat_bar_locates_its_visible_source(self):
-        from popscore.presentation import add_compression
+        from lingfeng.engraving.presentation import add_compression
         p=Project();p.notes=[Note(b*3840,960,60) for b in range(8)];add_compression(p,list(range(8)),'repeat')
         self.view.canvas.rebuild(p);self.view.set_zoom(2)
         self.assertEqual(self.view.bar_rect(5),self.view.bar_rect(1));self.assertTrue(self.view.locate_bar(5))
@@ -110,7 +110,7 @@ class SnapshotTests(unittest.TestCase):
     def tearDown(self):self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.save.stop()
     def test_music_edits_only_rebuild_score_on_entry(self):
         w=self.w;c=w.score_view.canvas;self.assertIsNone(c.layout)
-        with patch('popscore.scoreview.ScoreLayout',wraps=ScoreLayout) as build:
+        with patch('lingfeng.ui.score_view.ScoreLayout',wraps=ScoreLayout) as build:
             for pitch in (61,62,63):w.mutate('edit',lambda p,v=pitch:setattr(p.notes[0],'pitch',v))
             self.assertEqual(build.call_count,0)
             w.switch_workspace('score');self.assertEqual(build.call_count,1);layout=c.layout
@@ -144,7 +144,7 @@ class SnapshotTests(unittest.TestCase):
         w.switch_workspace('compose')
         with patch.object(w.score_view,'locate_bar') as locate:w.roll.measureActivated.emit(20);locate.assert_not_called()
     def test_pdf_uses_displayed_snapshot_midi_uses_latest_music(self):
-        from popscore.exportdialog import ExportDialog
+        from lingfeng.ui.export_dialog import ExportDialog
         w=self.w;w.switch_workspace('score');w.mutate('edit',lambda p:setattr(p.notes[0],'pitch',70))
         pdf=ExportDialog(w,'pdf');midi=ExportDialog(w,'midi')
         self.assertEqual(pdf.project.notes[0].pitch,60);self.assertEqual(midi.project.notes[0].pitch,70)

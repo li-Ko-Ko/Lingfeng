@@ -2,7 +2,7 @@
 
 This checks catalogue completeness and formatting, not rendered layout or the
 meaning of translations. Help and instrument names use explicit bilingual data.
-Run: python scripts/audit_text.py --output output/v50-text-audit.json
+Run: python scripts/audit_text.py --output output/v51-text-audit.json
 """
 import argparse
 import ast
@@ -28,10 +28,11 @@ def fields(text):
 
 
 def audit(root=ROOT):
-    path=root/'popscore/en.json'
+    root=Path(root)
+    path=root/'lingfeng/platform/en.json'
     pairs=json.loads(path.read_text('utf-8'),object_pairs_hook=lambda items:items)
     catalog=dict(pairs);duplicates=[key for key,count in Counter(key for key,_ in pairs).items() if count>1]
-    required={};dynamic=[];calls=0;exceptions=0;files=[root/'main.py',*sorted((root/'popscore').glob('*.py'))]
+    required={};dynamic=[];calls=0;exceptions=0;files=[root/'main.py',*sorted((root/'lingfeng').rglob('*.py'))]
     for file in files:
         tree=ast.parse(file.read_text('utf-8'),filename=str(file));relative=file.relative_to(root).as_posix()
         for node in ast.walk(tree):
@@ -46,8 +47,8 @@ def audit(root=ROOT):
             for source in choices:
                 if HAN.search(source):required.setdefault(source,[]).append(f'{relative}:{node.lineno}')
     # Registries and labels passed to tr through variables also need coverage.
-    registries={'keybindings.py':('COMMANDS','FIXED_KEYS'),
-                'chordops.py':('QUALITY_LABELS',),'rhythm.py':('PATTERNS',)}
+    registries={'ui/keybindings.py':('COMMANDS','FIXED_KEYS'),
+                'music/chord_operations.py':('QUALITY_LABELS',),'music/model.py':('PATTERNS',)}
     def strings(value):
         if isinstance(value,str):yield value
         elif isinstance(value,dict):
@@ -55,12 +56,12 @@ def audit(root=ROOT):
         elif isinstance(value,(tuple,list)):
             for item in value:yield from strings(item)
     for filename,names in registries.items():
-        for node in ast.parse((root/'popscore'/filename).read_text('utf-8')).body:
+        for node in ast.parse((root/'lingfeng'/filename).read_text('utf-8')).body:
             if not isinstance(node,ast.Assign) or not any(isinstance(t,ast.Name) and t.id in names for t in node.targets):continue
             try:value=ast.literal_eval(node.value)
             except (ValueError,TypeError):continue
             for source in strings(value):
-                if HAN.search(source):required.setdefault(source,[]).append(f'popscore/{filename}:{node.lineno}')
+                if HAN.search(source):required.setdefault(source,[]).append(f'lingfeng/{filename}:{node.lineno}')
     missing=[{'source':source,'locations':locations} for source,locations in required.items() if source not in catalog]
     bad_fields=[];empty=[];unexpected_han=[]
     for source,target in catalog.items():

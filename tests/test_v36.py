@@ -5,10 +5,10 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPointF,QEvent
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note
-from popscore.progressions import presets,progression_key,progression_label,preset_label,tokens,ProgressionDialog,ProgressionSettingsDialog,DEFAULT_PRESETS
-from popscore.fonts import ensure_fonts
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note
+from lingfeng.music.progressions import presets, progression_key, progression_label, preset_label, tokens, DEFAULT_PRESETS; from lingfeng.ui.progression_dialogs import ProgressionDialog, ProgressionSettingsDialog
+from lingfeng.ui.fonts import ensure_fonts
 APP=QApplication.instance() or QApplication([]);ensure_fonts()
 
 class ProgressionTests(unittest.TestCase):
@@ -104,7 +104,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_captured_recipe_defaults_to_separator_format_and_sorted_storage(self):
         w=self.w;w.project.chords=[Chord(0,960),Chord(960,960,53),Chord(1920,960,55)]
         ids={c.id for c in w.project.chords}
-        from popscore.progressions import ProgressionEntryDialog
+        from lingfeng.ui.progression_dialogs import ProgressionEntryDialog
         def confirm(dialog):
             self.assertEqual(dialog.sequence.text(),'I – IV – V');self.assertEqual(dialog.name.text(),'I – IV – V');return dialog.DialogCode.Accepted
         with patch.object(ProgressionEntryDialog,'exec',confirm):w.capture_progression(ids)

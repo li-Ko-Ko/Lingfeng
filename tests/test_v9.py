@@ -5,13 +5,13 @@ from pathlib import Path
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtWidgets import QApplication,QToolTip,QMenuBar
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord
-from popscore.chordops import chord_details
-from popscore.structure import draft_candidate,apply_draft,KINDS
-from popscore.presentation import visible_bars,compression_valid
-from popscore.midi import export_midi
-from popscore.i18n import set_language,EN
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.music.chord_operations import chord_details
+from lingfeng.engraving.structure import draft_candidate, apply_draft, KINDS
+from lingfeng.engraving.presentation import visible_bars, compression_valid
+from lingfeng.audio.midi import export_midi
+from lingfeng.platform.i18n import set_language, EN
 
 APP=QApplication.instance() or QApplication([])
 

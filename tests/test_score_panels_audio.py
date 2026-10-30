@@ -5,9 +5,9 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
 from PySide6.QtCore import Qt
-from popscore.app import MainWindow
-from popscore.model import Project,Note
-from popscore.lyrics import events
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note
+from lingfeng.engraving.lyrics import events
 
 APP=QApplication.instance() or QApplication([])
 
@@ -74,12 +74,12 @@ class ScorePanelsTests(unittest.TestCase):
 
 class AudioProcessTests(unittest.TestCase):
     def test_worker_refills_full_blocks_and_preserves_midi_stop_order(self):
-        from popscore.synthesis import _synthesis_worker,BLOCK
+        from lingfeng.audio.synthesis import _synthesis_worker, BLOCK
         connection=MagicMock();commands=iter([('midi',(0x90,60,90)),('stop',()),('close',())])
         # Render once, then drain the commands and clean up on close.
         connection.poll.side_effect=[False,True,True,True];connection.recv.side_effect=lambda:next(commands)
         player=MagicMock();player.buffersize=4096;player.currentpadding=0;player.deviceperiod=(.01,.003)
-        with patch('popscore.synthesis.SynthEngine') as engine,patch('popscore.exporting._com_apartment'),patch('soundcard.default_speaker') as speaker,patch('popscore.synthesis.write_output') as output:
+        with patch('lingfeng.audio.synthesis.SynthEngine') as engine,patch('lingfeng.audio.exporting._com_apartment'),patch('soundcard.default_speaker') as speaker,patch('lingfeng.audio.synthesis.write_output') as output:
             speaker.return_value.player.return_value.__enter__.return_value=player
             _synthesis_worker(connection,{0:'synth:stk-essentials'},{0:1})
             engine.return_value.render.assert_called_once_with(BLOCK);output.assert_called_once()
@@ -87,8 +87,8 @@ class AudioProcessTests(unittest.TestCase):
             engine.return_value.stop.assert_called_once();engine.return_value.close.assert_called_once();connection.close.assert_called_once()
 
     def test_startup_failure_closes_process_and_pipe(self):
-        from popscore.synthesis import NativeSynth
-        with patch('popscore.synthesis.multiprocessing.get_context') as context:
+        from lingfeng.audio.synthesis import NativeSynth
+        with patch('lingfeng.audio.synthesis.multiprocessing.get_context') as context:
             parent=MagicMock();child=MagicMock();context.return_value.Pipe.return_value=(parent,child)
             parent.recv.return_value=('error','No audio device');process=context.return_value.Process.return_value
             process.is_alive.return_value=False

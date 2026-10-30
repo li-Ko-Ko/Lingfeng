@@ -5,11 +5,11 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter,QColor
 from PySide6.QtWidgets import QApplication,QMenuBar
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.audio import Transport
-from popscore.model import Project,Note,Chord
-from popscore.notation import ScoreLayout,PAPER_W,PAPER_H,GRID_LINE,ANCHOR_LINE
-from popscore.presentation import add_compression
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.audio.transport import Transport
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, GRID_LINE, ANCHOR_LINE
+from lingfeng.engraving.presentation import add_compression
 
 APP=QApplication.instance() or QApplication([])
 def song():

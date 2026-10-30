@@ -5,10 +5,10 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication
-from popscore.model import Project,Note,Chord,Measure,Context
-from popscore.notation import ScoreLayout,PAPER_W,PAPER_H,MARGIN
-from popscore.presentation import apply_forced_row,shift_presentation
-from popscore.scoreview import ScoreCanvas
+from lingfeng.music.model import Project, Note, Chord, Measure, Context
+from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
+from lingfeng.engraving.presentation import apply_forced_row, shift_presentation
+from lingfeng.ui.score_view import ScoreCanvas
 APP=QApplication.instance() or QApplication([])
 
 def music():
@@ -25,7 +25,7 @@ def render(p):
 
 class EngravingTests(unittest.TestCase):
     def test_global_size_includes_sparse_rows_rests_and_rap(self):
-        from popscore.lyrics import apply_section
+        from lingfeng.engraving.lyrics import apply_section
         p=music();apply_section(p,'我/64.爱/64你/64',14400)
         for style in ('spatial','compact','traditional'):
             p.notation.update(style=style,font_size=26);layout,_=render(p)
@@ -101,7 +101,7 @@ class EngravingTests(unittest.TestCase):
         self.assertAlmostEqual(fitted.glyph_scale,p.notation['font_size']/15)
 
     def test_repeated_bars_and_symbols_reserve_space(self):
-        from popscore.presentation import add_compression
+        from lingfeng.engraving.presentation import add_compression
         p=Project();p.notes=[Note(b*3840,960,61) for b in range(8)]
         add_compression(p,list(range(8)),'repeat')
         for style in ('traditional','spatial'):
@@ -137,7 +137,7 @@ class EngravingTests(unittest.TestCase):
         self.assertLess(bottom,s.top+s.grid_bottom)
 
     def test_forced_font_metadata_survives_bar_deletion_and_validation(self):
-        from popscore.bar_edit import delete_bars
+        from lingfeng.music.bar_operations import delete_bars
         p=music();apply_forced_row(p,list(range(2,8)));delete_bars(p,[0,3]);p.validate()
         self.assertEqual(p.notation['forced_rows'],[[1,6]])
         self.assertEqual(p.notation['forced_row_fonts'],[[1,6,4]])
@@ -146,7 +146,7 @@ class EngravingTests(unittest.TestCase):
 
 class CreationTests(unittest.TestCase):
     def test_first_entry_recommends_once_style_and_explicit_recommend_are_undoable(self):
-        from popscore.app import MainWindow
+        from lingfeng.ui.main_window import MainWindow
         with patch.object(MainWindow,'save_preferences'):
             w=MainWindow(music());w.timer.stop();w.autosave.stop()
             try:

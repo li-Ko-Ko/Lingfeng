@@ -6,10 +6,10 @@ from PySide6.QtCore import Qt,QPoint
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QApplication,QLineEdit
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord
-from popscore.helpview import HelpDialog,ABOUT_ZH,ABOUT_EN
-from popscore.history import HistoryState
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.ui.help_dialog import HelpDialog, ABOUT_ZH, ABOUT_EN
+from lingfeng.ui.history import HistoryState
 
 APP=QApplication.instance() or QApplication([])
 CTRL=Qt.KeyboardModifier.ControlModifier

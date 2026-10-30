@@ -10,9 +10,9 @@ ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
 os.environ.setdefault('LINGFENG_SYNTH_CACHE',str(ROOT/'tmp/audio-verification-index.json'))
 import numpy as np
-from popscore import __version__
-from popscore import soundbanks as banks
-from popscore.synthesis import SynthEngine,RATE,BLOCK
+from lingfeng import __version__
+import lingfeng.audio.soundbanks as banks
+from lingfeng.audio.synthesis import SynthEngine, RATE, BLOCK
 
 OUT=ROOT/'output/audio-verification';OUT.mkdir(parents=True,exist_ok=True)
 
@@ -79,8 +79,8 @@ def offline(report):
         finally:engine.close()
 
 def live(report):
-    from popscore.audio import MidiRouter,midi_devices
-    from popscore.exporting import _com_apartment
+    from lingfeng.audio.routing import MidiRouter, midi_devices
+    from lingfeng.audio.exporting import _com_apartment
     sources=[('synth:'+p['id'],p['presets'][0]['program']) for p in banks.installed_packs()]
     if midi_devices():sources.extend([('default',1),*[(name,1) for _,name in midi_devices()]])
     # Every pair, including mapper + its named physical device in either role.

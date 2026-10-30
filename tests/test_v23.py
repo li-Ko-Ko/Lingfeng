@@ -6,10 +6,10 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note,PPQ,Measure
-from popscore.editor import PianoRoll,KEY_W
-from popscore import theme
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note, PPQ, Measure
+from lingfeng.ui.piano_roll import PianoRoll, KEY_W
+import lingfeng.ui.theme as theme
 
 APP=QApplication.instance() or QApplication([])
 
@@ -44,7 +44,7 @@ class CategoryTests(unittest.TestCase):
 class InterfaceTests(unittest.TestCase):
     def setUp(self):
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start()
-        self.warning=patch('popscore.app.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
+        self.warning=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
         self.save=patch.object(MainWindow,'save_preferences');self.save.start()
         p=Project();p.notes=[Note(0,3840,60,51),Note(4800,480,62,103)];p.chords=[Chord(0,1920),Chord(1920,5760,55)]
         self.w=MainWindow(p);self.w.change_language('zh',False);theme.set_roll_coloring({});self.w.show();self.w.resize(1260,900);self.w.timer.stop();self.w.autosave.stop()

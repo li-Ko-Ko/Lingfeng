@@ -10,10 +10,10 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QEvent,QPoint,QRectF
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QStyle,QStyleOptionSlider
-from popscore.app import MainWindow
-from popscore.model import Project,Measure,Context,Note,PPQ
-from popscore.presentation import add_compression
-from popscore.scoreview import ScoreView
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Measure, Context, Note, PPQ
+from lingfeng.engraving.presentation import add_compression
+from lingfeng.ui.score_view import ScoreView
 
 APP=QApplication.instance() or QApplication([])
 
@@ -69,7 +69,7 @@ class ScoreGeometryTests(unittest.TestCase):
 class ScoreNavigationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir='tmp');self.addCleanup(self.temp.cleanup)
-        prefs=patch('popscore.app.user_data_dir',return_value=Path(self.temp.name));prefs.start();self.addCleanup(prefs.stop)
+        prefs=patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(self.temp.name));prefs.start();self.addCleanup(prefs.stop)
         save=patch.object(MainWindow,'save_preferences');save.start();self.addCleanup(save.stop)
         self.errors=[];hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));hook.start();self.addCleanup(hook.stop)
         self.w=MainWindow(song());self.w.change_language('zh',False);self.w.timer.stop();self.w.autosave.stop()

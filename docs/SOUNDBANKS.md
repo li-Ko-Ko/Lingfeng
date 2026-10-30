@@ -22,7 +22,7 @@
 
 STK 使用自己的宽松许可，允许使用、修改和再分发，需保留原版权与许可文本。每包附带 `LICENSE-STK.txt`、MIT 桥接代码许可、实际编译源码和重建命令。修改包括：内嵌数学振荡器表、独立伪随机状态、预分配复音池、MIDI 事件与释放包络；Sitar 使用稳定的线性延迟插值，铜管最小激励与输出力度分开；各预设去直流并衰减多余高频，主输出保留峰值保护。合成器软件许可不替代作品、歌词及其他素材版权；MP3 窗口显示商用提示，并保存 `.mp3.licenses.txt`。
 
-本地 `development/synth-candidates/` 保留 STK 源码、OpenWurli 和 RipplerX 备选源码及版本信息，不随发行包提供。旧采样素材归档至 `development/retired-samples-0.42/`，鼓仍仅本地保留。
+重建音源时，向 `scripts/build_synth_packs.py` 显式传入官方 STK 5.0.1 源码根目录 `--stk` 和完整 Zig 0.14.1 工具链中的可执行文件 `--zig`。也可按各音源包 `source/BUILD.txt`，直接编译随包提供的对应源码。
 
 ## 音源包接口 v1
 
@@ -49,7 +49,7 @@ int lf_tone(void *engine,double cutoff); // 可选扩展；有 cutoff_hz 的预�
 
 The three lightweight packs (37 presets) are bundled with the application. If the total unpacked synth payload exceeds the core application size, packaging produces separate synth ZIPs instead. Copy each complete pack folder into `synths/` beside Lingfeng.exe, then open Settings → Sound sources and instruments → Rescan and save. The validated JSON index and defaults persist under `%LOCALAPPDATA%/Lingfeng/synth-index/`, keyed per application location. Startup reads that index. Rescan after adding/moving/updating packs; restart after replacing a loaded DLL. The project stores stable IDs rather than paths.
 
-The native packs use STK 5.0.1 algorithmic instruments, not recorded instrument libraries. FM oscillators embed two synthetic, single-cycle tables. Source, modifications, notices and a Zig 0.14.1 rebuild command accompany each pack. Run `scripts/build_synth_packs.py` with `--stk` and `--zig` to rebuild from official sources. Build tools and alternative candidates remain local and are not shipped. Standard VST/CLAP plugins are not accepted by the ABI above.
+The native packs use STK 5.0.1 algorithmic instruments, not recorded instrument libraries. FM oscillators embed two synthetic, single-cycle tables. Source, modifications, notices and a Zig 0.14.1 rebuild command accompany each pack. Run `scripts/build_synth_packs.py` with explicit `--stk` and `--zig` paths to rebuild from official sources, or follow the included `source/BUILD.txt`. Standard VST/CLAP plugins are not accepted by the ABI above.
 
 原生包静态编译所用 Zig 0.14.1 / libc++ / libc++abi / libunwind / MinGW 运行库许可随包保存在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度不一致的问题；未修改已安装的 SoundCard 包。
 

@@ -6,14 +6,14 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication,QMenu
 from PySide6.QtTest import QTest
-from popscore.model import Project,Chord,Note
-from popscore.app import MainWindow
-from popscore.rhythm import analyze,label
-from popscore.chordops import change_chords,move_chords,split_chords,merge_chords,ChordClipboard
-from popscore.operations import repartition_chord
-from popscore.audio import Transport
-from popscore.notation import ScoreLayout
-from popscore.keybindings import normalized
+from lingfeng.music.model import Project, Chord, Note
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.rhythm import analyze, label
+from lingfeng.music.chord_operations import change_chords, move_chords, split_chords, merge_chords, ChordClipboard
+from lingfeng.music.note_operations import repartition_chord
+from lingfeng.audio.transport import Transport
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.ui.keybindings import normalized
 from tests.music_reference import bar_events
 
 APP=QApplication.instance() or QApplication([])
@@ -53,7 +53,7 @@ class MusicTests(unittest.TestCase):
             def send(self,*args):self.events.append(args)
         t=Transport();t.synth=Synth();callbacks=[]
         a=Chord(0,960,notes=[Note(240,240,60,45)]);b=Chord(5000,960,notes=[Note(0,480,64,99)])
-        with patch('popscore.audio.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):t.begin_chords_audition([b,a],120)
+        with patch('lingfeng.audio.transport.QTimer.singleShot',side_effect=lambda ms,obj,fn:callbacks.append((ms,fn))):t.begin_chords_audition([b,a],120)
         self.assertEqual([ms for ms,fn in callbacks],[125,250,500,750]);self.assertEqual(t.synth.events,[])
         for ms,fn in callbacks:fn()
         self.assertEqual(t.synth.events,[(0x93,60,45),(0x83,60),(0x93,64,99),(0x83,64)])
@@ -64,7 +64,7 @@ class MusicTests(unittest.TestCase):
 class InterfaceTests(unittest.TestCase):
     def setUp(self):
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start()
-        self.warning=patch('popscore.app.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
+        self.warning=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
         p=Project();p.notes=[Note(0,480,60),Note(480,480,60)];p.chords=[Chord(0,3840,pattern='up'),Chord(3840,3840)]
         self.w=MainWindow(p);self.w.change_language('zh',False);self.w.keybindings=normalized({});self.w.show();self.w.resize(1250,900);self.w.timer.stop();self.w.autosave.stop()
         for button in self.w.mute_buttons.values():button.setChecked(True)

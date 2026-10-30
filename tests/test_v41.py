@@ -6,12 +6,12 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import numpy as np
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication,QDialog
-from popscore.model import Project,Note,Chord,Measure,Context
-from popscore.notation import ScoreLayout
-from popscore.editor import PianoRoll
-from popscore.audio import Transport,MidiRouter
-from popscore.dialogs import SoundSettingsDialog
-from popscore.exporting import offline_pcm
+from lingfeng.music.model import Project, Note, Chord, Measure, Context
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.audio.routing import MidiRouter; from lingfeng.audio.transport import Transport
+from lingfeng.ui.dialogs import SoundSettingsDialog
+from lingfeng.audio.exporting import offline_pcm
 APP=QApplication.instance() or QApplication([])
 
 def draw(p):

@@ -5,7 +5,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
-from popscore.helpview import HELP_CATEGORIES,TOPICS,ABOUT_ZH,ABOUT_EN
+from lingfeng.platform.help_content import HELP_CATEGORIES, TOPICS, ABOUT_ZH, ABOUT_EN
 
 
 def export(path=ROOT/'docs/HELP.md'):

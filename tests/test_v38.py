@@ -4,11 +4,10 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPoint,QEvent
 from PySide6.QtWidgets import QApplication,QDialog
-from popscore.app import MainWindow
-from popscore.i18n import set_language
-from popscore.model import Project,Chord,Context,QUALITIES,PPQ
-from popscore.progressions import (capture,selection_root_query,resolve,tokens,make_preset,
-    matches_roots,ProgressionManagerDialog,ProgressionEntryDialog,ProgressionDialog,apply)
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.platform.i18n import set_language
+from lingfeng.music.model import Project, Chord, Context, QUALITIES, PPQ
+from lingfeng.music.progressions import capture, selection_root_query, resolve, tokens, make_preset, matches_roots, apply; from lingfeng.ui.progression_dialogs import ProgressionManagerDialog, ProgressionEntryDialog, ProgressionDialog
 APP=QApplication.instance() or QApplication([])
 
 def project():

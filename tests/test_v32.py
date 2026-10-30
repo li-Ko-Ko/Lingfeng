@@ -5,10 +5,10 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord,PPQ
-from popscore.notation import is_chord_tone,fragments_for_bar
-from popscore.editor import KEY_W
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord, PPQ
+from lingfeng.engraving.notation import is_chord_tone, fragments_for_bar
+from lingfeng.ui.piano_roll import KEY_W
 
 APP=QApplication.instance() or QApplication([])
 LEFT=Qt.MouseButton.LeftButton;RIGHT=Qt.MouseButton.RightButton;MIDDLE=Qt.MouseButton.MiddleButton

@@ -6,16 +6,16 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QDialog
-from popscore.model import Project,Chord,Note,Context,Measure,MODES,MAJOR,SECTIONS,spelling,degree_text
-from popscore.chordops import chord_details,roman_label
-from popscore.rhythm import analyze,analyze_performed,label
-from popscore.progressions import ProgressionDialog,DEFAULT_PRESETS
-from popscore.dialogs import MarkerDialog,ChordDialog
-from popscore.editor import PianoRoll,KEY_W
-from popscore.app import MainWindow
-from popscore.notation import ScoreLayout,PAPER_W,PAPER_H
-from popscore.fonts import ensure_fonts
-from popscore import theme
+from lingfeng.music.model import Project, Chord, Note, Context, Measure, MODES, MAJOR, SECTIONS, spelling, degree_text
+from lingfeng.music.chord_operations import chord_details, roman_label
+from lingfeng.music.rhythm import analyze, analyze_performed, label
+from lingfeng.music.progressions import DEFAULT_PRESETS; from lingfeng.ui.progression_dialogs import ProgressionDialog
+from lingfeng.ui.dialogs import MarkerDialog, ChordDialog
+from lingfeng.ui.piano_roll import PianoRoll, KEY_W
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H
+from lingfeng.ui.fonts import ensure_fonts
+import lingfeng.ui.theme as theme
 APP=QApplication.instance() or QApplication([]);ensure_fonts()
 
 def plain(html):

@@ -6,18 +6,18 @@ from PySide6.QtCore import Qt,QPoint
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication,QMenu,QDialog
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord,Measure,Context
-from popscore.operations import can_split,split_notes,repartition_chord,resize_chord
-from popscore.audio import Transport
-from popscore.app import MainWindow
-from popscore.editor import PianoRoll
-from popscore.lyrics import events,put,detach
-from popscore.quantization import quantize_notes
-from popscore.midi_import import MidiData,MidiTrack,apply_midi,read_midi
-from popscore.midi_input import WinMidiInput,commit_notes
-from popscore.notation import ScoreLayout
-from popscore.midi import export_midi
-from popscore.i18n import set_language
+from lingfeng.music.model import Project, Note, Chord, Measure, Context
+from lingfeng.music.note_operations import can_split, split_notes, repartition_chord, resize_chord
+from lingfeng.audio.transport import Transport
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.engraving.lyrics import events, put, detach
+from lingfeng.music.quantization import quantize_notes
+from lingfeng.audio.midi_import import MidiData, MidiTrack, apply_midi, read_midi
+from lingfeng.audio.midi_input import WinMidiInput, commit_notes
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.audio.midi import export_midi
+from lingfeng.platform.i18n import set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -82,7 +82,7 @@ class MusicTests(unittest.TestCase):
         self.assertEqual(data.tracks[0].notes[0].lyric,'覆盖')
 
     def test_explicit_rap_x_in_all_scores_does_not_create_midi_notes(self):
-        from popscore.lyrics import apply_section
+        from lingfeng.engraving.lyrics import apply_section
         p=Project();p.notes=[Note(0,960,60)];apply_section(p,'风',0);apply_section(p,'空/16',1440);apply_section(p,'梦/16',1440,1)
         for style in ('spatial','compact','traditional'):
             p.notation['style']=style;layout=ScoreLayout(p)
@@ -101,7 +101,7 @@ class MusicTests(unittest.TestCase):
         p.change_meter(0,3,4);self.assertEqual(events(p)[0]['tick'],6880)
 
     def test_independent_repeat_lyrics_stack_without_note_matches(self):
-        from popscore.presentation import add_compression
+        from lingfeng.engraving.presentation import add_compression
         p=Project();p.notes=[Note(0,960,60),Note(3840,960,60)];put(p,1440,'一');put(p,5280,'二')
         add_compression(p,[0,1],'repeat');layout=ScoreLayout(p)
         self.assertEqual([(e['tick'],e['verse']) for e in layout.lyrics],[(1440,0),(1440,1)])
@@ -125,12 +125,12 @@ class AuditionTests(unittest.TestCase):
             def __init__(self):self.events=[]
             def send(self,*args):self.events.append(args)
         t=Transport();t.synth=Synth();callbacks=[]
-        with patch('popscore.audio.time.monotonic',return_value=10),patch('popscore.audio.QTimer.singleShot',side_effect=lambda ms,owner,fn:callbacks.append((ms,fn))):
+        with patch('lingfeng.audio.transport.time.monotonic',return_value=10),patch('lingfeng.audio.transport.QTimer.singleShot',side_effect=lambda ms,owner,fn:callbacks.append((ms,fn))):
             t.begin_audition([60]);t.end_audition();self.assertEqual(callbacks[-1][0],650)
             t.begin_audition([62]);callbacks[0][1]();self.assertNotIn((0x82,62),t.synth.events)
             t.extend_audition(False,2.4);t.end_audition();self.assertEqual(callbacks[-1][0],2400)
             t.stop(preserve_auditions=True);self.assertNotIn((0xB2,123,0),t.synth.events)
-        with patch('popscore.audio.time.monotonic',return_value=14):t.end_audition()
+        with patch('lingfeng.audio.transport.time.monotonic',return_value=14):t.end_audition()
         self.assertIn((0x82,62),t.synth.events)
         t.stop();self.assertIn((0xB4,123,0),t.synth.events);t.synth=None
 

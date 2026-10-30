@@ -6,11 +6,11 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QWheelEvent,QContextMenuEvent
 from PySide6.QtWidgets import QApplication,QMessageBox
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord,PPQ
-from popscore.app import MainWindow
-from popscore.audio import Transport
-from popscore.editor import KEY_W
-from popscore.i18n import set_language
+from lingfeng.music.model import Project, Note, Chord, PPQ
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.audio.transport import Transport
+from lingfeng.ui.piano_roll import KEY_W
+from lingfeng.platform.i18n import set_language
 from tests.test_v14 import Synth
 
 APP=QApplication.instance() or QApplication([])
@@ -53,7 +53,7 @@ class InteractionTests(unittest.TestCase):
         set_language('zh');p=Project();p.notes=[Note(0,480,60),Note(1920,480,64)];p.chords=[Chord(0,1920,48),Chord(3840,1920,53)]
         self.w=MainWindow(p);self.w.change_language('zh',False);self.w.resize(1260,920);self.w.show();self.w.timer.stop();self.w.autosave.stop();self.w.open_harmony();QTest.qWait(25)
         self.w.transport.close();self.w.transport.synth=Synth();self.w.seek(960)
-        self.warnings=[];self.warning_patch=patch('popscore.app.QMessageBox.warning',side_effect=lambda *args:self.warnings.append(args[1:]) or QMessageBox.StandardButton.Ok);self.warning_patch.start()
+        self.warnings=[];self.warning_patch=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=lambda *args:self.warnings.append(args[1:]) or QMessageBox.StandardButton.Ok);self.warning_patch.start()
     def tearDown(self):
         self.warning_patch.stop();self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.assertFalse(self.warnings)
     def point(self,r,tick=1200,pitch=67):

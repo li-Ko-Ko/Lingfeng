@@ -5,11 +5,11 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,BACKGROUND_COLORS,NOTE_COLORS,demo_project
-from popscore.editor import PianoRoll,KEY_W
-from popscore.controls import IconButton,RollViewControls
-from popscore.notation import ScoreLayout
-from popscore.theme import color,apply_theme
+from lingfeng.music.model import Project, Note, BACKGROUND_COLORS, NOTE_COLORS, demo_project
+from lingfeng.ui.piano_roll import PianoRoll, KEY_W
+from lingfeng.ui.controls import IconButton, RollViewControls
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.ui.theme import color, apply_theme
 
 APP=QApplication.instance() or QApplication([])
 

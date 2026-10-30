@@ -6,18 +6,18 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPointF,Qt
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication
-from popscore.model import Project,Chord,Note,PPQ,Context,Measure
-from popscore.chordops import merge_chords,split_at_position,change_chords
-from popscore.midi import export_midi,event_list
-from popscore.midi_import import read_midi,apply_midi,MidiData,MidiTrack
-from popscore.exporting import bounds,export_mp3,offline_pcm
-from popscore.progressions import resolve,apply,capture,tokens
-from popscore.app import MainWindow
-from popscore.dialogs import ChordDialog
-from popscore.exportdialog import ExportDialog
-from popscore.notation import ScoreLayout,export_pdf,PAPER_W,PAPER_H
-from popscore.fonts import ensure_fonts
-from popscore import theme
+from lingfeng.music.model import Project, Chord, Note, PPQ, Context, Measure
+from lingfeng.music.chord_operations import merge_chords, split_at_position, change_chords
+from lingfeng.audio.midi import export_midi, event_list
+from lingfeng.audio.midi_import import read_midi, apply_midi, MidiData, MidiTrack
+from lingfeng.audio.exporting import bounds, export_mp3, offline_pcm
+from lingfeng.music.progressions import resolve, apply, capture, tokens
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.dialogs import ChordDialog
+from lingfeng.ui.export_dialog import ExportDialog
+from lingfeng.engraving.notation import ScoreLayout, export_pdf, PAPER_W, PAPER_H
+from lingfeng.ui.fonts import ensure_fonts
+import lingfeng.ui.theme as theme
 APP=QApplication.instance() or QApplication([]);ensure_fonts()
 
 def signature(notes):return [(n.start,n.duration,n.pitch,n.velocity) for n in notes]
@@ -95,7 +95,7 @@ class DataTests(unittest.TestCase):
     @unittest.skipUnless(os.name=='nt','WASAPI uses Windows COM')
     def test_every_realtime_worker_has_its_own_audio_apartment(self):
         import ctypes
-        from popscore.exporting import realtime_pcm
+        from lingfeng.audio.exporting import realtime_pcm
         checks=[];errors=[]
         def capture(*args):
             kind=ctypes.c_int();qualifier=ctypes.c_int()
@@ -104,7 +104,7 @@ class DataTests(unittest.TestCase):
         def run():
             try:list(realtime_pcm(Project(),'both',0,240,threading.Event(),lambda value:None))
             except Exception as exc:errors.append(str(exc))
-        with patch('popscore.exporting._capture_pcm',capture):
+        with patch('lingfeng.audio.exporting._capture_pcm',capture):
             for _ in range(3):worker=threading.Thread(target=run);worker.start();worker.join()
         self.assertEqual(errors,[]);self.assertEqual(checks,[0,0,0])
 
@@ -114,7 +114,7 @@ class DataTests(unittest.TestCase):
         change_chords(p,{c.id},'root:7');self.assertEqual({n.pitch%12 for n in c.notes},{7,11,2,6});self.assertEqual(c.velocity,81)
 
     def test_progression_keep_and_fallback_preserve_regions(self):
-        from popscore.rhythm import analyze
+        from lingfeng.music.rhythm import analyze
         p=Project();p.chords=[Chord(0,3840,pattern='up'),Chord(3840,3840,custom_rhythm=True,notes=[Note(35,777,60,40)])]
         before=[(c.start,c.duration,c.id) for c in p.chords]
         apply(p,p.chords[0].id,'IV V',True,'quarters',90)
@@ -123,7 +123,7 @@ class DataTests(unittest.TestCase):
         self.assertTrue(all(n.velocity==90 for n in p.harmony_notes()))
 
     def test_all_quality_progression_capture_roundtrips(self):
-        from popscore.model import QUALITIES
+        from lingfeng.music.model import QUALITIES
         p=Project()
         for quality in QUALITIES:
             p.chords=[Chord(0,960,48,quality)]
@@ -205,7 +205,7 @@ class InterfaceTests(unittest.TestCase):
         finally:d.deleteLater()
 
     def test_replay_and_edit_shortcuts_and_single_move_audition(self):
-        from popscore.keybindings import normalized
+        from lingfeng.ui.keybindings import normalized
         w=self.w;r=w.roll;w.keybindings=normalized({});self.assertEqual(w.keybindings['replay'],'R');self.assertEqual(w.keybindings['edit_chord'],'C')
         r.edit_target='chords';r.selected_chords={w.project.chords[0].id};r.setFocus();w.last_main_surface='melody';APP.processEvents()
         with patch.object(w,'edit_chord') as edit:w.editor_key_command('edit_chord');edit.assert_called_once()
@@ -218,14 +218,14 @@ class InterfaceTests(unittest.TestCase):
         w=self.w
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder).resolve()/'saved.lfs'
-            with patch('popscore.app.QFileDialog.getSaveFileName',return_value=(str(path),'')):self.assertTrue(w.save())
+            with patch('lingfeng.ui.main_window.QFileDialog.getSaveFileName',return_value=(str(path),'')):self.assertTrue(w.save())
             self.assertEqual(w.last_project_dir,str(path.parent));w.replace_project(Project())
-            with patch('popscore.app.QFileDialog.getOpenFileName',return_value=(str(path),'')) as choose:w.open();self.assertEqual(Path(choose.call_args.args[2]),path.parent)
+            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')) as choose:w.open();self.assertEqual(Path(choose.call_args.args[2]),path.parent)
             self.assertEqual(w.path,path)
-        with patch.object(w,'stop') as stop,patch('popscore.exportdialog.ExportDialog.exec',return_value=0):w.open_export('mp3');stop.assert_called_once()
+        with patch.object(w,'stop') as stop,patch('lingfeng.ui.export_dialog.ExportDialog.exec',return_value=0):w.open_export('mp3');stop.assert_called_once()
 
     def test_sections_menu_and_ruler_end_are_grid_aligned(self):
-        from popscore.timeline import TimelineGesture
+        from lingfeng.ui.timeline import TimelineGesture
         from types import SimpleNamespace
         from PySide6.QtCore import QPoint
         w=self.w;r=w.main_roll;r.grid=240

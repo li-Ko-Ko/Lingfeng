@@ -10,4 +10,4 @@ for x in (69,101,165):draw.rounded_rectangle((x,77,x+22,146),radius=4,fill='#214
 draw.line((72,51,181,51),fill='#A6DBBF',width=7)
 draw.ellipse((177,40,196,59),fill='#F5C988')
 (root/'assets').mkdir(exist_ok=True)
-image.save(root/'assets'/'popscore.ico',sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
+image.save(root/'assets'/'lingfeng.ico',sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])

@@ -6,12 +6,12 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtWidgets import QApplication,QLineEdit
 from PySide6.QtTest import QTest
-from popscore.model import Project,Chord,Note,PATTERNS,MODES
-from popscore.chordops import change_chords,move_chords,invert_chord,can_move_diatonic
-from popscore.operations import repartition_chord,resize_chord
-from popscore.rhythm import analyze,regenerate
-from popscore.app import MainWindow
-from popscore.keybindings import normalized
+from lingfeng.music.model import Project, Chord, Note, PATTERNS, MODES
+from lingfeng.music.chord_operations import change_chords, move_chords, invert_chord, can_move_diatonic
+from lingfeng.music.note_operations import repartition_chord, resize_chord
+from lingfeng.music.rhythm import analyze, regenerate
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.keybindings import normalized
 from tests.music_reference import bar_events as reference
 
 APP=QApplication.instance() or QApplication([])
@@ -55,8 +55,8 @@ class MusicTests(unittest.TestCase):
                 c=Chord(0,3840,48,'7',4,pattern=pattern,gate=.73,velocity=83)
                 for a,b in ((960,2880),(1200,6240),(2880,7680)):
                     with self.subTest(pattern=pattern,mixed=mixed,a=a,b=b):
-                        from popscore.rhythm import supports
-                        from popscore.meter import region_at
+                        from lingfeng.music.rhythm import supports
+                        from lingfeng.music.meter import region_at
                         result=regenerate(c,a,b,p)
                         if not supports(pattern,p,c.start) or not supports(pattern,p,a):
                             self.assertIsNone(result);continue
@@ -94,7 +94,7 @@ class MusicTests(unittest.TestCase):
 class InterfaceTests(unittest.TestCase):
     def setUp(self):
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start()
-        self.warning=patch('popscore.app.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
+        self.warning=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
         p=Project();p.chords=[Chord(0,3840,48,'',4),Chord(4800,1920,55),Chord(7680,3840,57,'m')];p.notes=[Note(0,960,60)]
         self.w=MainWindow(p);self.w.change_language('zh',False);self.w.keybindings=normalized({});self.w.show();self.w.resize(1150,850);self.w.timer.stop();self.w.autosave.stop()
         for b in self.w.mute_buttons.values():b.setChecked(True)

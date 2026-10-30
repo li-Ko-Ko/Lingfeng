@@ -5,11 +5,11 @@ from unittest.mock import patch
 from PySide6.QtWidgets import QApplication,QMenu,QLineEdit
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note,MODES,QUALITIES,PATTERNS
-from popscore.recognition import recognize,chord_inversion
-from popscore.chordops import diatonic_chord,can_move_diatonic,change_chords
-from popscore.keybindings import normalized,load_bindings
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note, MODES, QUALITIES, PATTERNS
+from lingfeng.music.recognition import recognize, chord_inversion
+from lingfeng.music.chord_operations import diatonic_chord, can_move_diatonic, change_chords
+from lingfeng.ui.keybindings import normalized, load_bindings
 
 APP=QApplication.instance() or QApplication([])
 
@@ -79,7 +79,7 @@ class MusicTests(unittest.TestCase):
 class WorkspaceTests(unittest.TestCase):
     def setUp(self):
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start()
-        self.warning=patch('popscore.app.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
+        self.warning=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
         p=Project();p.notes=[Note(960,480,60)];p.chords=[Chord(0,3840,48,'',4),Chord(3840,3840,55)]
         self.w=MainWindow(p);self.w.change_language('zh',False);self.w.keybindings=normalized({});self.w.show();self.w.resize(1200,850);self.w.timer.stop();self.w.autosave.stop()
         for b in self.w.mute_buttons.values():b.setChecked(True)

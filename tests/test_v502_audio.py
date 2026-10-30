@@ -5,8 +5,8 @@ import unittest
 from unittest.mock import patch
 
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
-from popscore.audio import MidiRouter,Transport
-from popscore.playback import PlaybackSchedule,silence_channels
+from lingfeng.audio.routing import MidiRouter; from lingfeng.audio.transport import Transport
+from lingfeng.audio.playback import PlaybackSchedule, silence_channels
 
 
 class Output:
@@ -66,9 +66,9 @@ class WindowsStopTests(unittest.TestCase):
 
 class WindowsInitializationTests(unittest.TestCase):
     def create(self,settings):
-        self.output_patch=patch('popscore.audio.Synth',Output);self.output_patch.start();self.addCleanup(self.output_patch.stop)
-        self.devices_patch=patch('popscore.audio.midi_devices',return_value=[(0,'Windows GS')]);self.devices_patch.start();self.addCleanup(self.devices_patch.stop)
-        self.default_patch=patch('popscore.audio.default_midi_device',return_value=0);self.default_patch.start();self.addCleanup(self.default_patch.stop)
+        self.output_patch=patch('lingfeng.audio.routing.Synth',Output);self.output_patch.start();self.addCleanup(self.output_patch.stop)
+        self.devices_patch=patch('lingfeng.audio.routing.midi_devices',return_value=[(0,'Windows GS')]);self.devices_patch.start();self.addCleanup(self.devices_patch.stop)
+        self.default_patch=patch('lingfeng.audio.routing.default_midi_device',return_value=0);self.default_patch.start();self.addCleanup(self.default_patch.stop)
         router=MidiRouter(settings);self.addCleanup(router.close);return router
 
     def test_windows_channels_reset_before_program_without_reverb_or_volume_rewrite(self):
@@ -96,8 +96,8 @@ class WindowsInitializationTests(unittest.TestCase):
 
 class StartupCleanupTests(unittest.TestCase):
     def test_threaded_synthesis_startup_error_is_not_replaced_by_pipe_close_race(self):
-        from popscore.synthesis import NativeSynth
-        from popscore.i18n import set_language,tr,LANGUAGE
+        from lingfeng.audio.synthesis import NativeSynth
+        from lingfeng.platform.i18n import set_language, tr, LANGUAGE
         self.addCleanup(set_language,LANGUAGE);set_language('en')
         message=tr('合成音源“{0}”未安装或已更改，请复制音源文件夹后在设置中重新扫描。','synth:v502-no-such-pack')
         for _ in range(12):

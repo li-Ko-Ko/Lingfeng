@@ -7,9 +7,9 @@ import unittest
 from pathlib import Path
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
-from popscore.model import *
-from popscore.midi import export_midi
-from popscore.notation import ScoreLayout,fragments_for_bar
+from lingfeng.music.model import *
+from lingfeng.audio.midi import export_midi
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar
 
 APP=QApplication.instance() or QApplication([])
 TEST_TEMP=Path(__file__).resolve().parent.parent/'tmp'/'test-runs'

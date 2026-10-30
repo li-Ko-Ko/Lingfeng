@@ -5,8 +5,8 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note,PPQ
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note, PPQ
 
 APP=QApplication.instance() or QApplication([])
 LEFT=Qt.MouseButton.LeftButton

@@ -1,8 +1,8 @@
 # 参与贡献 / Contributing
 
-伶风是个人维护的 Windows 桌面项目。欢迎报告可复现的问题，并提交针对明确问题的小范围修改。当前支持环境为 Windows x64、Python 3.13；应用版本由 `popscore/__init__.py` 定义。
+伶风是个人维护的 Windows 桌面项目。欢迎报告可复现的问题，并提交针对明确问题的小范围修改。当前支持环境为 Windows x64、Python 3.13；应用版本由 `lingfeng/__init__.py` 定义。
 
-Lingfeng is a personally maintained Windows desktop project. Reproducible bug reports and focused fixes are welcome. The supported environment is Windows x64 with Python 3.13; `popscore/__init__.py` defines the application version.
+Lingfeng is a personally maintained Windows desktop project. Reproducible bug reports and focused fixes are welcome. The supported environment is Windows x64 with Python 3.13; `lingfeng/__init__.py` defines the application version.
 
 ## 1. 开发环境 / Development environment
 
@@ -41,6 +41,10 @@ Please include:
 Prefer a new project with a few notes, or remove music unrelated to the problem. Do not upload private works, unlicensed lyrics/scores, other people's recordings, account details, secrets or a complete preferences folder. Check screenshots for usernames, paths and unpublished work as well.
 
 ## 3. 修改与验证 / Changes and validation
+
+源码及构建依赖位于仓库；静态帮助内容位于 `lingfeng/platform/help_content.py`，普通启动不执行安装自检。公开源码和发行包仅包含运行、重建、测试、用户说明及第三方许可所需文件。
+
+The repository and release source bundle contain the inputs needed to run, rebuild and test the application, plus user documentation and third-party notices.
 
 保持每次修改围绕一个问题。音乐时间与演奏数据归模型所有，谱面排版不应改写 MIDI；普通编辑通过现有事务/撤销路径提交。界面文案需同时维护中文与英文，不使用显示标签作为稳定数据值。
 

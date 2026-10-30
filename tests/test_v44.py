@@ -4,13 +4,12 @@ from unittest.mock import MagicMock,patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import numpy as np
 from PySide6.QtWidgets import QApplication,QWidget
-from popscore.audio import MidiRouter,Transport
-from popscore.model import Project,Chord,Context
-from popscore.progressions import (capture,apply,resolve,selection_root_query,search_recipe,
-    CaptureProgressionDialog,ProgressionEntryDialog,ProgressionManagerDialog,ProgressionDialog)
-from popscore.sounddialog import SoundSettingsDialog
-from popscore.synthesis import SynthEngine
-from popscore import soundbanks as banks
+from lingfeng.audio.routing import MidiRouter; from lingfeng.audio.transport import Transport
+from lingfeng.music.model import Project, Chord, Context
+from lingfeng.music.progressions import capture, apply, resolve, selection_root_query, search_recipe; from lingfeng.ui.progression_dialogs import CaptureProgressionDialog, ProgressionEntryDialog, ProgressionManagerDialog, ProgressionDialog
+from lingfeng.ui.sound_dialog import SoundSettingsDialog
+from lingfeng.audio.synthesis import SynthEngine
+import lingfeng.audio.soundbanks as banks
 from scripts.release_policy import bundle_synths
 APP=QApplication.instance() or QApplication([])
 
@@ -81,24 +80,24 @@ class TonicTests(unittest.TestCase):
 class OwnershipTests(unittest.TestCase):
     def test_mapper_and_named_output_share_one_handle_in_either_order(self):
         for first,second in [('default','GS'),('GS','default')]:
-            with patch('popscore.audio.midi_devices',return_value=[(2,'GS')]),patch('popscore.audio.default_midi_device',return_value=2),patch('popscore.audio.Synth') as synth:
+            with patch('lingfeng.audio.routing.midi_devices',return_value=[(2,'GS')]),patch('lingfeng.audio.routing.default_midi_device',return_value=2),patch('lingfeng.audio.routing.Synth') as synth:
                 r=MidiRouter(dict(melody=dict(device=first,program=1),chords=dict(device=second,program=25)))
                 synth.assert_called_once_with(2);self.assertIs(r.routes[0],r.routes[1]);r.close();r.close()
                 synth.return_value.close.assert_called_once()
     def test_close_detaches_transport_and_reopens_same_settings(self):
         t=Transport();old=MagicMock();t.synth=old;t.close();t.close();old.close.assert_called_once();self.assertIsNone(t.synth)
-        with patch('popscore.audio.ProcessRouter') as router:
+        with patch('lingfeng.audio.transport.ProcessRouter') as router:
             t.configure(copy.deepcopy(t.settings));t.open();router.assert_called_once_with(t.settings);t.close()
     def test_preview_releases_retained_main_handle_and_cancel_releases_preview(self):
         parent=QWidget();parent.transport=Transport();parent.transport.synth=MagicMock();old=parent.transport.synth
         settings={k:dict(device='default',program=1) for k in ('melody','chords')}
-        with patch('popscore.audio.midi_devices',return_value=[(0,'GS')]):d=SoundSettingsDialog(settings,parent)
-        with patch('popscore.audio.MidiRouter') as router:
+        with patch('lingfeng.audio.routing.midi_devices',return_value=[(0,'GS')]):d=SoundSettingsDialog(settings,parent)
+        with patch('lingfeng.audio.routing.MidiRouter') as router:
             d.preview('melody');old.close.assert_called_once();self.assertIsNone(parent.transport.synth)
             d.reject();router.return_value.close.assert_called_once();self.assertIsNone(d.preview_router)
         parent.close()
     def test_partial_router_open_failure_closes_native_and_midi(self):
-        with patch('popscore.audio.midi_devices',return_value=[]),patch('popscore.synthesis.NativeSynth') as native:
+        with patch('lingfeng.audio.routing.midi_devices',return_value=[]),patch('lingfeng.audio.synthesis.NativeSynth') as native:
             with self.assertRaises(RuntimeError):MidiRouter(dict(melody=dict(device='synth:stk-essentials',program=1),chords=dict(device='missing',program=1)))
             native.return_value.close.assert_called_once()
     def test_failed_backend_is_released_and_program_failure_keeps_old_settings(self):
@@ -135,7 +134,7 @@ class SoundTests(unittest.TestCase):
         self.assertTrue(bundle_synths(1000,500));self.assertTrue(bundle_synths(1000,1000))
         self.assertFalse(bundle_synths(1000,1001));self.assertFalse(bundle_synths(0,0))
     def test_windows_names_have_unique_labels_and_correct_program_ids(self):
-        from popscore.gm_instruments import NAMES,label
+        from lingfeng.audio.gm_instruments import NAMES, label
         self.assertEqual(len(NAMES),128);self.assertEqual(len({cn for cn,en in NAMES}),128)
         self.assertEqual(NAMES[74][1],'Recorder');self.assertEqual(NAMES[1][0],'明亮钢琴')
         self.assertTrue(label(127).startswith('128 · '))

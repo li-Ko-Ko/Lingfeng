@@ -5,13 +5,13 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication,QDialog
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Context,Measure,Note,MODES,PATTERNS,QUALITIES,PPQ
-from popscore.dialogs import ChordDialog
-from popscore.chordops import quality_items,set_quality_order,chord_details,contextual_chord_name
-from popscore.progressions import capture,resolve,make_preset,apply
-from popscore.recognition import recognize
-from popscore.i18n import set_language
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Context, Measure, Note, MODES, PATTERNS, QUALITIES, PPQ
+from lingfeng.ui.dialogs import ChordDialog
+from lingfeng.music.chord_operations import quality_items, set_quality_order, chord_details, contextual_chord_name
+from lingfeng.music.progressions import capture, resolve, make_preset, apply
+from lingfeng.music.recognition import recognize
+from lingfeng.platform.i18n import set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -127,7 +127,7 @@ class DialogTests(unittest.TestCase):
 class ApplicationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir='tmp');self.folder=Path(self.temp.name)
-        self.paths=patch('popscore.app.user_data_dir',return_value=self.folder);self.paths.start()
+        self.paths=patch('lingfeng.ui.main_window.user_data_dir',return_value=self.folder);self.paths.start()
         self.w=MainWindow(Project());self.w.timer.stop();self.w.autosave.stop();self.w.change_language('zh',False)
     def tearDown(self):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.paths.stop();self.temp.cleanup()

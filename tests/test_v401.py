@@ -7,10 +7,9 @@ from PySide6.QtCore import Qt,QPoint
 from PySide6.QtGui import QKeySequence,QAction
 from PySide6.QtWidgets import QApplication,QDialog,QMessageBox,QMenu,QLineEdit
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.model import Project,Note,Chord
-from popscore.keybindings import (COMMANDS,ALIASES,STANDARD,FIXED_KEYS,normalized,load_bindings,
-                                validate,KeyBindingsDialog,shortcut_sequences)
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.ui.keybindings import COMMANDS, ALIASES, STANDARD, FIXED_KEYS, normalized, load_bindings, validate, KeyBindingsDialog, shortcut_sequences
 
 APP=QApplication.instance() or QApplication([])
 
@@ -28,28 +27,28 @@ class BindingTests(unittest.TestCase):
         self.assertTrue({'new','open','redo_alt','delete_alt','scale_up_alt','scale_down_alt','next_chord'}<=set(d.fields))
         self.assertEqual(d.value()['save'],'Ctrl+S');self.assertEqual(d.value()['octave_down'],'Ctrl+Down')
         self.assertEqual({f.text() for f in d.findChildren(QLineEdit) if f.isReadOnly()},set(FIXED_KEYS))
-        catalog=json.loads((Path(__file__).resolve().parents[1]/'popscore/en.json').read_text('utf-8'))
+        catalog=json.loads((Path(__file__).resolve().parents[1]/'lingfeng/platform/en.json').read_text('utf-8'))
         self.assertTrue(all(label in catalog for label,_ in COMMANDS.values()))
     def test_confirm_conflict_clears_previous_action_only(self):
         d=self.dialog();d.fields['up'].setKeySequence(QKeySequence('D'))
-        with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
             d.fields['up'].editingFinished.emit()
         self.assertIn('向右移动',prompt.call_args.args[2]);self.assertIn('清除',prompt.call_args.args[2])
         self.assertEqual(d.value()['up'],'D');self.assertEqual(d.value()['right'],'');self.assertEqual(d.value()['down'],'S')
         d.accept();self.assertEqual(d.result(),QDialog.DialogCode.Accepted);validate(d.value())
     def test_declining_conflict_restores_previous_choice(self):
         d=self.dialog();before=d.value();d.fields['up'].setKeySequence(QKeySequence('Ctrl+S'))
-        with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.No):self.assertFalse(d.resolve_change('up'))
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.No):self.assertFalse(d.resolve_change('up'))
         self.assertEqual(d.value(),before)
     def test_conflict_with_save_is_reassignable_and_cancellable_as_a_draft(self):
         original=normalized({});d=self.dialog(original);d.fields['octave_down'].setKeySequence(QKeySequence('Ctrl+S'))
-        with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
             self.assertTrue(d.resolve_change('octave_down'))
         self.assertIn('保存',prompt.call_args.args[2]);self.assertEqual(d.value()['save'],'')
         d.reject();self.assertEqual(original,normalized({}))
     def test_alternate_conflict_reset_and_canonical_validation(self):
         d=self.dialog();d.fields['up'].setKeySequence(QKeySequence('Alt+Up'))
-        with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
         self.assertEqual(d.value()['scale_up_alt'],'');self.assertEqual(d.value()['scale_up'],'Alt+W')
         d.reset();self.assertEqual(d.value(),normalized({}));validate(d.value())
         with self.assertRaises(ValueError):validate({'save':'ctrl+s','up':'Ctrl+S'})
@@ -64,7 +63,7 @@ class BindingTests(unittest.TestCase):
 class InterfaceTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir='tmp');self.folder=Path(self.temp.name)
-        self.paths=patch('popscore.app.user_data_dir',return_value=self.folder);self.paths.start()
+        self.paths=patch('lingfeng.ui.main_window.user_data_dir',return_value=self.folder);self.paths.start()
         p=Project();p.notes=[Note(0,480,60),Note(960,480,62)];p.chords=[Chord(0,3840),Chord(3840,3840,55)]
         self.w=MainWindow(p);self.w.timer.stop();self.w.autosave.stop();self.w.change_language('zh',False);self.w.show()
         self.r=self.w.roll;self.focus(self.r)
@@ -88,7 +87,7 @@ class InterfaceTests(unittest.TestCase):
         w=self.w
         def accept(d):
             d.fields['octave_down'].setKeySequence(QKeySequence('Ctrl+S'))
-            with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.accept()
+            with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.accept()
             return d.result()
         with patch.object(KeyBindingsDialog,'exec',accept):w.keybinding_settings()
         save=next(a for a in w.findChildren(QAction) if a.property('shortcutCommand')=='save')
@@ -127,7 +126,7 @@ class InterfaceTests(unittest.TestCase):
         w=self.w;before=dict(w.keybindings)
         def reject(d):
             d.fields['up'].setKeySequence(QKeySequence('Ctrl+C'))
-            with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
+            with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
             return QDialog.DialogCode.Rejected
         with patch.object(KeyBindingsDialog,'exec',reject):w.keybinding_settings()
         self.assertEqual(w.keybindings,before)

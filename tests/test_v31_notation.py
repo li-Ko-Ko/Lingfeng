@@ -6,8 +6,8 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
-from popscore.model import Note, Project
-from popscore.notation import ScoreLayout, fragments_for_bar, rhythm_parts, rhythm_style
+from lingfeng.music.model import Note, Project
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar, rhythm_parts, rhythm_style
 
 
 APP = QApplication.instance() or QApplication([])

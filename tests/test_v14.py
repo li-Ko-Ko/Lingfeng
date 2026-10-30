@@ -4,13 +4,13 @@ from PySide6.QtWidgets import QApplication,QLabel,QDialog
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
 from unittest.mock import patch
-from popscore.model import Project,Note,Chord
-from popscore.app import MainWindow
-from popscore.audio import Transport
-from popscore.lyrics import plan_range,apply_range,apply_section,events,matching_issues,sections
-from popscore.notation import ScoreLayout
-from popscore.dialogs import NoteDialog
-from popscore.i18n import set_language
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.audio.transport import Transport
+from lingfeng.engraving.lyrics import plan_range, apply_range, apply_section, events, matching_issues, sections
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.ui.dialogs import NoteDialog
+from lingfeng.platform.i18n import set_language
 
 APP=QApplication.instance() or QApplication([])
 
@@ -108,7 +108,7 @@ class UITests(unittest.TestCase):
         w=self.w;w.transport.close();w.transport.synth=Synth();w.playhead=0;w.toggle_play();QTest.qWait(20);worker=w.transport.thread;anchor=w.play_anchor
         self.assertTrue(w.mutate('edit',lambda p:setattr(p.notes[-1],'pitch',70)));self.assertTrue(w.transport.playing);self.assertIs(w.transport.thread,worker)
         w.undo();w.redo();self.assertTrue(w.transport.playing);self.assertEqual(w.play_anchor,anchor)
-        with patch('popscore.app.QMessageBox.warning'):
+        with patch('lingfeng.ui.main_window.QMessageBox.warning'):
             self.assertFalse(w.mutate('bad',lambda p:setattr(p.notes[0],'pitch',200)))
         self.assertTrue(w.transport.playing);w.set_notation('row_gap',10);self.assertTrue(w.transport.playing)
         w.switch_workspace('score');w.batch_lyrics();w.toggle_score_panel_floating('lyrics');w.lyric_panel.text.setFocus();QTest.keyClicks(w.lyric_panel.text,'hello world')

@@ -1,6 +1,6 @@
 """Build separate STK synth packs. Requires official STK 5.0.1 and Zig 0.14.1.
 
-Source inputs stay under development/synth-candidates, outside every release.
+Pass explicit paths to the official STK source and Zig executable.
 Only used STK classes and two mathematical oscillator tables are compiled.
 No recorded instrument samples or filesystem access are needed at runtime.
 """
@@ -8,13 +8,17 @@ import argparse,hashlib,json,os,re,shutil,struct,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
-from popscore import __version__
+from lingfeng import __version__
 
 def build():
-    parser=argparse.ArgumentParser();parser.add_argument('--zig',type=Path);parser.add_argument('--stk',type=Path)
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--zig',type=Path,required=True,help='Zig 0.14.1 executable from the complete toolchain')
+    parser.add_argument('--stk',type=Path,required=True,help='Official STK 5.0.1 source root')
     args=parser.parse_args()
-    stk=args.stk or next((ROOT/'development/synth-candidates/stk').glob('*/include')).parent
-    zig=args.zig or next((ROOT/'development/toolchains').glob('zig-*/zig.exe'))
+    stk=args.stk.resolve();zig=args.zig.resolve()
+    if not zig.is_file():parser.error('--zig must name an existing executable')
+    if not all((stk/name).is_dir() for name in ('include','src','rawwaves')) or not (stk/'LICENSE').is_file():
+        parser.error('--stk must contain include/, src/, rawwaves/ and LICENSE')
     dest=ROOT/'build/stk-pack';dest.mkdir(parents=True,exist_ok=True)
     classes=set();pending=['Rhodey','Wurley','BeeThree','TubeBell','Plucked','StifKarp','Bowed','Brass','Clarinet','Flute','Saxofony','BandedWG','Sitar','BlowHole','BlowBotl','Recorder','PercFlut','FMVoices']
     while pending:

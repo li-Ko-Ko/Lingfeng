@@ -5,11 +5,11 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import numpy as np
 from PySide6.QtWidgets import QApplication
-from popscore import soundbanks as banks
-from popscore.model import Project,Note
-from popscore.synthesis import SynthEngine,RATE,BLOCK
-from popscore.sounddialog import SoundSettingsDialog
-from popscore.exporting import offline_pcm
+import lingfeng.audio.soundbanks as banks
+from lingfeng.music.model import Project, Note
+from lingfeng.audio.synthesis import SynthEngine, RATE, BLOCK
+from lingfeng.ui.sound_dialog import SoundSettingsDialog
+from lingfeng.audio.exporting import offline_pcm
 APP=QApplication.instance() or QApplication([])
 ROOT=Path(__file__).resolve().parent.parent
 BANKS=banks.default_root()
@@ -56,7 +56,7 @@ class PackTests(unittest.TestCase):
         data=Project().to_dict();data['audio']['melody']=dict(device='samples',program=40);p=Project.from_dict(data)
         self.assertEqual(p.audio['melody'],dict(device=CORE,program=40));self.assertEqual(data['audio']['melody']['device'],'samples')
     def test_dialog_scan_restores_new_pack_and_empty_disables_accept(self):
-        with patch('popscore.audio.midi_devices',return_value=[]):
+        with patch('lingfeng.audio.routing.midi_devices',return_value=[]):
             d=SoundSettingsDialog(Project().audio)
             try:
                 self.assertFalse(d.preview_buttons['melody'].isEnabled());self.install();d.scan()
@@ -111,9 +111,9 @@ class SynthesisTests(unittest.TestCase):
         p.audio['melody']['device']='default'
         with self.assertRaises(ValueError):next(offline_pcm(p,'melody',0,240,threading.Event(),lambda n:None))
     def test_router_one_native_stream_mixed_packs_and_windows(self):
-        from popscore.audio import MidiRouter
+        from lingfeng.audio.routing import MidiRouter
         settings={'melody':dict(device=CORE,program=1),'chords':dict(device=EXTRA,program=73)}
-        with patch('popscore.audio.midi_devices',return_value=[(0,'GS')]),patch('popscore.synthesis.NativeSynth') as native,patch('popscore.audio.Synth') as win:
+        with patch('lingfeng.audio.routing.midi_devices',return_value=[(0,'GS')]),patch('lingfeng.audio.synthesis.NativeSynth') as native,patch('lingfeng.audio.routing.Synth') as win:
             r=MidiRouter(settings);self.assertEqual(native.call_count,1);r.close();native.return_value.close.assert_called_once()
             settings['chords']['device']='GS';r=MidiRouter(settings);r.send(0x91,60,90);win.return_value.send.assert_any_call(0x91,60,90);r.close()
     def test_many_simultaneous_notes_and_release_remain_bounded(self):
@@ -128,8 +128,8 @@ class SynthesisTests(unittest.TestCase):
         whole=a.render(4096);split=np.concatenate([b.render(137),b.render(3959)])
         np.testing.assert_allclose(whole,split,atol=1e-7);self.assertLessEqual(float(abs(whole).max()),.950001)
     def test_output_releases_only_initialized_frames(self):
-        from popscore.exporting import _com_apartment
-        from popscore.synthesis import write_output
+        from lingfeng.audio.exporting import _com_apartment
+        from lingfeng.audio.synthesis import write_output
         with _com_apartment():
             from soundcard.mediafoundation import _ffi
             class Player:

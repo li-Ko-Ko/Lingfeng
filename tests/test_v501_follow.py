@@ -11,9 +11,9 @@ from PySide6.QtCore import Qt,QEvent,QPoint,QPointF
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QAbstractSlider
-from popscore.app import MainWindow
-from popscore.editor import KEY_W
-from popscore.model import Project,Note,Measure,Context,PPQ
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.piano_roll import KEY_W
+from lingfeng.music.model import Project, Note, Measure, Context, PPQ
 
 APP=QApplication.instance() or QApplication([])
 
@@ -28,7 +28,7 @@ class FollowingTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir='tmp');self.addCleanup(self.temp.cleanup)
         self.folder=Path(self.temp.name)
-        self.prefs=patch('popscore.app.user_data_dir',return_value=self.folder);self.prefs.start();self.addCleanup(self.prefs.stop)
+        self.prefs=patch('lingfeng.ui.main_window.user_data_dir',return_value=self.folder);self.prefs.start();self.addCleanup(self.prefs.stop)
         self.save=patch.object(MainWindow,'save_preferences');self.save.start();self.addCleanup(self.save.stop)
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start();self.addCleanup(self.hook.stop)
         self.w=MainWindow(song());self.w.change_language('zh',False)

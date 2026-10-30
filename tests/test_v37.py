@@ -6,12 +6,11 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication,QDialog,QDialogButtonBox
 from PySide6.QtCore import QEvent
 from PySide6.QtTest import QTest
-from popscore.progressions import (tokens,resolve,root_identity,matches_roots,make_preset,presets,
-    load_library,preset_label,DEFAULT_PRESETS,ProgressionEntryDialog,ProgressionManagerDialog,ProgressionDialog,apply)
-from popscore.progression_catalog import HOOKTHEORY_RECIPES,CATALOG_VERSION
-from popscore.model import Project,Chord,Context,PPQ
-from popscore.app import MainWindow
-from popscore.i18n import set_language
+from lingfeng.music.progressions import tokens, resolve, root_identity, matches_roots, make_preset, presets, load_library, preset_label, DEFAULT_PRESETS, apply; from lingfeng.ui.progression_dialogs import ProgressionEntryDialog, ProgressionManagerDialog, ProgressionDialog
+from lingfeng.music.progression_catalog import HOOKTHEORY_RECIPES, CATALOG_VERSION
+from lingfeng.music.model import Project, Chord, Context, PPQ
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.platform.i18n import set_language
 APP=QApplication.instance() or QApplication([])
 
 class SearchTests(unittest.TestCase):
@@ -125,7 +124,7 @@ class DialogTests(unittest.TestCase):
             with patch.object(ProgressionEntryDialog,'exec',return_value=QDialog.DialogCode.Accepted),patch.object(ProgressionEntryDialog,'value',return_value=entry):w.capture_progression(ids)
             self.assertIn(entry,w.progression_presets);w.dirty=False;w.close();w.deleteLater()
     def test_catalog_version_and_edits_persist_across_restart(self):
-        with tempfile.TemporaryDirectory(dir='tmp') as folder,patch('popscore.app.user_data_dir',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory(dir='tmp') as folder,patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(folder)):
             w=MainWindow(Project());w.timer.stop();w.autosave.stop();w.progression_presets=[make_preset('I IV','Kept')];w.save_preferences();w.dirty=False;w.close()
             data=json.loads((Path(folder)/'preferences.json').read_text('utf-8'));self.assertEqual(data['progression_catalog_version'],CATALOG_VERSION)
             other=MainWindow(Project());self.assertEqual(other.progression_presets,w.progression_presets);other.dirty=False;other.close();other.deleteLater();w.deleteLater()

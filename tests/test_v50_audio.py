@@ -9,7 +9,7 @@ from pathlib import Path
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from popscore.playback import PlaybackSchedule, ProcessRouter, window_events
+from lingfeng.audio.playback import PlaybackSchedule, ProcessRouter, window_events
 
 
 class FileRouter:
@@ -42,7 +42,7 @@ class FailingNoteRouter(FileRouter):
 class MissingPackOnProgramRouter(FileRouter):
     def send(self, status, a=0, b=0):
         if status & 0xf0 == 0xc0:
-            from popscore.soundbanks import pack
+            from lingfeng.audio.soundbanks import pack
             pack('synth:no-such-pack')
         super().send(status, a, b)
 
@@ -50,14 +50,14 @@ class MissingPackOnProgramRouter(FileRouter):
 def language_probe_synthesis_worker(*args):
     """Run the real pipe protocol in a real child without requiring hardware."""
     from unittest.mock import MagicMock, patch
-    from popscore.synthesis import _synthesis_worker
+    from lingfeng.audio.synthesis import _synthesis_worker
 
     class Engine:
         def __init__(self, **kwargs):
             pass
         def send(self, status, program=0, velocity=0):
             if status & 0xf0 == 0xc0 and program == 127:
-                from popscore.soundbanks import pack
+                from lingfeng.audio.soundbanks import pack
                 pack('synth:no-such-pack')
         def close(self):
             pass
@@ -65,7 +65,7 @@ def language_probe_synthesis_worker(*args):
     player = MagicMock()
     player.buffersize = player.currentpadding = 4096
     player.deviceperiod = (.01, .003)
-    with patch('popscore.synthesis.SynthEngine', Engine), patch('popscore.exporting._com_apartment'), patch('soundcard.default_speaker') as speaker:
+    with patch('lingfeng.audio.synthesis.SynthEngine', Engine), patch('lingfeng.audio.exporting._com_apartment'), patch('soundcard.default_speaker') as speaker:
         speaker.return_value.player.return_value.__enter__.return_value = player
         _synthesis_worker(*args)
 
@@ -190,8 +190,8 @@ class ProcessTests(unittest.TestCase):
             ProcessRouter({}, BrokenRouter)
 
     def test_transport_revises_worker_and_preserves_audition_channels_on_stop(self):
-        from popscore.audio import Transport
-        from popscore.model import Project, Note
+        from lingfeng.audio.transport import Transport
+        from lingfeng.music.model import Project, Note
         with tempfile.TemporaryDirectory(dir='tmp') as directory:
             path = Path(directory).resolve() / 'events.jsonl'
             router = ProcessRouter({'log': str(path)}, FileRouter)
@@ -223,15 +223,15 @@ class ProcessLanguageTests(unittest.TestCase):
     message = '合成音源“{0}”未安装或已更改，请复制音源文件夹后在设置中重新扫描。'
 
     def setUp(self):
-        from popscore import i18n
+        import lingfeng.platform.i18n as i18n
         self.language = i18n.LANGUAGE
 
     def tearDown(self):
-        from popscore.i18n import set_language
+        from lingfeng.platform.i18n import set_language
         set_language(self.language)
 
     def test_playback_spawn_formats_missing_pack_in_ui_language(self):
-        from popscore.i18n import set_language, tr
+        from lingfeng.platform.i18n import set_language, tr
         set_language('en')
         settings = {key: dict(device='synth:no-such-pack', program=0) for key in ('melody', 'chords')}
         with self.assertRaises(RuntimeError) as caught:
@@ -240,15 +240,15 @@ class ProcessLanguageTests(unittest.TestCase):
         self.assertNotIn('未安装', str(caught.exception))
 
     def test_native_spawn_formats_missing_pack_in_ui_language(self):
-        from popscore.i18n import set_language, tr
-        from popscore.synthesis import NativeSynth
+        from lingfeng.platform.i18n import set_language, tr
+        from lingfeng.audio.synthesis import NativeSynth
         set_language('en')
         with self.assertRaises(RuntimeError) as caught:
             NativeSynth({0: 'synth:no-such-pack'}, {0: 0})
         self.assertEqual(str(caught.exception), tr(self.message, 'synth:no-such-pack'))
 
     def test_open_playback_worker_uses_language_of_each_command(self):
-        from popscore.i18n import set_language, tr
+        from lingfeng.platform.i18n import set_language, tr
         for initial, changed in (('zh', 'en'), ('en', 'zh')):
             with self.subTest(initial=initial, changed=changed), tempfile.TemporaryDirectory(dir='tmp') as directory:
                 set_language(initial)
@@ -263,12 +263,12 @@ class ProcessLanguageTests(unittest.TestCase):
 
     def test_open_native_worker_uses_language_of_each_command(self):
         from unittest.mock import patch
-        from popscore.i18n import set_language, tr
-        from popscore.synthesis import NativeSynth
+        from lingfeng.platform.i18n import set_language, tr
+        from lingfeng.audio.synthesis import NativeSynth
         for initial, changed in (('zh', 'en'), ('en', 'zh')):
             with self.subTest(initial=initial, changed=changed):
                 set_language(initial)
-                with patch('popscore.synthesis._synthesis_worker', language_probe_synthesis_worker):
+                with patch('lingfeng.audio.synthesis._synthesis_worker', language_probe_synthesis_worker):
                     native = NativeSynth({0: 'synth:probe'}, {0: 1})
                 try:
                     set_language(changed)
@@ -279,8 +279,8 @@ class ProcessLanguageTests(unittest.TestCase):
                     native.close()
 
     def test_device_failure_can_stop_close_and_reopen_without_stuck_worker(self):
-        from popscore.audio import Transport
-        from popscore.model import Project, Note
+        from lingfeng.audio.transport import Transport
+        from lingfeng.music.model import Project, Note
         with tempfile.TemporaryDirectory(dir='tmp') as directory:
             path = Path(directory).resolve() / 'events.jsonl'
             t = Transport()

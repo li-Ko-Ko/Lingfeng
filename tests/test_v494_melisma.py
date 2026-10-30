@@ -3,10 +3,10 @@ import copy,os,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
-from popscore.model import Project,Measure,Context,Note
-from popscore.lyrics import tokenize,format_tokens,apply_range,range_source,events,sections,melisma_links,delete_range,matching_issues
-from popscore.midi import export_midi
-from popscore.notation import ScoreLayout,export_pdf
+from lingfeng.music.model import Project, Measure, Context, Note
+from lingfeng.engraving.lyrics import tokenize, format_tokens, apply_range, range_source, events, sections, melisma_links, delete_range, matching_issues
+from lingfeng.audio.midi import export_midi
+from lingfeng.engraving.notation import ScoreLayout, export_pdf
 from tests import test_v494 as entry
 
 def song():
@@ -103,7 +103,7 @@ class MelismaTests(unittest.TestCase):
         self.assertEqual(export_midi(p,None),Path('examples/lingfeng-melisma.mid').read_bytes())
 
     def test_tiny_large_font_and_forced_row_paths_follow_scaled_notes(self):
-        from popscore.presentation import apply_forced_row
+        from lingfeng.engraving.presentation import apply_forced_row
         for style in ('traditional','spatial','compact'):
             for size in (.1,4,12,26):
                 p=song();p.notation.update(style=style,font_size=size)
@@ -115,7 +115,7 @@ class MelismaTests(unittest.TestCase):
         self.assertEqual([k for _,_,k,_ in entry.render(p).melisma_paths],['outgoing','incoming'])
 
     def test_editor_commit_undo_redo_and_delete_refresh_current_score(self):
-        from popscore.app import MainWindow
+        from lingfeng.ui.main_window import MainWindow
         w=MainWindow(song());w.save_preferences=lambda:None;w.timer.stop();w.autosave.stop()
         try:
             w.switch_workspace('score');w.batch_lyrics();panel=w.lyric_panel;panel.count.setValue(1)

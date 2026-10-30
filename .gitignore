@@ -12,7 +12,7 @@
 !/requirements-build.txt
 !/launch.cmd
 !/start.ps1
-!/popscore/
+!/lingfeng/
 !/scripts/
 !/tests/
 !/docs/
@@ -21,6 +21,30 @@
 !/examples/
 !/licenses/
 !/synths/
+
+# Public reproduction inputs only; keep local design/maintenance material local.
+/docs/*
+!/docs/HELP.md
+!/docs/FORMAT.md
+!/docs/SOUNDBANKS.md
+!/docs/PROGRESSIONS.md
+!/docs/REFERENCES.md
+!/docs/THIRD_PARTY.md
+!/docs/LICENSE_AUDIT.md
+/scripts/*
+!/scripts/audit_text.py
+!/scripts/build_synth_packs.py
+!/scripts/collect_qt_notices.py
+!/scripts/export_help.py
+!/scripts/make_icon.py
+!/scripts/package_release.py
+!/scripts/release_policy.py
+!/scripts/run_regression.py
+!/scripts/verify_audio.py
+!/scripts/verify_release.py
+/tests/legacy/
+/tests/test_architecture.py
+/examples/*.popscore
 
 /licenses/sfizz-1.2.3/
 /licenses/sfz-sources/
@@ -39,3 +63,4 @@
 preferences.json
 preferences.json.*
 recovery.popscore
+recovery.lfs

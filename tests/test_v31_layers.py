@@ -4,9 +4,9 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication
-from popscore.editor import PianoRoll
-from popscore.model import Project,Chord,PPQ
-from popscore.theme import apply_theme,color
+from lingfeng.ui.piano_roll import PianoRoll
+from lingfeng.music.model import Project, Chord, PPQ
+from lingfeng.ui.theme import apply_theme, color
 
 APP=QApplication.instance() or QApplication([])
 

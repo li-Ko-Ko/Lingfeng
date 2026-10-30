@@ -5,11 +5,11 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QLineEdit
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note,Measure,Context,PPQ
-from popscore.chordops import change_chords,can_apply_pattern
-from popscore.rhythm import analyze
-from popscore.keybindings import load_bindings
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note, Measure, Context, PPQ
+from lingfeng.music.chord_operations import change_chords, can_apply_pattern
+from lingfeng.music.rhythm import analyze
+from lingfeng.ui.keybindings import load_bindings
 
 APP=QApplication.instance() or QApplication([])
 

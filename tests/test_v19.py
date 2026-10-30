@@ -5,13 +5,13 @@ from unittest.mock import patch
 from PySide6.QtCore import QPoint,Qt
 from PySide6.QtWidgets import QApplication,QMenu
 from PySide6.QtTest import QTest
-from popscore.model import Project,Note,Chord
-from popscore.chordops import blank_chord
-from popscore.operations import overwrite_note,NoteClipboard,repartition_chord,resize_chord
-from popscore.rhythm import analyze,label,extend,_recognize,_recognize_bar
+from lingfeng.music.model import Project, Note, Chord
+from lingfeng.music.chord_operations import blank_chord
+from lingfeng.music.note_operations import overwrite_note, NoteClipboard, repartition_chord, resize_chord
+from lingfeng.music.rhythm import analyze, label, extend, _recognize, _recognize_bar
 from tests.music_reference import bar_events
-from popscore.app import MainWindow
-from popscore.lyrics import put,events,matching_issues
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.engraving.lyrics import put, events, matching_issues
 from tests.test_v14 import Synth
 
 APP=QApplication.instance() or QApplication([])
@@ -54,7 +54,7 @@ class OverwriteTests(unittest.TestCase):
 class InterfaceTests(unittest.TestCase):
     def setUp(self):
         self.errors=[];self.hook=patch.object(sys,'excepthook',lambda typ,value,tb:self.errors.append(str(value)));self.hook.start()
-        self.warning=patch('popscore.app.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
+        self.warning=patch('lingfeng.ui.main_window.QMessageBox.warning',side_effect=AssertionError('Unexpected warning'));self.warning.start()
         self.w=MainWindow(Project());self.w.change_language('zh',False);self.w.resize(1250,900);self.w.show();self.w.timer.stop();self.w.autosave.stop();self.w.transport.close();self.w.transport.synth=Synth();APP.processEvents()
     def tearDown(self):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.hook.stop();self.warning.stop();self.assertFalse(self.errors)
@@ -103,7 +103,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(len(r.selected_ids),2);w.project.validate()
 
     def test_rhythm_cards_menu_inspector_and_dialog_update_without_expanding(self):
-        from popscore.dialogs import ChordDialog
+        from lingfeng.ui.dialogs import ChordDialog
         w=self.w;c=picture_chord();w.project.chords=[c];w.refresh();r=w.harmony_window.roll;w.chord_selection({c.id},r)
         self.assertIn('持续柱式',w.harmony_window.summary.toolTip());menu=r.lane.context_menu(QPoint(round(r.x_at(c.start+120)),25))
         self.assertTrue(menu.pattern_menu.actions()[0].isChecked());d=ChordDialog(c,w.project);self.assertEqual(d.pattern.currentData(),'block');d.close()
@@ -119,9 +119,9 @@ class InterfaceTests(unittest.TestCase):
             n=copy.deepcopy(w.project.notes[0]);n.duration=960;self.assertTrue(w.edit_notes(w.roll,[n],[]))
     def test_score_switch_and_pdf_skip_global_lyric_validation(self):
         w=self.w;put(w.project,240,'旧');w.refresh();before=events(w.project);self.assertTrue(matching_issues(w.project))
-        with patch('popscore.lyrics.matching_issues',side_effect=AssertionError('Global lyric gate')):
+        with patch('lingfeng.engraving.lyrics.matching_issues',side_effect=AssertionError('Global lyric gate')):
             self.assertTrue(w.switch_workspace('score'));self.assertEqual(w.workspace,'score');self.assertEqual(events(w.project),before)
-            with patch('popscore.exportdialog.ExportDialog.exec',return_value=0) as show:w.save_pdf();show.assert_called_once()
+            with patch('lingfeng.ui.export_dialog.ExportDialog.exec',return_value=0) as show:w.save_pdf();show.assert_called_once()
     def test_score_lyric_entry_still_rejects_extra_syllables(self):
         w=self.w;w.project.notes=[Note(0,960,60)];w.refresh();w.switch_workspace('score');panel=w.lyric_panel
         panel.start.setValue(1);panel.count.setValue(1);panel.text.setPlainText('你好吗');self.assertFalse(panel.check());before=w.project.to_dict();panel.commit();self.assertEqual(w.project.to_dict(),before)
@@ -147,11 +147,11 @@ class RhythmTests(unittest.TestCase):
             repartition_chord(p,c.id,a,b);c=p.chords[0]
             self.assertEqual(label(c),'持续柱式');self.assertEqual({n.pitch:n.velocity for n in c.render_notes()},{pitch:c.velocity for pitch in c.pitches})
             self.assertEqual(sorted((n.start,n.duration,n.pitch,n.velocity) for n in c.render_notes()),bar_events(c,p,a,b));p=Project.from_dict(p.to_dict());c=p.chords[0];self.assertEqual(label(c),'持续柱式')
-        from popscore.chordops import move_chords
+        from lingfeng.music.chord_operations import move_chords
         move_chords(p,{c.id},960);self.assertEqual(label(p.chords[0]),'持续柱式')
 
     def test_patterns_recognize_edited_notes_and_preserve_each_hit_velocity(self):
-        from popscore.model import PATTERNS
+        from lingfeng.music.model import PATTERNS
         for code in PATTERNS:
             with self.subTest(pattern=code):
                 c=Chord(0,3840,pattern=code,gate=.73);c.materialize()

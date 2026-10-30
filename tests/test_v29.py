@@ -5,12 +5,12 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QMessageBox
-from popscore.model import Project,Measure,Context,Chord,Note,PPQ
-from popscore.meter import moved_chord,region_at
-from popscore.rhythm import analyze,label
-from popscore.chordops import ChordClipboard,ChordMoveSession,move_chords,can_move_diatonic
-from popscore.bar_edit import delete_bars,deletion_has_content
-from popscore.app import MainWindow
+from lingfeng.music.model import Project, Measure, Context, Chord, Note, PPQ
+from lingfeng.music.meter import moved_chord, region_at
+from lingfeng.music.rhythm import analyze, label
+from lingfeng.music.chord_operations import ChordClipboard, ChordMoveSession, move_chords, can_move_diatonic
+from lingfeng.music.bar_operations import delete_bars, deletion_has_content
+from lingfeng.ui.main_window import MainWindow
 
 APP=QApplication.instance() or QApplication([])
 def mixed():
@@ -77,7 +77,7 @@ class ModelTests(unittest.TestCase):
         p.notation['forced_rows']=[[0,4],[4,8]];p.notation['symbols']=[dict(kind='double_bar',start=0,end=3840)]
         p.notation['compressions']=[dict(kind='repeat',start=0,first_end=2,hidden_start=2,hidden_end=4,end=4)]
         delete_bars(p,[1,3,6]);self.assertEqual(len(p.measures),5);self.assertEqual(len(p.notes),5);self.assertFalse(p.notation['compressions'])
-        from popscore.lyrics import events as lyrics
+        from lingfeng.engraving.lyrics import events as lyrics
         self.assertEqual([e['text'] for e in lyrics(p)],['0','2','4','5','7']);p.validate()
         before=p.to_dict()
         with self.assertRaises(ValueError):delete_bars(p,list(range(5)))
@@ -128,7 +128,7 @@ class InterfaceTests(unittest.TestCase):
     def test_drag_preview_does_not_regenerate_then_wrong_meter_release_is_noop(self):
         w=self.w;lane=w.chord_lane;c=w.project.chords[0];before=w.project.to_dict();history=len(w.undo_history)
         press=QPoint(round(lane.x_at(480)),25);end=QPoint(round(lane.x_at(4320)),25)
-        with patch('popscore.meter.moved_chord',side_effect=AssertionError('Must not scan during preview')):
+        with patch('lingfeng.music.meter.moved_chord',side_effect=AssertionError('Must not scan during preview')):
             QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=press);QTest.mouseMove(lane,end)
             self.assertEqual(w.project.to_dict(),before)
             QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end)
@@ -144,7 +144,7 @@ class InterfaceTests(unittest.TestCase):
         w=self.w;lane=w.chord_lane;APP.processEvents();c=w.project.chords[0];before=w.project.to_dict()
         start=QPoint(round(lane.x_at(c.end)-3),25);end=QPoint(round(lane.x_at(2880)),25)
         QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=start)
-        with patch('popscore.editor.resize_chord',side_effect=AssertionError('No generation while dragging')):
+        with patch('lingfeng.ui.piano_roll.resize_chord',side_effect=AssertionError('No generation while dragging')):
             lane.begin_resize();QTest.mouseMove(lane,end);self.assertEqual(before,w.project.to_dict())
         QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end);self.assertEqual(w.project.chords[0].end,2880)
 
@@ -156,12 +156,12 @@ class InterfaceTests(unittest.TestCase):
 
     def test_delete_confirmation_cancel_accept_and_one_undo(self):
         w=self.w;before=w.project.to_dict()
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:w.delete_measures([0,2]);self.assertTrue(question.called)
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:w.delete_measures([0,2]);self.assertTrue(question.called)
         self.assertEqual(w.project.to_dict(),before)
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.delete_measures([0,2])
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.delete_measures([0,2])
         self.assertEqual(len(w.project.measures),2);w.undo();self.assertEqual(w.project.to_dict(),before)
         w.project.chords=[];w.project.notes=[];w.refresh()
-        with patch('popscore.app.QMessageBox.question',side_effect=AssertionError('Empty bars need no confirmation')):w.delete_measures([3])
+        with patch('lingfeng.ui.main_window.QMessageBox.question',side_effect=AssertionError('Empty bars need no confirmation')):w.delete_measures([3])
 
     def test_offscreen_trailing_note_and_chord_do_not_recenter(self):
         r=self.w.roll;r.center_pitch(60);r.horizontalScrollBar().setValue(500);before=(r.horizontalScrollBar().value(),r.verticalScrollBar().value())

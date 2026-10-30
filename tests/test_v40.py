@@ -6,15 +6,15 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QLineEdit,QMenu
-from popscore.app import MainWindow
-from popscore.model import Project,Chord,Note,Context,Measure,PPQ,QUALITIES
-from popscore.rhythm import ALTERNATING,Rhythm,regenerate,analyze,analyze_performed,supports
-from popscore.chordops import change_chords,can_apply_pattern
-from popscore.dialogs import ChordDialog
-from popscore.keybindings import load_bindings,validate
-from popscore.progressions import resolve,apply
-from popscore.midi import export_midi
-from popscore.meter import moved_chord,rescan_chord
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.music.model import Project, Chord, Note, Context, Measure, PPQ, QUALITIES
+from lingfeng.music.rhythm import ALTERNATING, Rhythm, regenerate, analyze, analyze_performed, supports
+from lingfeng.music.chord_operations import change_chords, can_apply_pattern
+from lingfeng.ui.dialogs import ChordDialog
+from lingfeng.ui.keybindings import load_bindings, validate
+from lingfeng.music.progressions import resolve, apply
+from lingfeng.audio.midi import export_midi
+from lingfeng.music.meter import moved_chord, rescan_chord
 
 APP=QApplication.instance() or QApplication([])
 
@@ -120,7 +120,7 @@ class RhythmTests(unittest.TestCase):
             apply(p,c.id,'ImM7',keep_rhythm=True);self.assertEqual(analyze(p.chords[0],p).pattern,pattern)
             self.assertEqual(events(Project.from_dict(p.to_dict()).chords[0]),events(p.chords[0]))
             with tempfile.TemporaryDirectory(dir='tmp') as folder:
-                from popscore.midi_import import read_midi
+                from lingfeng.audio.midi_import import read_midi
                 path=Path(folder)/'pattern.mid';export_midi(p,path,which='chords')
                 notes=[n for track in read_midi(path).tracks for n in track.notes]
                 self.assertEqual(sorted((n.start,n.duration,n.pitch,n.velocity) for n in notes),events(p.chords[0]))
@@ -134,7 +134,7 @@ class RhythmTests(unittest.TestCase):
 
 class OctaveTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.paths=patch('popscore.app.user_data_dir',return_value=Path(self.temp.name));self.paths.start()
+        self.temp=tempfile.TemporaryDirectory(dir='tmp');self.paths=patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(self.temp.name));self.paths.start()
         self.w=MainWindow(project());self.w.timer.stop();self.w.autosave.stop();self.w.change_language('zh',False);self.w.show()
     def tearDown(self):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.paths.stop();self.temp.cleanup()
@@ -172,7 +172,7 @@ class OctaveTests(unittest.TestCase):
         r,_=self.select('melody');self.w.project.notes[1].pitch=108;self.w.refresh();before=self.w.project.to_dict()
         menu=QMenu();r.selection_menu(menu,0)
         self.assertFalse(next(a for a in menu.actions() if a.data()=='octave_up').isEnabled());menu.deleteLater()
-        with patch('popscore.app.QMessageBox.warning') as warning:self.w.note_command(r,'chromatic:12');warning.assert_called_once()
+        with patch('lingfeng.ui.main_window.QMessageBox.warning') as warning:self.w.note_command(r,'chromatic:12');warning.assert_called_once()
         self.assertEqual(self.w.project.to_dict(),before)
     def test_text_input_and_chord_selection_do_not_transpose_notes(self):
         r,_=self.select('melody');before=self.w.project.to_dict()

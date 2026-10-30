@@ -6,12 +6,12 @@ from PySide6.QtCore import Qt,QPoint
 from PySide6.QtGui import QImage,QPainter,QKeySequence
 from PySide6.QtWidgets import QApplication,QLineEdit,QMessageBox
 from PySide6.QtTest import QTest
-from popscore.model import Project,Chord,Note,PPQ,PATTERNS,Measure
-from popscore.chordops import blank_chord,pattern_template,ChordClipboard,split_chords,merge_chords,can_merge_chords,move_chords
-from popscore.operations import repartition_chord
-from popscore.app import MainWindow
-from popscore.keybindings import normalized,validate,KeyBindingsDialog
-from popscore.notation import ScoreLayout
+from lingfeng.music.model import Project, Chord, Note, PPQ, PATTERNS, Measure
+from lingfeng.music.chord_operations import blank_chord, pattern_template, ChordClipboard, split_chords, merge_chords, can_merge_chords, move_chords
+from lingfeng.music.note_operations import repartition_chord
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.keybindings import normalized, validate, KeyBindingsDialog
+from lingfeng.engraving.notation import ScoreLayout
 from tests.test_v14 import Synth
 from tests.music_reference import bar_events
 
@@ -143,7 +143,7 @@ class InterfaceTests(unittest.TestCase):
         QTest.keyClick(r,Qt.Key.Key_W);self.assertEqual(w.project.notes[0].pitch,60);QTest.keyClick(r,Qt.Key.Key_I);self.assertEqual(w.project.notes[0].pitch,61)
         field=QLineEdit(w);field.show();field.setFocus();APP.processEvents();QTest.keyClicks(field,'wasdiqe');self.assertEqual(field.text(),'wasdiqe');self.assertEqual(w.project.notes[0].pitch,61)
         dialog=KeyBindingsDialog(w.keybindings,w);dialog.fields['up'].setKeySequence(QKeySequence('D'))
-        with patch('popscore.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):dialog.accept()
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):dialog.accept()
         self.assertEqual(dialog.value()['right'],'');self.assertEqual(dialog.value()['up'],'D');dialog.deleteLater()
         with self.assertRaises(ValueError):validate(normalized({'up':'Ctrl+S'}))
         with self.assertRaises(ValueError):validate({'up':'W','down':'W'})

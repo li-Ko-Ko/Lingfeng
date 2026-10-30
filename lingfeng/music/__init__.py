@@ -1,0 +1,1 @@
+"""Lingfeng music components."""

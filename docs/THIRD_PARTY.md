@@ -63,4 +63,4 @@ The application no longer distributes sfizz or recorded sample banks. Three ligh
 
 原生包静态编译所用 Zig 0.14.1 / libc++ / libc++abi / libunwind / MinGW 运行库许可随包保存在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度不一致的问题；未修改已安装的 SoundCard 包。
 
-0.44 增加 Sitar、BlowHole、BlowBotl、Recorder、PercFlut、FMVoices，沿用同一 STK 5.0.1 许可；修改的 Sitar 线性延迟、桥接滤波和力度响应随源码提供。实际包包含源码与 Zig 运行库许可；本地候选目录与鼓素材不分发。
+0.44 增加 Sitar、BlowHole、BlowBotl、Recorder、PercFlut、FMVoices，沿用同一 STK 5.0.1 许可；修改的 Sitar 线性延迟、桥接滤波和力度响应随源码提供。实际包包含对应源码与 Zig 运行库许可。

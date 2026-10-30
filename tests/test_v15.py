@@ -7,11 +7,11 @@ from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QWheelEvent,QImage,QPainter
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from popscore.app import MainWindow
-from popscore.editor import PianoRoll,KEY_W
-from popscore.model import Project,Note,PPQ
-from popscore.notation import ScoreLayout
-from popscore.i18n import set_language
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.piano_roll import PianoRoll, KEY_W
+from lingfeng.music.model import Project, Note, PPQ
+from lingfeng.engraving.notation import ScoreLayout
+from lingfeng.platform.i18n import set_language
 from tests.test_v14 import Synth
 
 APP=QApplication.instance() or QApplication([])
@@ -55,7 +55,7 @@ class MarkerTests(unittest.TestCase):
 
 class LayoutTests(unittest.TestCase):
     def test_pitch_spacing_does_not_change_digits_rests_or_rap_size(self):
-        from popscore.lyrics import apply_section
+        from lingfeng.engraving.lyrics import apply_section
         p=Project();p.notes=[Note(0,240,60),Note(960,240,64),Note(1920,240,67)];apply_section(p,'我/64.爱/64你/64',3840)
         for style in ('spatial','compact'):
             p.notation['style']=style;sizes=[];heights=[]
@@ -66,7 +66,7 @@ class LayoutTests(unittest.TestCase):
             p.notation['font_size']=1;smaller=ScoreLayout(p);p.notation['font_size']=18;larger=ScoreLayout(p);self.assertGreater(larger.glyph_scale,smaller.glyph_scale)
             self.assertLessEqual(larger.glyph_scale*15,larger.max_font_size)
     def test_help_has_no_unbundled_local_references_or_retired_rules(self):
-        from popscore.helpview import TOPICS
+        from lingfeng.ui.help_dialog import TOPICS
         text=' '.join(str(t) for t in TOPICS)+Path('README.md').read_text('utf-8')+Path('docs/REFERENCES.md').read_text('utf-8')
         for token in ('1_01_PS2','台湾谱（','编辑音乐时会停播','谱面高度控制'):self.assertNotIn(token,text)
 
@@ -99,7 +99,7 @@ class UITests(unittest.TestCase):
     def test_meter_propagation_failure_is_atomic(self):
         w=self.w;w.project.change_meter(0,3,4);w.project.notes=[Note(w.project.starts[2]-240,240,60)];w.refresh();before=w.project.to_dict();history=len(w.undo_history)
         from PySide6.QtWidgets import QMessageBox
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:w.propagate_marker(0,'meter');self.assertTrue(question.called)
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:w.propagate_marker(0,'meter');self.assertTrue(question.called)
         self.assertEqual(w.project.to_dict(),before);self.assertEqual(len(w.undo_history),history)
     def test_reclick_toggles_bars_and_beats_shift_and_control_remain(self):
         w=self.w;w.switch_workspace('score');QTest.qWait(30);c=w.score_view.canvas

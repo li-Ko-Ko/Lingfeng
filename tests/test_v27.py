@@ -5,14 +5,14 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QMessageBox
-from popscore.model import Project,Chord,Note,Measure,Context,PPQ,PATTERNS
-from popscore.meter import regions,losses,moved_chord
-from popscore.rhythm import analyze,supports,PATTERN_METERS,regenerate
-from popscore.operations import resize_chord,repartition_chord
-from popscore.chordops import roman_label,chord_details,move_chords,change_chords,can_merge_chords
-from popscore.app import MainWindow
-from popscore.controls import IconButton
-from popscore.dialogs import ChordDialog
+from lingfeng.music.model import Project, Chord, Note, Measure, Context, PPQ, PATTERNS
+from lingfeng.music.meter import regions, losses, moved_chord
+from lingfeng.music.rhythm import analyze, supports, PATTERN_METERS, regenerate
+from lingfeng.music.note_operations import resize_chord, repartition_chord
+from lingfeng.music.chord_operations import roman_label, chord_details, move_chords, change_chords, can_merge_chords
+from lingfeng.ui.main_window import MainWindow
+from lingfeng.ui.controls import IconButton
+from lingfeng.ui.dialogs import ChordDialog
 
 APP=QApplication.instance() or QApplication([])
 def mixed():
@@ -149,10 +149,10 @@ class InterfaceTests(unittest.TestCase):
 
     def test_confirmation_cancel_and_accept_are_atomic_and_undoable(self):
         w=self.w;w.project=mixed();w.project.notes=[Note(2700,800,60)];w.refresh();before=w.project.to_dict()
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.No) as question:
             self.assertFalse(w.confirm_meter_trim([0],3,4));self.assertTrue(question.called)
         self.assertEqual(before,w.project.to_dict())
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):
             self.assertTrue(w.confirm_meter_trim([0],3,4))
             self.assertTrue(w.mutate('meter',lambda p:p.change_meter(0,3,4,True)))
         self.assertEqual(w.project.notes[0].end,2880);w.undo();self.assertEqual(w.project.to_dict(),before)
@@ -160,17 +160,17 @@ class InterfaceTests(unittest.TestCase):
     def test_bar_dialog_and_propagation_use_confirmation_before_mutation(self):
         from PySide6.QtWidgets import QDialog
         w=self.w;w.project=Project();w.project.notes=[Note(3000,480,60)];w.refresh();before=w.project.to_dict()
-        with patch('popscore.app.MarkerDialog') as factory:
+        with patch('lingfeng.ui.main_window.MarkerDialog') as factory:
             factory.return_value.exec.return_value=QDialog.DialogCode.Accepted
             factory.return_value.value.return_value=dict(tonic=48,mode='Ionian',numerator=3,denominator=4)
-            with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.No):w.edit_context([[0,3840]])
+            with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.No):w.edit_context([[0,3840]])
             self.assertEqual(before,w.project.to_dict())
-            with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.edit_context([[0,3840]])
+            with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.edit_context([[0,3840]])
         self.assertEqual(w.project.measures[0].ticks,2880);self.assertFalse(w.project.notes);w.undo();self.assertEqual(before,w.project.to_dict())
         w.project=mixed();w.project.notes=[Note(10080,240,60)];w.refresh();before=w.project.to_dict()
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.No):w.propagate_marker(1,'meter')
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.No):w.propagate_marker(1,'meter')
         self.assertEqual(before,w.project.to_dict())
-        with patch('popscore.app.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.propagate_marker(1,'meter')
+        with patch('lingfeng.ui.main_window.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):w.propagate_marker(1,'meter')
         self.assertFalse(w.project.notes);self.assertEqual(w.project.measures[2].ticks,2880);w.project.validate()
 
 if __name__=='__main__':unittest.main()

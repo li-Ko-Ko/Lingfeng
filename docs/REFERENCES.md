@@ -1,11 +1,11 @@
-# 设计与实现参考
+# 第三方来源与实现参考
 
 来源记录日期：2026-10-28。代码路径以分发包的 `source/` 为基准，练习路径以分发包根目录为基准。外部链接用于说明实现来源；操作帮助和谱例均已随包提供。下面列出具体参考范围；界面、图形、节奏型和演奏代码为本项目独立实现。
 
 ## Cakewalk Next
 
-- [Understanding Piano Roll View](https://help.cakewalk.com/hc/en-us/articles/56266627933465-Understanding-Piano-Roll-View-in-Cakewalk-Next)：参考键盘、时间标尺、力度栏、导航器，以及 Smart 的选择／移动／边缘缩放与 Draw 的拖绘分工。按本项目要求移除 Fill。
-- [Cakewalk Next User Manual](https://bandlab.github.io/cakewalk/docs/Cakewalk_Next_User_Manual.pdf)，第141–145页：已读取绘制、Shift音高锁定、Ctrl框选增选、组合选择、整组拖动、两端缩放、Esc取消、分割／合并和双击删除的具体说明。0.6将音符手势从短按／长按区分改为直接拖动；和弦块保留用户要求的长按缩放。本项目额外允许 Smart 直接拖空白框选，分割采用二等分，最低至六十四分音符或对应三连音，合并限定为按行连续的音符。当前实现逐音力度与固定轨道 CC7，不包含通用 CC 自动化曲线或完整 DAW 音频剪辑功能。
+- [Understanding Piano Roll View](https://help.cakewalk.com/hc/en-us/articles/56266627933465-Understanding-Piano-Roll-View-in-Cakewalk-Next)：参考键盘、时间标尺、力度栏、导航器，以及 Smart 的选择／移动／边缘缩放与 Draw 的拖绘分工。本项目不提供 Fill。
+- [Cakewalk Next User Manual](https://bandlab.github.io/cakewalk/docs/Cakewalk_Next_User_Manual.pdf)，第141–145页：参考绘制、Shift音高锁定、Ctrl框选增选、组合选择、整组拖动、两端缩放、Esc取消、分割／合并和双击删除的具体说明。0.6将音符手势从短按／长按区分改为直接拖动；和弦块使用长按缩放。本项目额外允许 Smart 直接拖空白框选，分割采用二等分，最低至六十四分音符或对应三连音，合并限定为按行连续的音符。当前实现逐音力度与固定轨道 CC7，不包含通用 CC 自动化曲线或完整 DAW 音频剪辑功能。
 - [Import Audio/MIDI files into Next](https://help.cakewalk.com/hc/en-us/articles/13327425804569-Import-Audio-MIDI-files-into-Next)：文档确认 Insert 菜单及拖入 Clips 面板的导入入口。
 
 迁移使用标准 MIDI Type 1、960 PPQ、共同 tick 0 与共同结束时间。项目按 MIDI 编号保留音高，不依赖不同 DAW 的八度名称。没有读写 Cakewalk 专有工程格式，尚未在 Cakewalk Next 程序内完成实际导入验收。
@@ -28,7 +28,7 @@
 - [PyChord analyzer.py](https://github.com/yuma-m/pychord/blob/master/pychord/analyzer.py)
 - [PyChord MIT license](https://github.com/yuma-m/pychord/blob/master/LICENSE)
 
-参考其“轮换候选根音→换算相对音程→匹配和弦模板→保留低音转位”的算法思路。`popscore/recognition.py` 为独立实现，没有复制 PyChord 源码；和弦进行模块另行使用原样 PyChord 运行时依赖；它用去重后的 pitch-class 集合匹配本项目模板，消除八度重复，保留所有精确匹配，按已有标记与实际最低音排序。
+参考其“轮换候选根音→换算相对音程→匹配和弦模板→保留低音转位”的算法思路。`lingfeng/music/recognition.py` 为独立实现，没有复制 PyChord 源码；和弦进行模块另行使用原样 PyChord 运行时依赖；它用去重后的 pitch-class 集合匹配本项目模板，消除八度重复，保留所有精确匹配，按已有标记与实际最低音排序。
 
 识别范围为一个和弦块中的全部实际音符，适合柱式、琶音和自定义伴奏。经过音会导致不匹配；此时显示 `?`，不会强行套用近似标签。C6 / Am7 等歧义会保留候选，用户可选择。分段可按拍设置，分析不会擅自改变主音或调式。
 
@@ -72,8 +72,8 @@
 
 ## 0.13 歌词输入
 
-- [Hookpad v1 用户手册 — Lyrics](https://www.hooktheory.com/support/hookpad-v1)：下划线跳过音符，连字符自定义英语分音节。采用用户要求的这一输入规则；当前 Hookpad 新版也提供逐格歌词输入，不能把两个版本操作混为一谈。
-- 中文逐字、同刻多声部按唯一 onset 匹配、`我/64.爱/64你/64` 显式说唱语法是本程序按用户要求实现的扩展，不声称是 Hookpad 既有功能。
+- [Hookpad v1 用户手册 — Lyrics](https://www.hooktheory.com/support/hookpad-v1)：下划线跳过音符，连字符自定义英语分音节。实现该版本的输入规则；当前 Hookpad 新版也提供逐格歌词输入，不能把两个版本操作混为一谈。
+- 中文逐字、同刻多声部按唯一 onset 匹配、`我/64.爱/64你/64` 显式说唱语法是本程序自行实现的扩展，不声称是 Hookpad 既有功能。
 
 ## Windows 窗口与任务栏
 
