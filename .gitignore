@@ -27,6 +27,12 @@
 !/docs/SOUNDBANKS.md
 !/docs/PROGRESSIONS.md
 !/docs/THIRD_PARTY.md
+!/docs/screenshots/
+/docs/screenshots/*
+!/docs/screenshots/compose.png
+!/docs/screenshots/spatial-score.png
+!/docs/screenshots/lyrics-rap.png
+!/docs/screenshots/progression-library.png
 /scripts/*
 !/scripts/audit_text.py
 !/scripts/build_synth_packs.py

@@ -50,7 +50,18 @@ class SourceBundleTests(unittest.TestCase):
         self.assertFalse(any('legacy' in name or '__pycache__' in name or 'development' in name or 'sfz-sources' in name for name in names))
         self.assertFalse(set(names)&set(policy.PRIVATE_SOURCE_FILES))
         self.assertNotIn('scripts/private_notes.py',names);self.assertNotIn('docs/private_notes.md',names)
+        self.assertTrue(set(policy.PUBLIC_SCREENSHOTS)<=names)
         self.copy_bundle();self.assertEqual(set(policy.verify_source_tree(self.root,self.dest)),names)
+
+    def test_featured_screenshots_are_explicitly_reviewed_and_capped_at_five(self):
+        self.assertGreater(len(policy.PUBLIC_SCREENSHOTS),0)
+        self.assertLessEqual(len(policy.PUBLIC_SCREENSHOTS),5)
+        self.write('docs/screenshots/personal-project.png','unreviewed picture')
+        names={path.relative_to(self.root).as_posix() for path in policy.source_files(self.root)}
+        self.assertNotIn('docs/screenshots/personal-project.png',names)
+        policy.verify_public_release_paths(policy.PUBLIC_SCREENSHOTS)
+        with self.assertRaisesRegex(RuntimeError,'Unreviewed documentation'):
+            policy.verify_public_release_paths(['docs/screenshots/personal-project.png'])
 
     def test_missing_nested_module_is_rejected(self):
         self.copy_bundle();(self.dest/'lingfeng/music/model.py').unlink()

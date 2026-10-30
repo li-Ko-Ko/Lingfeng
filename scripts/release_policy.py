@@ -12,12 +12,16 @@ SOURCE_ROOT_FILES=('README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE',
                    '.gitignore','.gitattributes')
 SOURCE_TREES={
     'lingfeng':{'.py','.json'}, 'scripts':{'.py'}, 'tests':{'.py'},
-    'docs':{'.md','.json'}, 'assets':{'.ico','.svg','.png'},
+    'docs':{'.md','.json','.png'}, 'assets':{'.ico','.svg','.png'},
     'native':{'.cpp','.h'}, 'examples':{'.lfs','.mid'}, 'licenses':None,
 }
 PUBLIC_DOCS=(
     'docs/FORMAT.md','docs/HELP.md','docs/PROGRESSIONS.md',
     'docs/SOUNDBANKS.md','docs/THIRD_PARTY.md',
+)
+PUBLIC_SCREENSHOTS=(
+    'docs/screenshots/compose.png','docs/screenshots/spatial-score.png',
+    'docs/screenshots/lyrics-rap.png','docs/screenshots/progression-library.png',
 )
 PUBLIC_SCRIPTS=(
     'scripts/audit_text.py','scripts/build_synth_packs.py','scripts/collect_qt_notices.py',
@@ -37,7 +41,7 @@ PRIVATE_SOURCE_TREES=('development','tests/legacy')
 SOURCE_REQUIRED_FILES=(
     'lingfeng/__init__.py','lingfeng/__main__.py','lingfeng/cli.py','lingfeng/platform/en.json',
     *PUBLIC_SCRIPTS,'tests/__init__.py','tests/test_music.py','tests/test_release_tools.py',
-    *PUBLIC_DOCS,
+    *PUBLIC_DOCS,*PUBLIC_SCREENSHOTS,
     'assets/lingfeng.ico','assets/check.svg','native/stk_pack.cpp','examples/demo.lfs','examples/demo.mid',
     'licenses/audio-source/README.md','licenses/qt-6.9.2/manifest.json',
 )
@@ -54,7 +58,7 @@ def _included(relative,suffixes):
     parts=relative.parts;folder=parts[0]
     if '__pycache__' in parts or any(part.startswith('.') for part in parts):return False
     if is_private_source_path(relative):return False
-    if folder=='docs':return relative.as_posix() in PUBLIC_DOCS
+    if folder=='docs':return relative.as_posix() in (*PUBLIC_DOCS,*PUBLIC_SCREENSHOTS)
     if folder=='scripts':return relative.as_posix() in PUBLIC_SCRIPTS
     if folder=='tests':return len(parts)==2 and (relative.name in ('__init__.py','music_reference.py') or relative.name.startswith('test_') and relative.suffix=='.py')
     if folder=='assets':return relative.as_posix() in ('assets/lingfeng.ico','assets/check.svg')
@@ -133,7 +137,7 @@ def verify_public_release_paths(paths):
         # PyInstaller data collection must not hide local notes below _internal.
         if path.parts and path.parts[0]=='_internal':path=Path(*path.parts[1:])
         if is_private_source_path(path):raise RuntimeError('Local-only content in release: '+str(item))
-        if path.parts and path.parts[0]=='docs' and path.as_posix() not in PUBLIC_DOCS:
+        if path.parts and path.parts[0]=='docs' and path.as_posix() not in (*PUBLIC_DOCS,*PUBLIC_SCREENSHOTS):
             raise RuntimeError('Unreviewed documentation in release: '+str(item))
 
 

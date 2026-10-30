@@ -20,6 +20,19 @@ Extract the full ZIP and run `Lingfeng.exe`, keeping `_internal/` and `synths/`.
 - 传统、立体和紧凑简谱，支持歌词与 Rap 排版 / Traditional, spatial and compact jianpu with lyrics and rap.
 - MIDI 导入，PDF、MIDI、MP3 导出；工程保存为 `.lfs` / MIDI import; PDF, MIDI and MP3 export; `.lfs` projects.
 
+## 精选截图 / Featured
+
+<table>
+  <tr>
+    <td width="50%"><strong>旋律与和弦编辑 / Piano rolls</strong><br><a href="docs/screenshots/compose.png"><img src="docs/screenshots/compose.png" alt="旋律与和弦双卷帘、音级配色及伴奏区间" width="640"></a></td>
+    <td width="50%"><strong>立体简谱 / Spatial jianpu</strong><br><a href="docs/screenshots/spatial-score.png"><img src="docs/screenshots/spatial-score.png" alt="原创示例的立体简谱、和弦标记与歌词" width="640"></a></td>
+  </tr>
+  <tr>
+    <td width="50%"><strong>歌词与 Rap / Lyrics and rap</strong><br><a href="docs/screenshots/lyrics-rap.png"><img src="docs/screenshots/lyrics-rap.png" alt="传统简谱中的歌词与Rap排版及编辑面板" width="640"></a></td>
+    <td width="50%"><strong>和弦进行库 / Chord progressions</strong><br><a href="docs/screenshots/progression-library.png"><img src="docs/screenshots/progression-library.png" alt="内置和弦进行库的罗马数字、实际和弦及根音序列检索" width="640"></a></td>
+  </tr>
+</table>
+
 ## 文档 / Documentation
 
 [源码运行与构建 / Build from source](CONTRIBUTING.md) · [工程格式 / Project format](docs/FORMAT.md) · [音源 / Soundbanks](docs/SOUNDBANKS.md) · [更新日志 / Changelog](CHANGELOG.md)
