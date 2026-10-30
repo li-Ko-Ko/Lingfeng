@@ -1,66 +1,66 @@
-# 第三方组件与来源
+# 第三方组件与来源 / Third-party notices and sources
 
-## 应用许可 / Application license
+伶风原创应用代码采用 [MIT](../LICENSE)。第三方组件、音源和运行库保留各自版权与许可，不被应用的 MIT 条款替换。实际版本见发行包 `build-info.json`，完整许可与版权文本见 `licenses/` 及各音源包。
 
-伶风原创应用代码采用 MIT 许可证，完整条款在发行包根目录及 `source/` 的 `LICENSE`。下列依赖及其版权、许可证不被 MIT 条款替换；这些组件依各自的许可证分发。
+Lingfeng's original code is MIT. Dependencies, synth packs and runtimes retain their own copyrights and licenses. Exact build versions are recorded in `build-info.json`; complete notices are included in `licenses/` and each synth pack.
 
-Lingfeng's original application code uses the MIT License, supplied as `LICENSE` at the release root and inside `source/`. The dependencies below retain their copyright notices and licenses; they are distributed under those licenses, not relicensed under MIT.
+## 组件与许可 / Components and licenses
 
-分发包使用独立动态库；`_internal` 中的 Qt DLL 可以用兼容版本替换。`source/` 含应用源码与重建脚本。应用不限制为调试修改后的 LGPL 库而进行的逆向工程。
-
-| 组件 | 版本 | 许可与来源 |
+| 组件 / Component | 版本 / Version | 条款及来源 / Terms and source |
 | --- | --- | --- |
-| CPython | 见 build-info.json | Python Software Foundation License；[源码与许可](https://www.python.org/downloads/source/) |
-| PySide6 Essentials / Shiboken6 | 6.9.2 | LGPL v3 / GPL / 商业许可选项；本包使用 LGPL 适用组件；[Qt for Python 6.9.2 源码](https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.9.2-src/) |
-| Qt Core / Gui / Widgets / Network / Svg 及平台、图像格式插件 | 6.9.2 | LGPL v3 及内置组件许可；随附固定标签上游许可与 attribution；[对应 Qt 6.9.2 源码](https://download.qt.io/archive/qt/6.9/6.9.2/submodules/) |
-| PyInstaller 引导程序 | 6.20.0 | GPL 及分发例外；[源码](https://github.com/pyinstaller/pyinstaller/tree/v6.20.0) |
+| CPython | 3.13.9 | PSF 及历史许可；`licenses/PYTHON.txt`；[源码](https://www.python.org/downloads/source/) |
+| PySide6 Essentials / Shiboken6 | 6.9.2 | 本包使用 LGPL-3.0 适用组件；[对应源码](https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.9.2-src/) |
+| Qt Core / Gui / Widgets / Network / Svg 及平台、图像格式插件 | 6.9.2 | LGPL-3.0 及内置第三方条款；[对应源码](https://download.qt.io/archive/qt/6.9/6.9.2/submodules/) |
+| PyInstaller bootloader | 6.20.0 | GPL-2.0 及 bootloader 分发例外；[源码与许可](https://github.com/pyinstaller/pyinstaller/tree/v6.20.0) |
+| PyChord | 1.4.1 | MIT；和弦组成校验与移调；[源码与许可](https://github.com/yuma-m/pychord) |
+| SoundCard | 0.4.5 | BSD-3-Clause；WASAPI 输出与回录；[源码](https://github.com/bastibe/SoundCard) |
+| lameenc / LAME | 1.8.1 / 3.100 | LGPL-3.0 / LGPL-2.0-or-later；[对应源码、哈希与替换说明](../licenses/audio-source/README.md) |
+| NumPy | 2.2.6 | BSD-3-Clause 及随附 OpenBLAS、GCC Runtime Exception 等条款；[源码](https://github.com/numpy/numpy/tree/v2.2.6) |
+| CFFI / pycparser | 2.1.1 / 3.12 | MIT（含 libffi 对应许可）/ BSD-3-Clause；[CFFI](https://github.com/python-cffi/cffi)、[pycparser](https://github.com/eliben/pycparser) |
+| STK | 5.0.1 | STK 宽松许可；各音源包 `LICENSE-STK.txt`；[对应源码](https://github.com/thestk/stk/tree/5.0.1) |
+| OpenSSL、libffi、bzip2、zlib、liblzma、mpdecimal 等运行库 | 见随附清单 | Apache-2.0、MIT、BSD 类及 0BSD 等条款；保留 `licenses/runtime/` 与 `mpdecimal-COPYRIGHT.txt` |
+| Microsoft VC/UCRT | 见实际二进制 | Microsoft 可再分发运行库条款；不是开源组件，不纳入应用 MIT |
 
-精确依赖版本在 `build-info.json`，完整第三方许可在 `licenses/`。这些许可不改变各组件原作者的版权。Qt 依赖的字体、图像等组件许可一并保留在上游许可目录中。
+各 wheel 的完整许可随包复制。NumPy 的完整 LICENSE.txt 包含其捆绑运行库条款，不能将整套内容统一标为 BSD。Qt 内置 FreeType、HarfBuzz、libpng、libjpeg-turbo、PCRE2、zlib、WebP、TIFF 等组件的许可与 attribution 保留在 `licenses/qt-6.9.2/`。
 
-0.27 核对报告见 [LICENSE_AUDIT.md](LICENSE_AUDIT.md)。`licenses/qt-6.9.2/manifest.json` 记录 167 个从官方固定标签收集的许可、版权与 attribution 文件及其 SHA-256；此目录是上游许可的集合，不表示所有模块均已编入。Microsoft VC/UCRT 属于可再分发的专有运行库，并非 MIT 或开源组件。FreeType 使用 FTL：Portions of the Qt runtime use the FreeType Project, copyright © 1996–2024 The FreeType Project (www.freetype.org). All rights reserved.
+`licenses/qt-6.9.2/manifest.json` 记录从固定上游标签收集的许可、版权、attribution 文件及其 SHA-256。这是许可集合，不表示所有上游模块均被编入。当前包未引入 Qt Charts 等仅 GPL 的 Qt 模块；光栅绘制不分发未使用的 Mesa/LLVM `opengl32sw.dll`。
 
-See [LICENSE_AUDIT.md](LICENSE_AUDIT.md) for the 0.27 review. The pinned Qt notice manifest records 167 upstream files and their SHA-256 hashes; it is a notice superset, not a list of all compiled modules. Microsoft VC/UCRT are proprietary redistributable runtimes, outside the original application's MIT license. FreeType is used under FTL, with attribution above and full upstream notices included.
+FreeType acknowledgment: Portions of the Qt runtime use the FreeType Project, copyright © 1996–2024 The FreeType Project (www.freetype.org). All rights reserved. FreeType is used under the FreeType License (FTL); the full upstream text and attribution metadata are included.
 
-和弦识别为本项目独立实现；0.34 新增 PyChord 1.4.1 运行时依赖，用于和弦进行中的组成校验与移调，保留其 MIT 许可。见 REFERENCES.md。Hooktheory 和 Cakewalk 名称仅用于解释参考来源和迁移目标；没有打包其软件、音源或资源。
+## 可替换库与对应源码 / Replacement and corresponding source
 
-伶风的创作与编辑体验受 Hooktheory 和 Cakewalk（尤其是 Cakewalk Next）启发，应用由本项目独立实现；不存在与这些产品或其权利人的隶属、合作、赞助或认可关系。相关名称和商标归各自权利人所有。开源许可不授予这些商标或专有资源的使用权，也不代替必要的第三方授权。
+Qt、PySide6、Shiboken6 及编码器的 DLL/PYD 独立位于 `_internal/`，没有静态合并到伶风原创代码。可用与 Python 3.13、Windows x64、Qt/PySide 6.9.2 ABI 兼容的自建版本替换，或使用随附应用源码、`build.ps1` 和固定依赖文件重新构建。应用不限制为调试修改后的 LGPL 库而进行的逆向工程。
 
-Lingfeng's composition and editing experience is inspired by Hooktheory and Cakewalk, especially Cakewalk Next, and is independently implemented. It is not affiliated with, partnered with, sponsored by or endorsed by those products or their rights holders. Their names and trademarks belong to their respective owners. The open-source license grants no rights to those trademarks or proprietary resources and does not replace any required third-party authorization.
+DLL/PYD files remain separate under `_internal/`. Compatible Python 3.13 / Windows x64 / Qt-PySide 6.9.2 builds can replace them, or the supplied application source can be rebuilt. Reverse engineering for debugging modifications to LGPL libraries is not restricted.
 
-实时与离线音频通过独立 STK 合成音源包播放，也支持 Windows MIDI；中文字体使用用户系统字体。未将 Microsoft 系统音源或字体文件复制进分发包。
+- [Qt 6.9.2 source archives](https://download.qt.io/archive/qt/6.9/6.9.2/submodules/) · [Qt for Python 6.9.2 source](https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.9.2-src/) · [Qt licensing](https://doc.qt.io/archives/qt-6.9/licensing.html) · [LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.html)
+- `licenses/audio-source/` 包含 lameenc/LAME 对应源码归档、上游 Windows 构建补丁、SHA-256 与兼容扩展替换说明。LAME 静态构建于独立、可替换的 lameenc 扩展内，未合并到应用原创代码；采用上游 wheel，没有额外编码器补丁。
 
-## 0.34 新增依赖 / Added dependencies
+## 合成音源 / Synth packs
 
-| 组件 / Component | 版本 / Version | 许可与用途 / License and use |
-| --- | --- | --- |
-| PyChord | 1.4.1 | MIT；进行和弦校验与移调 / progression chord validation and transposition |
-| SoundCard | 0.4.5 | BSD-3-Clause；Windows WASAPI 输出回录 / output loopback |
-| lameenc | 1.8.1 | LGPL-3.0；独立可替换的 MP3 编码扩展 / replaceable MP3 extension |
-| LAME | 3.100 | LGPL-2.0-or-later；lameenc 的编码引擎 / encoding engine |
-| NumPy | 2.2.6 | BSD-3-Clause 及随附 OpenBLAS、GCC Runtime Exception 等条款 / synthesis and audio buffers, with bundled notices |
-| CFFI | 2.1.1 | MIT，内含 libffi 对应许可 / WASAPI binding support |
-| pycparser | 3.12 | BSD-3-Clause；C 声明解析 / C declaration parser |
+三个 STK 包附带实际编译源码、重建命令、STK 许可与 MIT 桥接器许可；安装及 ABI 见 [SOUNDBANKS](SOUNDBANKS.md)。STK 修改包括内嵌单周期数学振荡器表、实例局部伪随机状态、预分配复音池、MIDI/包络处理、Sitar 线性延迟、滤波和力度校准。没有录制乐器采样资产；Microsoft 系统音源与用户系统字体不随包分发。
 
-各 wheel 的完整许可随包复制。NumPy 的 LICENSE.txt 包含其捆绑运行库条款，不将它们统一标为 BSD。lameenc 和 LAME 对应版本源码、上游构建补丁、SHA-256 与兼容替换说明在 licenses/audio-source/。lameenc 将 LAME 静态构建到可替换的 Python 扩展内；没有静态合并到伶风原创代码。应用源码与构建脚本随包提供，允许调试、修改和替换 LGPL 组件。
+Zig 0.14.1 及静态编译的 libc++、libc++abi、libunwind、MinGW 运行库许可保留在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度问题，未修改已安装的 SoundCard 包。MP3 署名说明记录实际所选音源；软件与音源许可不替代作品、歌词或录音素材授权。
 
-Full wheel notices are copied into the release. NumPy's LICENSE.txt retains its bundled runtime terms rather than relabeling all code as BSD. Corresponding lameenc/LAME sources, the upstream build patch, hashes and replacement instructions are in licenses/audio-source/. LAME is statically built into the replaceable lameenc extension, not into Lingfeng's original code. Application source and rebuild scripts are supplied, allowing debugging, modification and replacement of LGPL components.
+Each STK pack includes the compiled source, rebuild instructions and notices. Host, bridge and presets are MIT; STK and compiler runtimes retain their own terms. No Microsoft MIDI sound-bank, system-font or recorded-instrument assets are redistributed.
 
-来源 / Sources: https://github.com/yuma-m/pychord · https://github.com/bastibe/SoundCard · https://github.com/chrisstaite/lameenc · https://lame.sourceforge.io/ · https://numpy.org/ · https://github.com/python-cffi/cffi · https://github.com/eliben/pycparser
+## 实现参考与署名 / Implementation references
 
+下列为交互、算法或音乐表示的参考来源；应用界面、绘制、节奏与演奏逻辑由本项目独立实现，没有合并这些产品的专有代码、图像、声音或播放器资源。
 
-## 0.37 进行目录 / Progression catalogue
+| 来源 / Reference | 参考范围 / Scope |
+| --- | --- |
+| [Cakewalk Next Piano Roll](https://help.cakewalk.com/hc/en-us/articles/56266627933465-Understanding-Piano-Roll-View-in-Cakewalk-Next)、[用户手册](https://bandlab.github.io/cakewalk/docs/Cakewalk_Next_User_Manual.pdf)（141–145 页）、[Transport](https://help.cakewalk.com/hc/en-us/articles/45227757109529-Understanding-Transport-Controls) | Smart/Draw 卷帘、选择/移动/缩放与传输交互；使用标准 MIDI 迁移，不读写 Cakewalk 专有工程 |
+| [Hookpad Playback and Voicing](https://www.hooktheory.com/support/hookpad#playback-and-voicing)、[Hookpad v1](https://www.hooktheory.com/support/hookpad-v1) | 和弦块、节奏型与歌词交互；音乐生成和歌词扩展独立实现 |
+| [PyChord analyzer](https://github.com/yuma-m/pychord/blob/master/pychord/analyzer.py)、[MIT license](https://github.com/yuma-m/pychord/blob/master/LICENSE) | `music/recognition.py` 参考根音轮换与音程模板匹配思路，未复制源码；进行模块另使用原样 PyChord 依赖 |
+| [Helio Refactoring](https://docs.helio.fm/refactoring.html)、[源码与许可](https://github.com/helio-fm/helio-sequencer) | 逆行、倒影、调内移动与合并的交互概念；未复制上游 GPL-3.0 源码 |
+| [music21 quantize](https://music21.org/music21docs/moduleReference/moduleStreamBase.html#music21.stream.base.Stream.quantize)、[Tuplets](https://music21.org/music21docs/usersGuide/usersGuide_19_duration2.html) | 候选格点与三连音时间表示；独立实现，不引入 music21 依赖或源码 |
+| [MusicXML sound](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/sound/)、[repeat](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/repeat/)、[Dorico popovers](https://www.steinberg.help/api/khub/documents/NNqtt0gVE9kWZRClp6krTQ/content) | D.C./D.S./Segno/Coda/Fine、反复策略及 ritardando 等记号语义；不表示支持 MusicXML 导入导出 |
+| [Microsoft WinMM output](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-midioutopen)、[input](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-midiinopen)、[CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex) | MIDI 设备、消息、时间戳与线程局部 COM 生命周期 |
+| [Windows AppUserModelID](https://learn.microsoft.com/en-us/windows/win32/shell/appids)、[Window Features](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features)、[DWM](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute) | 多窗口任务栏分组、平级窗口生命周期与原生边框主题 |
 
-新增指定 Hooktheory 公开页面的 21 组完整和弦序列及短识别名称，保留来源说明。只包含音乐事实和自行实现的转换、检索及界面代码；未合并网页播放器代码、图片、歌曲谱例或 MIDI。完整清单与表示法见 [PROGRESSIONS.md](PROGRESSIONS.md)。没有增加依赖，原依赖许可不变。
+内置进行目录整理自 [Hooktheory Popular Chord Progressions](https://www.hooktheory.com/theorytab/popular-chord-progressions)。21 组公开目录与另 5 组默认进行的序列、来源及转位表示见 [PROGRESSIONS](PROGRESSIONS.md)。只包含音乐事实和短识别名称，不包含网页播放器代码、图片、歌曲转录或原始 MIDI。
 
-The 21 complete harmonic recipes and short identifying names from the specified public Hooktheory page have source attribution. Only musical facts and independently implemented conversion, search and UI code are included; no website player code, images, song transcriptions or MIDI examples are bundled. See [PROGRESSIONS.md](PROGRESSIONS.md). Dependencies and their licenses are unchanged.
+伶风与 Hooktheory、Cakewalk、Helio 及其权利人没有隶属、合作、赞助或认可关系。相关名称和商标归各自权利人所有；本项目开源许可不授予这些商标或专有资源的使用权。
 
-
-## 0.44 合成音源 / Native synthesis packs
-
-程序本体不再分发 sfizz 或采样库。STK 5.0.1 的三个轻量音源包随程序合并提供（总大小超过本体时独立打包），使用上游宽松许可；每包保留版权、许可、实际编译源码和重建命令。Lingfeng 的桥接器、预设和宿主为 MIT。STK 修改为内嵌单周期数学振荡器表、实例局部伪随机状态；复音、MIDI、淡入淡出由桥接器实现。无录制乐器采样资产。来源：https://github.com/thestk/stk/tree/5.0.1 。详细接口与安装见 SOUNDBANKS.md。
-
-The application no longer distributes sfizz or recorded sample banks. Three lightweight STK 5.0.1 packs ship with the application (separately if their combined size exceeds the core) under the upstream permissive terms with notices, compiled source and build instructions. Host, bridge and presets are MIT. Oscillator tables are synthetic single-cycle data. Windows MIDI assets are not redistributed. Export credits identify the actual selected packs; composition and lyrics rights remain separate.
-
-原生包静态编译所用 Zig 0.14.1 / libc++ / libc++abi / libunwind / MinGW 运行库许可随包保存在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度不一致的问题；未修改已安装的 SoundCard 包。
-
-0.44 增加 Sitar、BlowHole、BlowBotl、Recorder、PercFlut、FMVoices，沿用同一 STK 5.0.1 许可；修改的 Sitar 线性延迟、桥接滤波和力度响应随源码提供。实际包包含对应源码与 Zig 运行库许可。
+Lingfeng is independently implemented and is not affiliated with, partnered with, sponsored by or endorsed by these products or their rights holders. Their names and trademarks remain theirs; the application's license grants no rights to those trademarks or proprietary resources.

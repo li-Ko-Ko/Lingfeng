@@ -1,5 +1,6 @@
 """Release inputs and checks must follow nested modules and isolated tests."""
 import importlib
+import hashlib
 import io
 import json
 import os
@@ -29,9 +30,7 @@ class SourceBundleTests(unittest.TestCase):
             self.write(name,'reviewed source')
         for name in ('lingfeng/music/__pycache__/model.pyc','tests/legacy/smoke_v9.py',
                      'development/private.py','licenses/sfz-sources/obsolete.txt',
-                     'docs/ARCHITECTURE.md','docs/INTERFACES.md','docs/MAINTENANCE.md',
-                     'docs/BASELINE_VALIDATION.md','docs/module_inventory.json',
-                     'scripts/audit_architecture.py','tests/test_architecture.py',
+                     *policy.PRIVATE_SOURCE_FILES,
                      'scripts/private_notes.py','docs/private_notes.md'):
             self.write(name,'excluded')
 
@@ -100,7 +99,9 @@ class SourceBundleTests(unittest.TestCase):
         destination=self.root/'dist/0.51/Lingfeng';destination.mkdir(parents=True)
         copies=('source/docs/ARCHITECTURE.md','docs/INTERFACES.md',
                 'source/scripts/audit_architecture.py','source/tests/test_architecture.py',
-                'source/tests/legacy/smoke_old.py')
+                'source/tests/legacy/smoke_old.py','source/launch.cmd',
+                'examples/lingfeng-rap.mid',
+                'licenses/qt-6.9.2/qtbase/src/widgets/doc/images/licensewizard-flow.png')
         for relative in copies:
             path=destination/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('private copy','utf-8')
         public=destination/'source/lingfeng/model.py';public.parent.mkdir(parents=True,exist_ok=True);public.write_text('public code','utf-8')
@@ -157,6 +158,30 @@ class SourceBundleTests(unittest.TestCase):
         (self.dest/'_internal/popscore').mkdir()
         with self.assertRaisesRegex(AssertionError,'Retired runtime package data'):
             verify_runtime_resources(self.root,self.dest)
+
+
+class NoticeCollectionTests(unittest.TestCase):
+    def test_license_named_images_are_excluded_without_losing_text_notices(self):
+        with patch('urllib.request.urlopen',side_effect=AssertionError('Import must not fetch upstream files')):
+            collector=importlib.import_module('scripts.collect_qt_notices')
+            importlib.reload(collector)
+        self.assertFalse(collector.is_notice_path('src/widgets/doc/images/licensewizard-flow.png'))
+        self.assertFalse(collector.is_notice_path('LICENSES/license-diagram.svg'))
+        self.assertFalse(collector.is_notice_text(b'\x89PNG\r\n\x1a\n\0binary'))
+        self.assertTrue(collector.is_notice_path('sources/shiboken6/COPYING.libshiboken'))
+        self.assertTrue(collector.is_notice_path('src/gui/vulkan/licenseheader.h.in'))
+        self.assertTrue(collector.is_notice_text(b'SPDX-License-Identifier: MIT\nCopyright notice\n'))
+
+    def test_collected_notice_manifest_matches_preserved_files(self):
+        folder=ROOT/'licenses/qt-6.9.2'
+        entries=json.loads((folder/'manifest.json').read_text('utf-8'))
+        self.assertNotIn('qtbase/src/widgets/doc/images/licensewizard-flow.png',[entry['file'] for entry in entries])
+        self.assertEqual(len(entries),len({entry['file'] for entry in entries}))
+        for entry in entries:
+            with self.subTest(file=entry['file']):
+                target=(folder/entry['file']).resolve()
+                self.assertTrue(target.is_relative_to(folder.resolve()))
+                self.assertEqual(hashlib.sha256(target.read_bytes()).hexdigest(),entry['sha256'])
 
 
 class RegressionRunnerTests(unittest.TestCase):

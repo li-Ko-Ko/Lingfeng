@@ -9,19 +9,19 @@ import shutil
 APPROVED_PACKS=('stk-essentials','stk-colors','stk-acoustic')
 SOURCE_ROOT_FILES=('README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE',
                    'main.py','requirements.txt','requirements-build.txt','build.ps1',
-                   'launch.cmd','start.ps1','.gitignore','.gitattributes')
+                   '.gitignore','.gitattributes')
 SOURCE_TREES={
     'lingfeng':{'.py','.json'}, 'scripts':{'.py'}, 'tests':{'.py'},
     'docs':{'.md','.json'}, 'assets':{'.ico','.svg','.png'},
     'native':{'.cpp','.h'}, 'examples':{'.lfs','.mid'}, 'licenses':None,
 }
 PUBLIC_DOCS=(
-    'docs/FORMAT.md','docs/HELP.md','docs/LICENSE_AUDIT.md','docs/PROGRESSIONS.md',
-    'docs/REFERENCES.md','docs/SOUNDBANKS.md','docs/THIRD_PARTY.md',
+    'docs/FORMAT.md','docs/HELP.md','docs/PROGRESSIONS.md',
+    'docs/SOUNDBANKS.md','docs/THIRD_PARTY.md',
 )
 PUBLIC_SCRIPTS=(
     'scripts/audit_text.py','scripts/build_synth_packs.py','scripts/collect_qt_notices.py',
-    'scripts/export_help.py','scripts/make_icon.py','scripts/package_release.py',
+    'scripts/export_help.py','scripts/package_release.py',
     'scripts/release_policy.py','scripts/run_regression.py','scripts/verify_audio.py',
     'scripts/verify_release.py',
 )
@@ -29,6 +29,9 @@ PRIVATE_SOURCE_FILES=(
     'docs/ARCHITECTURE.md','docs/INTERFACES.md','docs/MAINTENANCE.md',
     'docs/BASELINE_VALIDATION.md','docs/module_inventory.json',
     'scripts/audit_architecture.py','tests/test_architecture.py',
+    'docs/LICENSE_AUDIT.md','docs/REFERENCES.md','launch.cmd','start.ps1',
+    'scripts/make_icon.py','examples/lingfeng-rap.mid',
+    'licenses/qt-6.9.2/qtbase/src/widgets/doc/images/licensewizard-flow.png',
 )
 PRIVATE_SOURCE_TREES=('development','tests/legacy')
 SOURCE_REQUIRED_FILES=(
@@ -108,7 +111,7 @@ def prune_private_release_copies(root,destination):
     if not dist.is_relative_to(root) or destination==dist or not destination.is_relative_to(dist):
         raise RuntimeError('Private-copy cleanup destination must be a release folder inside dist')
     candidates=[destination/'source'/name for name in PRIVATE_SOURCE_FILES]
-    candidates.extend(destination/name for name in PRIVATE_SOURCE_FILES if name.startswith('docs/'))
+    candidates.extend(destination/name for name in PRIVATE_SOURCE_FILES)
     candidates.extend(destination/base/name for base in ('','source') for name in PRIVATE_SOURCE_TREES)
     removed=[]
     # Validate every final target before deleting any of them.

@@ -3,7 +3,7 @@
 Independent implementation: octave duplicates are removed, every present root is
 tested against exact interval sets, then candidates are ranked by previous symbol
 and bass position. No guessed label is assigned to an unmatched set.
-See docs/REFERENCES.md for upstream algorithm and license information.
+See docs/THIRD_PARTY.md for upstream algorithm and license information.
 """
 from dataclasses import dataclass
 from lingfeng.music.model import QUALITIES, Chord

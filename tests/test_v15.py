@@ -67,7 +67,7 @@ class LayoutTests(unittest.TestCase):
             self.assertLessEqual(larger.glyph_scale*15,larger.max_font_size)
     def test_help_has_no_unbundled_local_references_or_retired_rules(self):
         from lingfeng.ui.help_dialog import TOPICS
-        text=' '.join(str(t) for t in TOPICS)+Path('README.md').read_text('utf-8')+Path('docs/REFERENCES.md').read_text('utf-8')
+        text=' '.join(str(t) for t in TOPICS)+Path('README.md').read_text('utf-8')+Path('docs/THIRD_PARTY.md').read_text('utf-8')
         for token in ('1_01_PS2','台湾谱（','编辑音乐时会停播','谱面高度控制'):self.assertNotIn(token,text)
 
 class UITests(unittest.TestCase):

@@ -10,8 +10,6 @@
 !/build.ps1
 !/requirements.txt
 !/requirements-build.txt
-!/launch.cmd
-!/start.ps1
 !/lingfeng/
 !/scripts/
 !/tests/
@@ -28,15 +26,12 @@
 !/docs/FORMAT.md
 !/docs/SOUNDBANKS.md
 !/docs/PROGRESSIONS.md
-!/docs/REFERENCES.md
 !/docs/THIRD_PARTY.md
-!/docs/LICENSE_AUDIT.md
 /scripts/*
 !/scripts/audit_text.py
 !/scripts/build_synth_packs.py
 !/scripts/collect_qt_notices.py
 !/scripts/export_help.py
-!/scripts/make_icon.py
 !/scripts/package_release.py
 !/scripts/release_policy.py
 !/scripts/run_regression.py
@@ -45,6 +40,8 @@
 /tests/legacy/
 /tests/test_architecture.py
 /examples/*.popscore
+/examples/lingfeng-rap.mid
+/licenses/qt-6.9.2/qtbase/src/widgets/doc/images/licensewizard-flow.png
 
 /licenses/sfizz-1.2.3/
 /licenses/sfz-sources/

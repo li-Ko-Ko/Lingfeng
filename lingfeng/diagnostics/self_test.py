@@ -404,7 +404,7 @@ def self_test(folder):
     joined=Project();joined.chords=[Chord(0,3840,notes=[Note(960,2880,60,event_id="held")]),Chord(3840,3840,notes=[Note(0,3840,60,event_id="held")])]
     r=window.harmony_window.roll;r.set_project(joined)
     assert r.expand_note_selection({r.notes[0].id})=={n.id for n in r.notes}
-    assert (release_root/'docs'/'LICENSE_AUDIT.md').is_file()
+    assert (release_root/'docs'/'THIRD_PARTY.md').is_file()
     assert (release_root/'licenses'/'qt-6.9.2'/'manifest.json').is_file()
     if getattr(sys,'frozen',False):assert not (release_root/'_internal'/'PySide6'/'opengl32sw.dll').exists()
     # New editing controls must also work from the portable executable.

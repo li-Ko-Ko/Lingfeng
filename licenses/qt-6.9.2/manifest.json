@@ -595,11 +595,6 @@
     "sha256": "331466d1e3f460ef7f3fe1fcd926307b0594311a2ed286b24ea649c82cc36cc5"
   },
   {
-    "file": "qtbase/src/widgets/doc/images/licensewizard-flow.png",
-    "source": "https://raw.githubusercontent.com/qt/qtbase/v6.9.2/src/widgets/doc/images/licensewizard-flow.png",
-    "sha256": "7a0e08a4499da689b635d1c2582ceb86d4a76b94940f2faae733af6e97621c43"
-  },
-  {
     "file": "qtbase/src/3rdparty/freetype/BDF-LICENSE.txt",
     "source": "https://raw.githubusercontent.com/qt/qtbase/v6.9.2/src/3rdparty/freetype/BDF-LICENSE.txt",
     "sha256": "e4e792f29e66750f2e410fd7b50a567652c180f6ee15e1a4dfa0bb5cde524537"

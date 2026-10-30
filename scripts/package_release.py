@@ -53,9 +53,9 @@ def package(destination=None):
                     # Preserve nested license names without writing outside the license directory.
                     relative=Path(*[part for part in file.parts if part not in ('.','..')])
                     copy_file(src,DEST/'licenses'/name/relative)
-    for path in (ROOT/'licenses').rglob('*'):
-        if path.is_file() and path.relative_to(ROOT/'licenses').parts[0] not in ('sfizz-1.2.3','sfz-sources'):
-            copy_file(path,DEST/'licenses'/path.relative_to(ROOT/'licenses'))
+    for path in source_files(ROOT):
+        relative=path.relative_to(ROOT)
+        if relative.parts[0]=='licenses':copy_file(path,DEST/relative)
     # Only reviewed source-tree packs participate; never absorb user-installed DLLs.
     pack_files=[SYNTH_ROOT/ident/'synth.json' for ident in APPROVED_PACKS]
     for manifest in pack_files:_validate(json.loads(manifest.read_text('utf-8')),manifest.parent.resolve())
@@ -107,7 +107,7 @@ Copy custom packs from the old installation's synths/ into the new one.
         if path.name.startswith('Qt6') and path.name not in allowed_qt:raise RuntimeError('Review newly bundled Qt module license: '+path.name)
         if path.name=='opengl32sw.dll':raise RuntimeError('Unused software OpenGL library was bundled')
         native.append({'file':str(path.relative_to(DEST)).replace('\\','/'),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
-    (DEST/'license-inventory.json').write_text(json.dumps({'version':__version__,'application_license':'MIT','qt_notice_files':len(notices),'qt_modules':sorted(allowed_qt),'software_opengl_bundled':False,'review':'docs/LICENSE_AUDIT.md','soundbanks':'docs/SOUNDBANKS.md','native_files':native},indent=2),'utf-8')
+    (DEST/'license-inventory.json').write_text(json.dumps({'version':__version__,'application_license':'MIT','qt_notice_files':len(notices),'qt_modules':sorted(allowed_qt),'software_opengl_bundled':False,'review':'docs/THIRD_PARTY.md','soundbanks':'docs/SOUNDBANKS.md','native_files':native},indent=2),'utf-8')
     out=ROOT/'dist'/f'Lingfeng-{__version__}-Windows-x64.zip'
     verify_public_release_paths(path.relative_to(DEST) for path in DEST.rglob('*') if path.is_file())
     with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as archive:

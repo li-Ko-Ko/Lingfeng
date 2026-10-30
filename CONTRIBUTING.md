@@ -91,6 +91,6 @@ Build outputs go to `dist/`. Run the executable with `--self-test <output-direct
 
 Original application code is [MIT](LICENSE). Contributions must be shareable under that license. Retain source and license information for new third-party code, fonts, images, instruments or examples, and explain their compatibility. The application's MIT license does not relicense its dependencies.
 
-STK 合成包沿用 STK 许可，Qt/PySide6、编码器等各自保留条款。详见 [THIRD_PARTY](docs/THIRD_PARTY.md)、[LICENSE_AUDIT](docs/LICENSE_AUDIT.md) 和 [SOUNDBANKS](docs/SOUNDBANKS.md)。软件与音源许可不替代作品、歌词及录音素材的授权。
+STK 合成包沿用 STK 许可，Qt/PySide6、编码器等各自保留条款。组件、来源与兼容替换说明统一见 [THIRD_PARTY](docs/THIRD_PARTY.md)，音源安装与 ABI 见 [SOUNDBANKS](docs/SOUNDBANKS.md)。软件与音源许可不替代作品、歌词及录音素材的授权。
 
-STK packs retain their STK terms; Qt/PySide6, the encoder and other dependencies retain theirs. See [THIRD_PARTY](docs/THIRD_PARTY.md), [LICENSE_AUDIT](docs/LICENSE_AUDIT.md) and [SOUNDBANKS](docs/SOUNDBANKS.md). Software/instrument licenses do not clear compositions, lyrics or recordings.
+STK packs retain their STK terms; Qt/PySide6, the encoder and other dependencies retain theirs. Component sources and replacement instructions are in [THIRD_PARTY](docs/THIRD_PARTY.md); synth installation and ABI details are in [SOUNDBANKS](docs/SOUNDBANKS.md). Software/instrument licenses do not clear compositions, lyrics or recordings.
