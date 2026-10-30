@@ -1,0 +1,7 @@
+PySide6-Essentials>=6.9,<7
+pychord==1.4.1
+SoundCard==0.4.5
+lameenc==1.8.1
+numpy==2.2.6
+cffi==2.1.1
+pycparser==3.12

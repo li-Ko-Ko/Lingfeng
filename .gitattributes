@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.ico -text
+*.png -text
+*.jpg -text
+*.pdf -text
+*.mid -text
+*.lfs -text
+*.popscore -text
+*.dll -text
+*.zip -text
+*.gz -text
+# Preserve upstream notice/checksum bytes exactly.
+licenses/** -text
+synths/** -text

@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "id": "stk-colors",
+  "name": "STK · 风琴与管乐",
+  "name_en": "STK Colors",
+  "version": "0.44.0",
+  "abi": 1,
+  "platform": "windows-x64",
+  "library": "lingfeng-stk.dll",
+  "sha256": "ff4e67ced2e4953d99441a36cd020216df59bf6ecfa57c90612210123e4bfcee",
+  "license": "STK permissive license",
+  "license_file": "LICENSE-STK.txt",
+  "source": "https://github.com/thestk/stk/tree/5.0.1",
+  "author": "Perry R. Cook, Gary P. Scavone and STK contributors",
+  "presets": [
+    {
+      "program": 11,
+      "name": "敲击条",
+      "name_en": "Struck bar",
+      "model": 11,
+      "controls": {
+        "16": 1
+      },
+      "gain": 0.54,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 14,
+      "name": "管钟",
+      "name_en": "Tubular bell",
+      "model": 6,
+      "controls": {},
+      "gain": 0.2,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 16,
+      "name": "拉杆风琴模型",
+      "name_en": "Drawbar organ model",
+      "model": 5,
+      "controls": {},
+      "gain": 0.18,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 19,
+      "name": "柔和风琴",
+      "name_en": "Soft organ",
+      "model": 5,
+      "controls": {
+        "2": 20,
+        "4": 25
+      },
+      "gain": 0.2,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 56,
+      "name": "铜管模型",
+      "name_en": "Brass model",
+      "model": 7,
+      "controls": {
+        "1": 0
+      },
+      "gain": 0.18,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 65,
+      "name": "萨克斯模型",
+      "name_en": "Saxophone model",
+      "model": 10,
+      "controls": {
+        "1": 0
+      },
+      "gain": 0.22,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 71,
+      "name": "单簧管模型",
+      "name_en": "Clarinet model",
+      "model": 8,
+      "controls": {
+        "1": 0,
+        "4": 0
+      },
+      "gain": 0.25,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 73,
+      "name": "长笛模型",
+      "name_en": "Flute model",
+      "model": 9,
+      "controls": {
+        "1": 0,
+        "4": 0
+      },
+      "gain": 0.4,
+      "cutoff_hz": 6500
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+Zig 0.14.1, PowerShell from this source folder:
+$inputs = (Get-ChildItem -Filter *.cpp).FullName
+zig c++ -target x86_64-windows-gnu -O2 -DNDEBUG -D_USE_MATH_DEFINES -D__LITTLE_ENDIAN__ -std=c++17 -shared -static -I. -o ../lingfeng-stk.dll $inputs
+Update synth.json sha256 after rebuilding.
+Modifications: embedded STK oscillator cycles; instance-local xorshift noise; stable linear Sitar delay; MIT MIDI voice pool, tone filtering and velocity calibration.
+C++/compiler runtime notices: ../licenses/zig-runtime/. Toolchain: https://ziglang.org/download/0.14.1/

@@ -1,0 +1,196 @@
+{
+  "schema": 1,
+  "id": "stk-acoustic",
+  "name": "STK · 扩展乐器",
+  "name_en": "STK Acoustic Models",
+  "version": "0.44.0",
+  "abi": 1,
+  "platform": "windows-x64",
+  "library": "lingfeng-stk.dll",
+  "sha256": "ff4e67ced2e4953d99441a36cd020216df59bf6ecfa57c90612210123e4bfcee",
+  "license": "STK permissive license",
+  "license_file": "LICENSE-STK.txt",
+  "source": "https://github.com/thestk/stk/tree/5.0.1",
+  "author": "Perry R. Cook, Gary P. Scavone and STK contributors",
+  "presets": [
+    {
+      "program": 8,
+      "name": "柔和钟琴键盘",
+      "name_en": "Soft bell keys",
+      "model": 6,
+      "controls": {
+        "2": 20,
+        "4": 20,
+        "1": 0
+      },
+      "gain": 0.18,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 12,
+      "name": "木质敲击键盘",
+      "name_en": "Wooden mallet keys",
+      "model": 11,
+      "controls": {
+        "16": 0,
+        "2": 0,
+        "1": 90
+      },
+      "gain": 0.7,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 52,
+      "name": "元音合唱模型",
+      "name_en": "Vowel choir model",
+      "model": 17,
+      "controls": {
+        "2": 50,
+        "4": 1,
+        "1": 0
+      },
+      "gain": 0.2,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 53,
+      "name": "柔和元音模型",
+      "name_en": "Soft vowel model",
+      "model": 17,
+      "controls": {
+        "2": 35,
+        "4": 9,
+        "1": 0
+      },
+      "gain": 0.2,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 71,
+      "name": "音孔单簧管",
+      "name_en": "Tone-hole clarinet",
+      "model": 13,
+      "controls": {
+        "2": 64,
+        "4": 0,
+        "11": 127,
+        "1": 0
+      },
+      "gain": 0.26,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 74,
+      "name": "竖笛模型",
+      "name_en": "Recorder model",
+      "model": 15,
+      "controls": {
+        "2": 64,
+        "4": 0,
+        "16": 32,
+        "1": 0
+      },
+      "gain": 0.12,
+      "cutoff_hz": 5000
+    },
+    {
+      "program": 75,
+      "name": "FM 排箫模型",
+      "name_en": "FM pan flute model",
+      "model": 16,
+      "controls": {
+        "2": 30,
+        "4": 20,
+        "1": 0
+      },
+      "gain": 0.23,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 76,
+      "name": "吹瓶模型",
+      "name_en": "Blown bottle model",
+      "model": 14,
+      "controls": {
+        "4": 0,
+        "1": 0
+      },
+      "gain": 0.25,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 104,
+      "name": "西塔琴模型",
+      "name_en": "Sitar model",
+      "model": 12,
+      "controls": {},
+      "gain": 0.42,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 105,
+      "name": "班卓拨弦模型",
+      "name_en": "Banjo pluck model",
+      "model": 3,
+      "controls": {
+        "4": 80,
+        "11": 35,
+        "1": 5
+      },
+      "gain": 0.27,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 106,
+      "name": "三味线拨弦模型",
+      "name_en": "Shamisen pluck model",
+      "model": 3,
+      "controls": {
+        "4": 100,
+        "11": 30,
+        "1": 10
+      },
+      "gain": 0.28,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 107,
+      "name": "筝拨弦模型",
+      "name_en": "Koto pluck model",
+      "model": 3,
+      "controls": {
+        "4": 30,
+        "11": 90,
+        "1": 4
+      },
+      "gain": 0.3,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 112,
+      "name": "玻璃钟模型",
+      "name_en": "Glass bell model",
+      "model": 11,
+      "controls": {
+        "16": 2,
+        "2": 0,
+        "1": 100
+      },
+      "gain": 1.2,
+      "cutoff_hz": 6500
+    },
+    {
+      "program": 113,
+      "name": "颂钵模型",
+      "name_en": "Singing bowl model",
+      "model": 11,
+      "controls": {
+        "16": 3,
+        "2": 0,
+        "1": 95
+      },
+      "gain": 0.55,
+      "cutoff_hz": 6500
+    }
+  ]
+}
