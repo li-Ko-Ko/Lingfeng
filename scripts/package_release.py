@@ -12,6 +12,8 @@ from scripts.release_policy import APPROVED_PACKS,bundle_synths
 from popscore.soundbanks import _validate
 
 ROOT=Path(__file__).resolve().parent.parent
+SYNTH_ROOT=ROOT/'synths'
+if not SYNTH_ROOT.is_dir() and ROOT.name=='source':SYNTH_ROOT=ROOT.parent/'synths'
 DEST=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'dist'/__version__/'Lingfeng'
 if not DEST.is_relative_to((ROOT/'dist').resolve()):raise RuntimeError('Release destination must be inside dist.')
 if not (DEST/'Lingfeng.exe').exists():raise RuntimeError('Build Lingfeng.exe first.')
@@ -24,13 +26,13 @@ if optional_gl.is_file():optional_gl.unlink()
 def copy_file(source,dest):
     dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,dest)
 
-for relative in ['README.md','LICENSE','docs/HELP.md','docs/REFERENCES.md','docs/PROGRESSIONS.md','docs/FORMAT.md','docs/THIRD_PARTY.md','docs/LICENSE_AUDIT.md','docs/SOUNDBANKS.md','examples/demo.lfs','examples/lingfeng-layout.lfs','examples/lingfeng-structure.lfs','examples/lingfeng-symbols.lfs','examples/demo.mid','examples/lingfeng-input.lfs','examples/lingfeng-lyrics.lfs','examples/lingfeng-lyric-bars.lfs','examples/lingfeng-chord-editing.lfs','examples/lingfeng-bar-patterns.lfs']:
+for relative in ['README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE','docs/HELP.md','docs/REFERENCES.md','docs/PROGRESSIONS.md','docs/FORMAT.md','docs/THIRD_PARTY.md','docs/LICENSE_AUDIT.md','docs/SOUNDBANKS.md','examples/demo.lfs','examples/lingfeng-layout.lfs','examples/lingfeng-structure.lfs','examples/lingfeng-symbols.lfs','examples/demo.mid','examples/lingfeng-input.lfs','examples/lingfeng-lyrics.lfs','examples/lingfeng-lyric-bars.lfs','examples/lingfeng-chord-editing.lfs','examples/lingfeng-bar-patterns.lfs']:
     copy_file(ROOT/relative,DEST/relative)
 copy_file(ROOT/'examples'/'lingfeng-sections.lfs',DEST/'examples'/'lingfeng-sections.lfs')
 for name in ('lingfeng-rap.lfs','lingfeng-rap.mid','lingfeng-melisma.lfs','lingfeng-melisma.mid'):copy_file(ROOT/'examples'/name,DEST/'examples'/name)
 for path in (ROOT/'popscore').glob('*.py'):copy_file(path,DEST/'source'/'popscore'/path.name)
 copy_file(ROOT/'popscore'/'en.json',DEST/'source'/'popscore'/'en.json')
-for relative in ['main.py','requirements.txt','requirements-build.txt','build.ps1','assets/popscore.ico','assets/check.svg']:
+for relative in ['main.py','requirements.txt','requirements-build.txt','build.ps1','launch.cmd','start.ps1','.gitignore','.gitattributes','CONTRIBUTING.md','CHANGELOG.md','assets/popscore.ico','assets/check.svg']:
     copy_file(ROOT/relative,DEST/'source'/relative)
 for folder in ['scripts','tests','docs','licenses','native']:
     for path in (ROOT/folder).glob('*'):
@@ -55,14 +57,14 @@ for path in (ROOT/'licenses').rglob('*'):
         copy_file(path,DEST/'licenses'/path.relative_to(ROOT/'licenses'))
         copy_file(path,DEST/'source'/'licenses'/path.relative_to(ROOT/'licenses'))
 # Only reviewed source-tree packs participate; never absorb user-installed DLLs.
-pack_files=[ROOT/'synths'/ident/'synth.json' for ident in APPROVED_PACKS]
+pack_files=[SYNTH_ROOT/ident/'synth.json' for ident in APPROVED_PACKS]
 for manifest in pack_files:_validate(json.loads(manifest.read_text('utf-8')),manifest.parent.resolve())
 core_bytes=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file() and p.relative_to(DEST).parts[0]!='synths')
 synth_bytes=sum(p.stat().st_size for manifest in pack_files for p in manifest.parent.rglob('*') if p.is_file())
 bundled=list(APPROVED_PACKS) if bundle_synths(core_bytes,synth_bytes) else []
 for ident in bundled:
-    for path in (ROOT/'synths'/ident).rglob('*'):
-        if path.is_file():copy_file(path,DEST/'synths'/ident/path.relative_to(ROOT/'synths'/ident))
+    for path in (SYNTH_ROOT/ident).rglob('*'):
+        if path.is_file():copy_file(path,DEST/'synths'/ident/path.relative_to(SYNTH_ROOT/ident))
 (DEST/'synths').mkdir(exist_ok=True)
 copy_file(ROOT/'docs/SOUNDBANKS.md',DEST/'synths/README.md')
 if (DEST/'sounds').exists() or list((DEST/'_internal').rglob('sfizz.dll')):

@@ -10,6 +10,7 @@ Lingfeng is a lightweight Windows sequencer for melody, chords and accompaniment
 
 This is a personally maintained open-source desktop project. **Windows x64** is the supported and tested platform. Development and packaging use **Python 3.13 and PySide6**, with bundled STK synthesis packs or installed Windows MIDI outputs for sound.
 
+- [GitHub 项目 / Repository](https://github.com/li-Ko-Ko/Lingfeng) · [最新版本下载 / Latest release](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 - [开始使用 / Getting started](#1-开始使用--getting-started)
 - [操作帮助 / User guide](docs/HELP.md)
 - [源码运行与构建 / Source and builds](#6-帮助源码与重建--help-source-and-rebuilding)
@@ -19,9 +20,9 @@ This is a personally maintained open-source desktop project. **Windows x64** is 
 
 ### 1.1 运行与音源 / Running and sound sources
 
-完整解压后运行 `Lingfeng.exe`，保留 `_internal/` 和 `synths/`。当前发行附带 3 组合成音源、37 个预设；无合成包时仍可编辑、导出 PDF/MIDI，并使用 Windows MIDI。可将 `.lfs` 拖到程序图标上打开；`Register-project-type.cmd` 可选注册当前用户的打开方式。
+从 [Releases](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) 下载 Windows x64 便携 ZIP；同页提供 SHA-256 校验文件。完整解压后运行 `Lingfeng.exe`，保留 `_internal/` 和 `synths/`。当前发行附带 3 组合成音源、37 个预设；无合成包时仍可编辑、导出 PDF/MIDI，并使用 Windows MIDI。可将 `.lfs` 拖到程序图标上打开；`Register-project-type.cmd` 可选注册当前用户的打开方式。
 
-Extract the entire archive, keeping `_internal/` and `synths/`, then run `Lingfeng.exe`. The release includes three synth packs with 37 presets. Without packs, editing, PDF/MIDI export and Windows MIDI remain available. Drop an `.lfs` onto the executable to open it; `Register-project-type.cmd` optionally registers the association for the current user.
+Download the Windows x64 portable ZIP from [Releases](https://github.com/li-Ko-Ko/Lingfeng/releases/latest), which also provides its SHA-256 checksum. Extract the entire archive, keeping `_internal/` and `synths/`, then run `Lingfeng.exe`. The release includes three synth packs with 37 presets. Without packs, editing, PDF/MIDI export and Windows MIDI remain available. Drop an `.lfs` onto the executable to open it; `Register-project-type.cmd` optionally registers the association for the current user.
 
 新增音源：把完整音源文件夹放到程序同级 `synths/`，打开 **设置 → 音源与音色 → 重新扫描并保存**。也可添加额外扫描目录。音源包总解压体积不超过程序本体时合并打包，否则另发音源 ZIP。详见 [音源包说明](docs/SOUNDBANKS.md)。
 
@@ -201,11 +202,13 @@ The MP3 dialog shows instrument-specific commercial-use information and writes `
 
 ### 6.1 从源码运行 / Run from source
 
-在 Windows 上安装 Python 3.13 x64，然后在仓库根目录的 PowerShell 中执行：
+在 Windows 上安装 Git 和 Python 3.13 x64，然后在 PowerShell 中克隆仓库并运行：
 
-Install Python 3.13 x64 on Windows, then run in PowerShell from the repository root:
+Install Git and Python 3.13 x64 on Windows, then clone and run from PowerShell:
 
 ```powershell
+git clone https://github.com/li-Ko-Ko/Lingfeng.git
+cd Lingfeng
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe main.py

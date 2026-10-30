@@ -22,6 +22,10 @@ The release contains three STK native packs with 37 presets. Keep each prebuilt 
 
 ## 2. 报告问题 / Report a problem
 
+请在 [GitHub Issues](https://github.com/li-Ko-Ko/Lingfeng/issues) 查看是否已有相同问题；没有对应记录时，可新建问题并附上下面的复现信息。
+
+Check [GitHub Issues](https://github.com/li-Ko-Ko/Lingfeng/issues) for an existing report. If there is no matching issue, open one with the reproduction details below.
+
 请提供以下信息：
 
 Please include:
