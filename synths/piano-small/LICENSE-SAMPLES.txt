@@ -1,0 +1,9 @@
+Free sample sources / 免费音色许可
+
+Acoustic piano: Upright Piano KW (2022-02-21), Gonzalo and Roberto / FreePats. CC0-1.0; acoustic/LICENSE.
+Electric grand, Wurlitzer EP200 and Pianet T: Greg Sullivan, SFZ conversion by kinwie. CC BY 3.0; electric/LICENSE and runtime/CC-BY-3.0.txt.
+Rhodes: Jeff Learman, Discord GM separately released CC0 jRhodes subset. See its original SFZ license header and rhodes/CC0-1.0.txt. This does not license the full jRhodes3c/d sample libraries.
+Engine: sfizz 1.2.3, BSD-2-Clause and dependency notices in runtime/notices/.
+Redistribution and commercial use are permitted under each applicable license. Preserve credits and license texts and identify modifications.
+Sources and exact revisions: source.json. Lingfeng applies playback gain, adds a bright acoustic variation, extends electric-piano edge zones to the 88-key range, removes cosmetic ARIA labels, and adds an explicit Rhodes global envelope header. Audio samples are unchanged.
+Original music and other input material retain their own rights.

@@ -31,9 +31,10 @@ class LayoutTests(unittest.TestCase):
             for _,rect,bar,ticks,xs in layout.hit_times:
                 for t,x in zip(ticks,xs):self.assertAlmostEqual(x,rect.left()+rect.width()*(t-p.starts[bar])/p.measures[bar].ticks)
         self.assertEqual(p.notes,Project.from_dict(before).notes)
-    def test_dense_bar_limits_one_global_size_including_sparse_bars(self):
+    def test_dense_bar_advises_one_global_size_but_preserves_requested_size(self):
         p=self.music();p.notation.update(font_size=12);layout=draw(p);s=layout.systems[0]
-        self.assertLess(s.bar_scales[0],.8);self.assertEqual(s.bar_scales[2],s.bar_scales[0])
+        self.assertLess(layout.font_limit,12)
+        self.assertEqual(s.bar_scales[0],.8);self.assertEqual(s.bar_scales[2],s.bar_scales[0])
         offset=0
         for bar in s.bars:
             count=len(s.fragments[bar]);sizes=[size for _,size in layout.glyph_sizes[offset:offset+count]];offset+=count
@@ -48,6 +49,12 @@ class LayoutTests(unittest.TestCase):
     def test_tiny_cells_accidentals_and_dots_stay_inside_equal_bars(self):
         p=Project();p.notation.update(per_line=8,font_size=26)
         p.notes=[Note(i*3840+90,90,66) for i in range(8)]+[Note(i*3840+3570,270,61) for i in range(8)]
+        preview=ScoreLayout(p)
+        # This checks the conservative cell-fit option. The user may also
+        # deliberately exceed it under the advisory rule introduced in 0.53.1.
+        cell_limit=min(15*width/preview.width_cache[bar]/system.font_ratio
+                       for system in preview.systems for bar,width in zip(system.bars,system.bar_widths))
+        p.notation['font_size']=min(preview.font_limit,cell_limit)*.999
         layout=draw(p)
         for _,_,left,right,a,b in layout.symbol_boxes:self.assertGreaterEqual(left,a-1e-6);self.assertLessEqual(right,b+1e-6)
     def test_chord_labels_do_not_overlap_adjacent_labels_or_bar(self):
@@ -55,8 +62,11 @@ class LayoutTests(unittest.TestCase):
         boxes=[rect for page,rect,cid in layout.hit_chords]
         for left,right in zip(boxes,boxes[1:]):
             if abs(left.bottom()-right.bottom())<20:self.assertLessEqual(left.right(),right.left())
-    def test_simultaneous_close_pitches_reduce_local_symbols(self):
+    def test_simultaneous_close_pitches_reduce_advice_without_changing_pitch_gap(self):
         p=Project();p.notes=[Note(0,960,60),Note(0,960,62)];p.notation.update(row_gap=8,font_size=15)
-        layout=draw(p);self.assertLess(layout.systems[0].bar_scales[0],1);self.assertEqual(layout.systems[0].row_gap,8)
+        layout=draw(p);self.assertLess(layout.font_limit,15)
+        self.assertEqual(layout.systems[0].bar_scales[0],1);self.assertEqual(layout.systems[0].row_gap,8)
+        p.notation['font_size']=layout.recommended_font_size;fitted=draw(p)
+        self.assertLess(fitted.systems[0].bar_scales[0],1);self.assertEqual(fitted.systems[0].row_gap,8)
 
 if __name__=='__main__':unittest.main()

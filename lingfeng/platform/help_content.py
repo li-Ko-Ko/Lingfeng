@@ -13,7 +13,7 @@ TAGLINE = 'Lingfeng — For Pop Music'
 ABOUT_ZH = ('<h1>伶风</h1><p><b>为流行音乐而生 · For Pop Music</b></p>\n'
  '<p>伶风是一款面向 Windows 电脑、键鼠友好的轻量级音序器（sequencer），用于流行音乐创作与分析，并集成简谱制谱。用鼠标与键盘编写旋律、安排和弦，再将音乐整理成可阅读、可分享的乐谱。</p>\n'
  '<h3>在电脑上轻松创作</h3>\n'
- '<p>界面为鼠标、键盘和桌面多窗口操作设计，支持快捷键、可调整布局及独立钢琴卷帘。免安装发行包解压即可使用，无需另装 Python；随包附带轻量合成音源（37 个预设），支持目录扩展，也可选择 Windows MIDI '
+ '<p>界面为鼠标、键盘和桌面多窗口操作设计，支持快捷键、可调整布局及独立钢琴卷帘。免安装发行包解压即可使用，无需另装 Python；随包附带免费钢琴与电钢琴，并保留 37 个轻量合成预设；大钢琴可按需下载，也可选择 Windows MIDI '
  '设备。创作、制谱与工程保存均可在本地离线完成。</p>\n'
  '<h3>从音乐到乐谱</h3>\n'
  '<ul><li>编辑多声部旋律与和弦，试听音符、编排伴奏节奏型。</li>\n'
@@ -37,7 +37,7 @@ ABOUT_EN = ('<h1>Lingfeng</h1><p><b>For Pop Music</b></p>\n'
  '<h3>Made for your computer</h3>\n'
  '<p>The interface is designed for mouse, keyboard and desktop multi-window use, with shortcuts, adjustable layouts '
  'and floating piano rolls. Unzip the portable release to get started, with no separate Python installation. '
- 'Lightweight native synth packs are included (37 presets); installed Windows MIDI devices are also available. '
+ 'Free piano and electric pianos plus 37 native synth presets are included; an optional grand can be downloaded. Windows MIDI devices are also available. '
  'Compose, prepare scores and save projects locally, even offline.</p>\n'
  '<h3>From music to scores</h3>\n'
  '<ul><li>Edit polyphonic melodies and chords, audition notes and arrange accompaniment patterns.</li>\n'
@@ -570,7 +570,7 @@ TOPICS = [('开始与工程',
   'labels appear above chord symbols in the score.'),
  ('工作区与悬浮窗口',
   'Workspace and floating windows',
-  '导航器位于播放栏下方、卷帘设置上方，以绿色旋律线与蓝色和弦线同时显示两轨全曲。创作界面继续显示时间轴、旋律钢琴卷帘、和弦轨、和弦钢琴卷帘及轨道音量。顶部“视图”菜单独立控制显隐；和弦卷帘、力度窗格默认隐藏。两个卷帘右上角使用相同的悬浮／停靠图标。悬浮旋律窗口保留下方和弦轨，悬浮和弦窗口在自身时间轴下显示与主轨一致的结构卡片；数据同步，选择与高亮独立。创作与制谱的两个悬浮卷帘均提供独立时间轴、播放／暂停、回放、循环、跟随和速度控件。播放、位置、循环选区和速度全局共享；未同步时跟随独立。在播放栏最右侧“其它选项”分别勾选“同步时间轴”，先采用主界面跟随状态，再与主时间轴双向同步缩放、滚动和跟随开关；取消后独立控制。主时间轴始终保留自身视窗，即使两个卷帘都悬浮也能浏览；停靠卷帘始终双向同步主时间轴，重新停靠时采用主视窗。任一停靠卷帘都有可用的设置栏。<br>创作中两个卷帘停靠时共用底端水平滚动条，以及音高范围、键高、缩放、智能／绘制工具和网格设置。已用音高取两轨的并集。两个悬浮卷帘都可独立浏览，改变一个窗口的同步开关不会更改另一个。调整键高时，以音符区的纵向中心为锚点，不把标尺和和弦结构栏计入中心；共享键高时两个卷帘分别保留自身中央音高。<br>制谱下栏提供“旋律卷帘／和弦卷帘／歌词／结构逻辑”四个选项卡。右上角悬浮与关闭按钮只操作当前选项卡；浮窗可单独停靠或关闭。首次进入显示全部选项卡，之后切回制谱恢复上次布局。主界面跟随开关适用于谱面与当前选中的停靠卷帘；切换到原先未选中的卷帘时再更新其跟随位置。悬浮卷帘使用与创作模式相同的独立跟随和同步时间轴选项。“视图”菜单随模式切换，可重新打开各面板。歌词提交、删除和撤销即时更新当前谱面的歌词呈现。右键谱面可直接进入对应卷帘。悬停谱面和弦显示实际和弦音的数字级数、字母音名与八度，以及实际最低音。大小控件支持 '
+  '导航器位于播放栏下方、卷帘设置上方，以绿色旋律线与蓝色和弦线同时显示两轨全曲。创作界面继续显示时间轴、旋律钢琴卷帘、和弦轨、和弦钢琴卷帘及轨道音量。顶部“视图”菜单独立控制显隐；和弦卷帘、力度窗格默认隐藏。两个卷帘右上角使用相同的悬浮／停靠图标。悬浮旋律窗口保留下方和弦轨，悬浮和弦窗口在自身时间轴下显示与主轨一致的结构卡片；数据同步，选择与高亮独立。创作与制谱的两个悬浮卷帘均提供独立时间轴、播放／暂停、回放、循环、跟随和速度控件。播放、位置、循环选区和速度全局共享；未同步时跟随独立。在播放栏最右侧“其它选项”分别勾选“同步时间轴”，先采用主界面跟随状态，再与主时间轴双向同步缩放、滚动和跟随开关；取消后独立控制。主时间轴始终保留自身视窗，即使两个卷帘都悬浮也能浏览；停靠卷帘始终双向同步主时间轴，重新停靠时采用主视窗。任一停靠卷帘都有可用的设置栏。<br>创作中两个卷帘停靠时共用底端水平滚动条，以及音高范围、键高、缩放、智能／绘制工具和网格设置。已用音高取两轨的并集。两个悬浮卷帘都可独立浏览，改变一个窗口的同步开关不会更改另一个。调整键高时，以音符区的纵向中心为锚点，不把标尺和和弦结构栏计入中心；共享键高时两个卷帘分别保留自身中央音高。<br>制谱下栏提供“旋律卷帘／和弦卷帘／歌词”三个选项卡。右上角悬浮与关闭按钮只操作当前选项卡；浮窗可单独停靠或关闭。首次进入显示全部选项卡，之后切回制谱恢复上次布局。主界面跟随开关适用于谱面与当前选中的停靠卷帘；切换到原先未选中的卷帘时再更新其跟随位置。悬浮卷帘使用与创作模式相同的独立跟随和同步时间轴选项。“视图”菜单随模式切换，可重新打开各面板。歌词提交、删除和撤销即时更新当前谱面的歌词呈现。右键谱面可直接进入对应卷帘。悬停谱面和弦显示实际和弦音的数字级数、字母音名与八度，以及实际最低音。大小控件支持 '
   '+/−，面板之间可拖动分隔线。',
   'The overview sits below transport and above piano-roll settings. Green melody lines and blue chord lines show both '
   'complete tracks. Composition continues with the timeline, melody roll, chord lane, chord roll and volumes. View '
@@ -586,8 +586,8 @@ TOPICS = [('开始与工程',
   'bottom horizontal scrollbar, pitch range, key height, zoom, Smart/Draw tool and grid settings. Used pitches '
   'includes both tracks. Both floating rolls can be browsed independently; changing one Sync timeline switch does not '
   'change the other. Key-height changes preserve the vertical center of the note area, excluding the ruler and chord '
-  'structure header. Shared key-height changes retain each roll’s own central pitch.<br>Score mode has four tabs: '
-  'Melody roll, Chord roll, Lyrics and Score structure. Float or close affects only the current tab. Each floating '
+  'structure header. Shared key-height changes retain each roll’s own central pitch.<br>Score mode has three tabs: '
+  'Melody roll, Chord roll and Lyrics. Float or close affects only the current tab. Each floating '
   'pane can dock or close independently. The first visit shows all tabs; subsequent visits restore the previous '
   'layout. Main Follow playhead applies to the score and the selected docked roll; switching to an inactive roll '
   'updates its followed position then. Floating rolls use the same independent follow and timeline-sync options as '
@@ -611,7 +611,7 @@ TOPICS = [('开始与工程',
   '独立窗口顶部依次为停靠、最小化、最大化／还原、关闭；下方播放栏最右侧为“其它选项”。视图中的卷帘勾选仅表示它在主界面显示：悬浮自动取消勾选，停靠自动勾选。关闭任一独立卷帘只隐藏它；勾选视图总是将卷帘显示在主界面。右键进入卷帘、E '
   '切换输入轨和撤销定位沿用已有独立窗口；语言切换和制谱往返保留布局与显隐。主窗口和独立卷帘共用任务栏应用标识，Windows '
   '合并任务栏按钮时，一个图标可预览全部窗口。<br>和弦轨右键、主界面视图或独立窗口其它选项中可显示“和弦轨力度窗格”。每个和弦一根力度柱；拖动会统一设置其内部所有音符的力度，多选时同时修改所选和弦，支持撤销。和弦卷帘底部的力度窗格仍用于逐音调整。力度改变 '
-  'MIDI 发音强度，与底部轨道音量独立。',
+  'MIDI 发音强度，与底部轨道音量独立。<br>右键一个和弦或多选和弦 → 修改力度，可选 32、48、64、80、96、112、127 或输入 1–127 的自定义值；统一设置所选和弦及内部音符，保留音高、节奏和区间，可撤销。设置 → 力度选项可编辑常用列表，确认后跨重启保存，取消不修改。只有点击“检测当前和弦音源并生成选项”才读取当前工程和弦轨音色，不在启动或切换音源时检测。SFZ／SF2 按采样力度区间生成中间值建议，重复区域不重复计数；键位差异、交叉层及控制器会影响实际分层。原生合成与外部 MIDI 无法查询层数时保留选项；单层音色仍可用不同力度控制强弱。',
   'Floating title bars contain Dock, Minimize, Maximize/Restore and Close, in that order. Other options sits at the '
   'right end of the transport row below. A roll is checked in View only when shown on the main page: floating unchecks '
   'it and docking checks it. Closing either floating roll hides it; checking View always shows it on the main page. '
@@ -620,7 +620,7 @@ TOPICS = [('开始与工程',
   'previews of all windows.<br>Show Chord lane velocity from its context menu, the main View menu, or floating Other '
   'options. One stem per chord sets all its notes to the same velocity; multiple selections are edited together. Undo '
   'is supported. The velocity lane below the chord piano roll still edits individual notes. Velocity affects MIDI note '
-  'dynamics independently of track volume.'),
+  'dynamics independently of track volume.<br>Right-click one or several chords → Change velocity to choose 32, 48, 64, 80, 96, 112, 127 or a custom value from 1–127. This sets each selected chord and its notes together, retaining pitches, timing and regions, with undo support. Settings → Velocity options edits the saved list; Cancel discards changes. Only Detect current chord sound and generate options inspects the current project’s chord preset. Startup and sound changes never trigger detection. SFZ/SF2 sampling ranges produce midpoint suggestions with duplicate regions removed. Key-specific mappings, crossfades and controllers can affect actual layers. Native synths and external MIDI cannot report sampling layers and keep the existing list. Single-layer sounds still respond to velocity.'),
  ('时间尺、循环与鼠标拖屏',
   'Time ruler, loops and mouse navigation',
   '时间轴上半部第一行显示小节号及段落标识，第二行显示拍号及调性，两行分别水平对齐；相同拍号与调性不重复显示。上半部以整小节框选和右键编辑；下半部时间尺有独立背景与分隔线。时间尺单击吸附定位，不改变播放或暂停状态；拖动只设置循环、不移动定位线，同时开启“循环选区”。Shift '
@@ -754,26 +754,37 @@ TOPICS = [('开始与工程',
   'MIDI.'),
  ('统一字号与合成音源',
   'Global score fonts and synth packs',
-  '立体简谱小节内各拍等长，小节宽度随密度分配；普通谱行使用全局一致的字号。传统简谱按可见符号均匀排列，强制合行按小节数比例缩小。卷帘默认键高 20。<br><br>0.44 附带三组合成音源、37 '
-  '个预设，完整解压即可使用。以后扩展时，把完整音源文件夹复制到程序同级 synths/，打开 设置 → 音源与音色 → '
-  '重新扫描并保存。可添加额外扫描目录，结果和默认选择自动保存，下次启动读取缓存。新装、移动或更新音源后需重新扫描；替换 DLL 前关闭程序。<br><br>基础包有 15 个 FM 键盘、拨弦、贝斯与弓弦预设；风琴与管乐包有 8 '
-  '个预设；扩展乐器包另有 14 个钟琴、元音、竖笛、吹瓶、西塔琴和拨弦模型。编辑播放、试听、监听与离线 MP3 共用所选合成音源。程序本体不包含采样音源；未装音源包仍可编辑、保存、导出 PDF/MIDI，并使用 Windows '
-  'MIDI。旧 samples/builtin 工程迁移为基础合成包，缺失音源不会阻止打开工程。<br><br>MP3 导出提供商用版权提示和 .mp3.licenses.txt；STK '
-  '开源许可文本与源码随音源包提供。软件许可不替代作品、歌词与其他素材权利。普通 VST/CLAP 不能直接复制加载；详情见 docs/SOUNDBANKS.md。',
-  'Spatial bars have equal beats and widths based on density, with a uniform global font. Traditional notation spaces '
-  'visible symbols evenly; forced rows shrink by their bar-count ratio. Piano-roll keys default to 20 '
-  'pixels.<br><br>In 0.44, three lightweight packs with 37 presets are bundled. Extract everything to use them '
-  'immediately. To add more packs, copy a complete folder into synths/ beside the executable, then use Settings → '
-  'Sound sources and instruments → Rescan and save. Extra directories are supported. The index and defaults persist; '
-  'startup reads the cache. Rescan after adding, moving or updating packs; close the application before replacing a '
-  'DLL.<br><br>Essentials provides 15 FM keyboard, plucked/bass and bowed-string presets. Colors adds 8 organ, bell, '
-  'bar and wind presets; Acoustic Models adds 14 bell, vowel, recorder, bottle, sitar and plucked-string models. '
-  'Playback, audition, monitoring and offline MP3 share the selected synth. The application contains no sample bank. '
-  'Without packs, editing, saving, PDF/MIDI export and installed Windows MIDI remain available. Legacy samples/builtin '
-  'projects migrate to Essentials; missing packs do not prevent opening projects.<br><br>MP3 export displays '
-  'commercial-use notices and writes a .mp3.licenses.txt file. Each pack includes its STK license and source. Software '
-  'licenses do not replace rights in compositions, lyrics or other material. Standard VST/CLAP plugins cannot be '
-  'copied directly into this host; see docs/SOUNDBANKS.md.'),
+  '每拍宽度按该小节最密一拍的可见起点数分配，小节总宽再乘实际拍数。2/4 的 [2,2] 与 4/4 的 [2,2,2,2] 每拍等宽，小节总宽为 1:2；同为 4/4 的 [1,2,3,4] 与 [2,2,2,2] 仍为'
+  ' 4:2。拍按拍号分母划分，同刻多音共用一列，空拍至少占一列；不足整拍的实际时长按比例计入。三种谱式、强制合行、定位和 PDF 共用，不改变音符起止、力度或 MIDI。<br><br>随包提供“轻量钢琴与电钢琴”：Kaw'
+  'ai 原声钢琴、明亮原声钢琴、Rhodes、Wurlitzer、CP80、Pianet T。原有三组 STK 的 37 个合成预设继续保留。全新设置优先使用小型钢琴；已有工程和已保存的新工程默认音色不会被覆盖。<br><'
+  'br>设置 → 音源与音色 → 下载／添加音源，可按需下载 Greg Sullivan 电钢琴合集、完整 GM 键盘音源，以及 Salamander 音乐会钢琴（约 182 MiB 下载，完整音源约 238 MiB），也'
+  '可从本地 ZIP 添加完整伶风音源包。下载在后台运行，显示进度，可取消；固定版本与 SHA-256 校验通过后才安装，不覆盖已有音源。添加成功后自动扫描。下载需要联网；已安装音源可离线使用。<br><br>也可把完整音源'
+  '文件夹复制到程序同级 synths/，再“重新扫描并保存”，或添加额外扫描目录。索引和默认选择保存，下次启动读取缓存。替换 DLL 前关闭程序。播放、试听、监听与离线 MP3 使用同一音源；采样音源离线导出等待完整读取。'
+  '缺失音源不妨碍打开工程、编辑或 PDF/MIDI 导出。<br><br>音源全部免费，CC BY 样本分发需保留作者署名，CC0 样本无署名要求。包内保留许可、来源、修改说明和引擎源码；MP3 导出保留 .mp3.lic'
+  'enses.txt。作品、歌词及其他素材权利另行适用。普通 VST/CLAP 不能直接复制加载，详见 docs/SOUNDBANKS.md。<br><br>播放或试听需要首次加载采样音源时，显示加载窗口与等待时间，可取消'
+  '。加载在后台运行，窗口继续响应；成功后复用已建立的播放和试听通道。播放中添加音符保留时钟及未受影响的长音，新事件送入现有播放进程，不重新载入整套样本。',
+  "Beat width follows the busiest beat's visible onset count in its bar; total bar width also includes the actual"
+  ' beat count. A 2/4 [2,2] bar and a 4/4 [2,2,2,2] bar have equal beat widths and a 1:2 bar-width ratio. The ori'
+  'ginal equal-meter example remains 4:2. Beats follow the meter denominator; simultaneous notes share a column, '
+  'empty beats have at least one, and fractional beats retain their duration ratio. Screen, hit testing and PDF s'
+  'hare the layout without changing MIDI.<br><br>The release includes Piano & Electric Essentials: Kawai acoustic'
+  ', bright acoustic, Rhodes, Wurlitzer, CP80 and Pianet T. The three STK packs with 37 synth presets remain avai'
+  'lable. Fresh settings prefer the small piano; existing projects and saved defaults are preserved.<br><br>Setti'
+  'ngs → Sound sources and instruments → Download / add sounds offers Greg Sullivan electric pianos, a full GM ke'
+  'yboard bank and an optional Salamander Concert Grand (about 182 MiB download, 238 MiB installed) and installat'
+  'ion from a complete local Lingfeng pack ZIP. Background downloads show progress, support cancellation, verify '
+  'a pinned revision and SHA-256, and never overwrite existing pack folders. Installation automatically refreshes'
+  ' the index. Downloads need a network connection; installed sounds work offline.<br><br>You can also copy compl'
+  'ete folders into synths/ beside the executable and rescan, or add extra scan directories. The index and defaul'
+  'ts persist across restarts. Close Lingfeng before replacing DLLs. Playback, audition, monitoring and offline M'
+  'P3 share one engine; offline sampling waits for streaming reads. Missing sounds do not prevent editing or PDF/'
+  'MIDI export.<br><br>All sounds are free. Redistributed CC BY samples retain attribution; CC0 samples need none'
+  '. Packs include licenses, sources, modifications and engine source. MP3 exports retain a .mp3.licenses.txt sid'
+  'ecar. Rights in compositions, lyrics and other material apply separately. Standard VST/CLAP plugins cannot be '
+  'copied directly into this host; see docs/SOUNDBANKS.md.<br><br>Initial sampled-sound loading shows a responsiv'
+  'e window with elapsed time and cancellation. Loaded playback/audition channels are reused. Adding notes during'
+  ' playback updates the existing worker while preserving its clock and unaffected sustains; it does not reload t'
+  'he sample library.'),
  ('按格式导出',
   'Export by format',
   '文件 → 导出提供 PDF、MIDI、MP3，各自打开独立导出窗口并暂停播放。PDF 只按当前谱面页码范围导出，不使用小节、循环或段落范围。<br>MIDI 与 MP3 '
@@ -798,81 +809,24 @@ TOPICS = [('开始与工程',
   'directions never change MIDI notes. Keep Lingfeng.exe together with its _internal folder when distributing.'),
  ('休止符与立体简谱',
   'Rests and spatial jianpu',
-  '三种谱式均以 0 填充休止，包括开头与全休止小节。立体／紧凑简谱的休止符 0 和说唱 x 位于每行音域中间，不依附前音高度。紧凑模式逐行计算，保留包住音域的 1／5 边界。默认仅显示 1／5 '
-  '横线，谱面选项可开启其它调内横线。立体与紧凑简谱按密度分配小节宽度，每个小节内按实际时间等距排列，各拍长度相同；小节作为整体换行。全谱数字、休止符和说唱 x '
-  '共用字号，和弦、歌词及节奏符号随之等比缩放。首次进入制谱或切换谱式时自动设置推荐字号；手动修改后会保存，也可点击「推荐字号」重新计算。字号选项显示并限制在当前布局的不重叠上限，保持每行小节数；有效字号就是实际全局字号，音高间距保持设置值。布局改变会重新计算上限，旧工程超限字号会调整并保存为实际值。强制合行记录原每行小节数，按「原每行小节数 '
-  '÷ 合并后可见小节数」缩放，比例最大为 1；例如 4 小节合为 6 小节时使用全局字号的 2/3。传统简谱按音符、休止及延音横线等可见符号分配均匀位置，附点和升降号与音符一起保留空间。屏幕、点击定位、播放游标与 PDF '
-  '使用同一布局。',
-  'All styles fill silence with 0, including leading rests and silent measures. Spatial and compact scores center '
-  'rests and unpitched rap x symbols within each system’s pitch range. Compact ranges are calculated per system and '
-  'preserve enclosing 1/5 boundaries. Only 1/5 horizontal lines appear by default; score options can show other scale '
-  'lines. Spatial and compact scores allocate bar widths by density and keep time linear within each bar, so its beats '
-  'are equally wide. Whole bars stay on one line. Digits, rests and rap x share a score-wide font; chords, lyrics and '
-  'rhythm symbols scale with it. First entering Score mode or changing notation style applies a recommended font. '
-  'Manual changes persist; Recommend font recalculates it. The font selector shows and enforces the current '
-  'overlap-free maximum while keeping measures per line fixed. Accepted values are the actual global size. Layout '
-  'changes recalculate the cap; oversized legacy values are corrected and saved. Pitch spacing remains as set. Forced '
-  'rows remember the original bars-per-line count and scale by original count divided by merged visible count, capped '
-  'at 1. Merging 4-bar rows into 6 bars uses two-thirds of the global font. Traditional notation allocates evenly '
-  'spaced positions to notes, rests and extension dashes, reserving room for accidentals and dots. Screen, hit '
-  'testing, playback and PDF share the same layout.'),
+  '每次切换至制谱前严格检查旋律是否单声部。任意正时长的音符重叠，包括同刻多音、1 tick 重叠和连奏短尾，都会阻止进入，并显示小节、拍、tick、音高和音符标识；首尾恰好相接可以进入。请在创作中修正，检查不会自动裁剪或修改音乐。打开另一工程或恢复制谱布局时也执行检查。<br><br>三种谱式均以 0 填充休止，包括开头和全休止小节。立体／紧凑的休止符与说唱 x 位于谱行音域中间；紧凑音域逐行计算，保留包住音域的 1／5 边界。默认仅画 1／5 横线，可在谱面选项开启其它调内线。立体／紧凑谱按每小节最密拍的起点数量乘实际拍数分配小节宽度，小节内部各拍等宽。三种谱式都将跨拍切分、附点音拆成片段并加延音线，附点留在所属拍内；整拍长音保留延音横线。屏幕、点击定位和 PDF 共用布局，不改变源音符和 MIDI。',
+  'Every transition into Score checks the original melody for strict monophony. Any positive-duration overlap, including simultaneous attacks, a one-tick overlap or a legato tail, blocks entry and shows the bar, beat, ticks, pitches and note IDs. Exact adjacent boundaries are legal. Correct overlaps in Compose; the check never trims or rewrites music. Opening another project or restoring Score layout also checks the melody.<br><br>All styles fill silence with 0, including leading rests and silent bars. Spatial and compact scores center rests and unpitched rap x symbols in each row’s pitch range. Compact ranges preserve enclosing 1/5 boundaries. Only 1/5 lines appear by default; other scale lines are optional. Spatial and compact bar widths follow the busiest beat’s onset count multiplied by the actual beat count, with equal beat widths within each bar. All three styles split cross-beat syncopations and dotted notes into tied fragments; dots stay inside their beat and aligned whole-beat sustains retain extension dashes. Screen, hit testing and PDF share the layout without changing source notes or MIDI.'),
  ('谱面缩放、拍间分隔与更新',
   'Score zoom, beat groups and refresh',
-  '传统简谱在同一拍内紧凑等距排列，拍与拍之间增加留白；分组按拍号分母计算，支持切分、附点、延音横线和强制合行。制谱工具栏新增页面缩放，可选「填满屏幕」（适合可视宽度）、「整页显示」及百分比。Ctrl+鼠标滚轮围绕指针缩放，按住鼠标中键可左右、上下拖动；普通滚轮仍滚动页面，Alt+左键拖动也保留。缩放只改变查看比例，不改变字号、布局或 '
-  'PDF。谱面手动滚动、缩放或拖屏后，游标所在的小节完全离开谱面视口时取消跟随；小节仍部分可见便保留。拖住谱面滑块时暂缓自动跟随，避免拖动被自动滚动打断。<br><br>音乐内容在切入制谱时生成并保留：普通卷帘音符、和弦修改不会实时重排，回到创作再切入制谱后同步；作品信息中的标题、歌词提交与撤销，以及字号、谱式、合行和符号等直接谱面操作即时响应。标题更新不会把尚未同步的音乐编辑带入当前谱面。打开另一份工程会生成其谱面。制谱中的 '
-  'PDF '
-  '导出使用当前显示谱面，MIDI/音频导出使用最新工程音乐。<br><br>下方编辑器停靠且显示卷帘时，双击旋律或和弦卷帘上方的小节编号，上方滚动到相应谱行并使目标小节进入视野，已有可见位置不强制居中。压缩隐藏的小节定位到对应可见段；浮动卷帘与创作模式不触发此联动。音符双击编辑和下层时间标尺双击播放保持原操作。',
-  'Traditional notation keeps symbols close and evenly spaced within a beat, with extra space between beat groups. '
-  'Groups follow the meter denominator and support syncopation, dots, extension dashes and forced rows. Score zoom '
-  'offers Fill width, Fit page and percentages. Ctrl+mouse wheel zooms around the pointer; holding the middle button '
-  'pans in both directions. Ordinary wheel scrolling and Alt+left-drag remain available. Zoom changes the view only, '
-  'leaving engraving and PDF size unchanged. After manual score scrolling, zooming or panning, following stops once '
-  'the measure containing the playhead leaves the score viewport completely; a partly visible measure keeps following '
-  'enabled. Automatic score following pauses while its scrollbar is held, so it cannot interrupt the '
-  'drag.<br><br>Music is engraved when entering Score mode. Regular note and chord edits in either workspace do not '
-  'reflow the displayed score; switch to Compose and back to Score to synchronize them. The project title, lyric '
-  'apply/undo and direct font, style, row and symbol controls update immediately. Updating a title does not import '
-  'pending music edits into the displayed score. Opening a different project creates its own score. PDF export from '
-  'Score uses the displayed score; MIDI and audio use the latest project music.<br><br>With a piano roll docked below '
-  'the score, double-click its upper measure-number band to reveal that measure and its score row on both axes, '
-  'without forced centering. Hidden repeats navigate to their visible source. Floating editors and Compose mode do not '
-  'trigger this navigation. Note double-click editing and lower-ruler double-click playback retain their actions.'),
+  '传统简谱以全谱统一的数字格宽排列，拍内数字相邻，拍间和小节线两侧间隔按 2:1 分配。制谱工具栏新增页面缩放，可选「填满屏幕」（适合可视宽度）、「整页显示」及百分比。Ctrl+鼠标滚轮围绕指针缩放，按住鼠标中键可左右、上下拖动；普通滚轮仍滚动页面，Alt+左键拖动也保留。缩放只改变查看比例，不改变字号、布局或 PDF。谱面手动滚动、缩放或拖屏后，游标所在的小节完全离开谱面视口时取消跟随；小节仍部分可见便保留。拖住谱面滑块时暂缓自动跟随，避免拖动被自动滚动打断。<br><br>音乐内容在切入制谱时生成并保留：普通卷帘音符、和弦修改不会实时重排，回到创作再切入制谱后同步；作品信息中的标题、歌词提交与撤销，以及字号、谱式、合行和符号等直接谱面操作即时响应。标题更新不会把尚未同步的音乐编辑带入当前谱面。打开另一份工程会生成其谱面。制谱中的 PDF 导出使用当前显示谱面，MIDI/音频导出使用最新工程音乐。<br><br>下方编辑器停靠且显示卷帘时，双击旋律或和弦卷帘上方的小节编号，上方滚动到相应谱行并使目标小节进入视野，已有可见位置不强制居中。压缩隐藏的小节定位到对应可见段；浮动卷帘与创作模式不触发此联动。音符双击编辑和下层时间标尺双击播放保持原操作。',
+  'Traditional notation uses one numeric cell width throughout the score, adjacent cells within each beat, and a 2:1 ratio between inter-beat and barline-side gaps. Score zoom offers Fill width, Fit page and percentages. Ctrl+mouse wheel zooms around the pointer; holding the middle button pans in both directions. Ordinary wheel scrolling and Alt+left-drag remain available. Zoom changes the view only, leaving engraving and PDF size unchanged. After manual score scrolling, zooming or panning, following stops once the measure containing the playhead leaves the score viewport completely; a partly visible measure keeps following enabled. Automatic score following pauses while its scrollbar is held, so it cannot interrupt the drag.<br><br>Music is engraved when entering Score mode. Regular note and chord edits in either workspace do not reflow the displayed score; switch to Compose and back to Score to synchronize them. The project title, lyric apply/undo and direct font, style, row and symbol controls update immediately. Updating a title does not import pending music edits into the displayed score. Opening a different project creates its own score. PDF export from Score uses the displayed score; MIDI and audio use the latest project music.<br><br>With a piano roll docked below the score, double-click its upper measure-number band to reveal that measure and its score row on both axes, without forced centering. Hidden repeats navigate to their visible source. Floating editors and Compose mode do not trigger this navigation. Note double-click editing and lower-ruler double-click playback retain their actions.'),
  ('两端对齐与字号上限',
   'Justification and font limits',
-  '传统简谱每行对齐左右页边距；拍内符号保持紧凑，额外空间放在拍组之间。末行和强制合行也对齐；单拍小节无内部拍间隙时留在末尾。<br><br>字号旁显示当前上限，输入及加号不能超过上限。保持每行小节数不变，改变排版后重新计算上限，旧工程超限字号会调整并保存为实际值。全谱使用选定字号；强制合行按保存的比例缩小。极密谱面可使用明确显示的小数值。创作模式仍不更新谱面，音乐修改在重新切入制谱时同步。',
-  'Traditional rows align with both page margins, including final and forced rows. Extra space goes between beat '
-  'groups while symbol cells remain compact; one-beat bars leave spare width at the end.<br><br>The font control '
-  'displays its maximum and cannot exceed it. Measures per line stay fixed. Layout changes recalculate the cap; '
-  'oversized legacy values are corrected and saved. The chosen font is used throughout the score; forced rows retain '
-  'their proportional reduction. Very dense scores display a fractional size. Compose mode still suspends score '
-  'updates; music refreshes on re-entering Score mode.'),
+  '传统简谱以圈音外框宽度计算字符格，数字、休止、说唱 x、跨拍或跨小节的分音及延音横线各计一格；关闭圈音也保持格宽。每格 1 单位、拍间 2 单位、小节线每侧和行边各 1 单位，每行完整预算为 N + 2B。<br><br>非强制行中预算最大的一行决定整数推荐字号，向下取整，最低 1、最高 72；其它普通行保持同字号，把剩余空间按拍间与线侧 2:1 分配。强制合行重新计入所有显示片段和横线，字号比例为 min(1, 参考行预算 / 合并后预算)，绑定全局字号。全部为强制行时，用当前每行小节数及手动换行形成未合并的参考行。<br><br>修改每行小节数、切换至传统谱式、换行、合行或恢复行时，自动应用新推荐字号，可与排版修改一起撤销。音乐预算改变后重新切入制谱也会重算；首次进入会减小过大的初始传统字号。普通刷新和保存保留手动选择，小数字号仍可输入，点击「推荐字号」可再次适配。<br><br>不再对整行作等比缩放，小节编号、段落标题及网格保持自然大小。传统每行第一条减时线按最低下八度点统一，附加减时线平行等距。立体／紧凑谱继续使用各自的墨迹推荐和合行比例。',
+  'Traditional cells reserve the circled-note outer width. Digits, rests, rap x symbols, beat/bar fragments and extension dashes each count as one cell, including with circles hidden. A character uses 1 unit, an inter-beat gap 2 units, and each barline side or row edge 1 unit: the complete row budget is N + 2B.<br><br>The heaviest ordinary row determines the integer font recommendation, rounded down within 1–72. Other ordinary rows retain that font and distribute spare space in the 2:1 gap ratio. Forced rows recount every visible fragment and dash, binding their font to min(1, reference budget / merged budget) times the global font. If all rows are forced, the current unmerged partition and explicit line breaks supply the reference.<br><br>Changes to bars per row, traditional style, line breaks, forced merges or restored rows apply the new recommendation in the same undo step. Changed music budgets are recomputed on re-entering Score; oversized initial traditional fonts are reduced. Ordinary refresh/save retains manual choices, including fractional values; Recommend font reapplies the advice.<br><br>Whole-row scaling is removed; measure numbers, section headings and grids retain their natural size. Traditional rhythm underlines share a row-wide height based on the lowest lower-octave dots. Spatial and compact notation retain their ink-based recommendations and merge ratios.'),
  ('紧凑传统简谱与 32 分音符对',
   'Compact traditional rows and isolated 32nd pairs',
-  '创作模式暂停隐藏谱面的布局、重绘和定位请求，切入制谱时再同步。传统简谱行对齐两侧页边距，额外空白放在拍间；拍内符号靠拢，拍间仍有留白，小节线缩短到音符附近，谱行与歌词纵向留白同步收紧。字号全局一致、强制合行比例规则保留。<br><br>所有简谱自动应用独立的 '
-  '32 分音符对排版：按拍号分母划分拍组，拍内没有 16 分音符且只有两个连续 32 分音符时，从相邻的附点八分音符部分借出显示空间。附点八分 + 32 分 + 32 分按八分 + 16 分 + 16 分占位，去掉该附点，但两个 '
-  '32 分音符仍保留三条减时线。长音中的对应片段会拆出并用延音线相连；附点休止符也适用。含 16 分音符、更多 32 分音符或不连续的组合保持原样。<br><br>此规则仅改变谱面排版与附点显示。音符真实起点、时长、力度、播放与 '
-  'MIDI 完全保留；点击和播放游标仍对应真实时间。',
-  'Compose mode suspends hidden-score layout, repaint and navigation work until Score mode is entered. Traditional '
-  'rows reach both page margins, placing extra space between beat groups. Symbols sit closer within beats, while '
-  'inter-beat gaps remain; short barlines surround the note row and vertical space for rows and lyrics is reduced. '
-  'Global font sizing and proportional forced-row sizing remain.<br><br>All score styles apply an isolated 32nd-pair '
-  'spacing rule. Within a meter-denominator beat containing no sixteenths and exactly two consecutive 32nds, visual '
-  'space is borrowed from an adjacent dotted-eighth portion. Dotted eighth + 32nd + 32nd occupies the same space as '
-  'eighth + sixteenth + sixteenth. The companion dot is omitted, but both 32nds retain three underlines. A '
-  'corresponding portion of a sustained note is split off and tied; dotted rests are supported too. Groups with '
-  'sixteenths, extra 32nds or nonconsecutive pairs retain their original engraving.<br><br>This changes engraving and '
-  'dot display only. Actual onsets, durations, velocities, playback and MIDI remain intact; clicks and the playhead '
-  'still refer to real time.'),
+  '三种谱式都按当地拍号的拍界拆分跨拍切分和附点音，以延音线连接同一源音符；附点的绘制范围限制在拍内，整拍长音继续用横线。仅影响显示，播放和 MIDI 保留原时值。<br><br>所有简谱自动应用独立的 32 分音符对排版：按拍号分母划分拍组，拍内没有 16 分音符且只有两个连续 32 分音符时，从相邻的附点八分音符部分借出显示空间。附点八分 + 32 分 + 32 分按八分 + 16 分 + 16 分占位，去掉该附点，但两个 32 分音符仍保留三条减时线。长音中的对应片段会拆出并用延音线相连；附点休止符也适用。含 16 分音符、更多 32 分音符或不连续的组合保持原样。<br><br>此规则仅改变谱面排版与附点显示。音符真实起点、时长、力度、播放与 MIDI 完全保留；点击和播放游标仍对应真实时间。<br><br>三连音按原始音符的起点、时值及连续组识别。同一组三个原始音符即使按拍界拆成更多显示片段，也只在整组上方画一个水平括号和数字 3，避开音符、八度点和连音线；跨谱行时分段显示。普通音符拆出的短片段不会被误当成新的三连音。',
+  'All three score styles split cross-beat syncopations and dotted notes at the local meter’s beat boundaries and tie fragments of the same source note. Dot drawing stays inside its beat; aligned whole-beat sustains keep dashes. These are display changes only; playback and MIDI keep their original timing.<br><br>All score styles apply an isolated 32nd-pair spacing rule. Within a meter-denominator beat containing no sixteenths and exactly two consecutive 32nds, visual space is borrowed from an adjacent dotted-eighth portion. Dotted eighth + 32nd + 32nd occupies the same space as eighth + sixteenth + sixteenth. The companion dot is omitted, but both 32nds retain three underlines. A corresponding portion of a sustained note is split off and tied; dotted rests are supported too. Groups with sixteenths, extra 32nds or nonconsecutive pairs retain their original engraving.<br><br>This changes engraving and dot display only. Actual onsets, durations, velocities, playback and MIDI remain intact; clicks and the playhead still refer to real time.<br><br>Triplets follow the original attacks, durations and contiguous groups. Three source notes keep one horizontal bracket and numeral 3 above the whole group, even when beat boundaries create more displayed fragments. The bracket clears notes, octave dots and ties and is continued in separate row segments. Short fragments of ordinary notes do not create false triplets.'),
  ('谱面选择与局部合行',
   'Score selection and local systems',
-  '谱面工具栏选择“小节选择”或“拍选择”。单击选择，再次单击已选小节或拍取消该项；Ctrl 单击增减、Shift 单击扩展连续范围，拖动框选；Alt '
-  '拖动浏览页面。右键操作选区。<br>连续小节且首小节位于当前行开头时，可“强制合并为一行”。该行字号按合并时的每行小节数与合并后小节数之比绑定全局字号，后续行继续使用默认每行小节数；立体与紧凑音域重新计算。可右键恢复自动分行。',
-  'Choose Measure selection or Beat selection in the score toolbar. Click to select; click a selected bar or beat '
-  'again to deselect it. Ctrl-click toggles, Shift-click extends a range, or drag a marquee; Alt-drag pans the page. '
-  'Right-click to act on the selection.<br>Consecutive measures starting at a system boundary can be forced into one '
-  'system. That system scales from the global font by its saved original measure count divided by its merged count; '
-  'later systems retain the default measure count. Spatial and compact pitch ranges are recalculated. Right-click to '
-  'restore automatic systems.'),
+  '谱面工具栏选择“小节选择”或“拍选择”。单击选择，Ctrl 增减、Shift 连续选择，或拖动框选；右键操作选区。连续小节且首小节位于当前行开头时，可“强制合并为一行”。传统合行按完整显示符号和间隔预算与非强制行比较，绑定字号比例，不再按小节数量简单取比，也不缩放整行。全局字号变化时合行字号随之变化；恢复自动分行会重新计算推荐，可一起撤销。立体／紧凑谱继续沿用保存的合行比例及音域布局。',
+  'Choose Measure or Beat selection, then click, Ctrl-click, Shift-click or drag a marquee. Right-click acts on the selection. Consecutive measures beginning at a system boundary can be forced into one row. Traditional merge fonts bind to the complete visible-symbol and gap budget relative to ordinary rows, rather than a simple bar-count ratio or whole-row transform. Global font changes carry through to merged fonts; restoring rows recalculates the recommendation in the same undo step. Spatial and compact styles retain their saved merge ratio and pitch layout.'),
  ('歌词与符号位置',
   'Lyrics and symbol placement',
   '歌词在制谱下栏编辑，首次打开会自动回填已有歌词。选择起始小节、小节数量与段次，或点击“使用谱面选区”，自动回填该范围已有歌词；确认与删除只影响所选范围和段次，保留范围外歌词与其他段次。允许只填部分起点，不能超出范围。节奏点取旋律 '
@@ -903,21 +857,8 @@ TOPICS = [('开始与工程',
   'order.'),
  ('反复压缩与跳转',
   'Repeat compression and jumps',
-  '打开制谱模式，在“结构逻辑”页选择类型并“创建符号”，再在谱面选择小节并分别记录区域 '
-  'A、B。可创建多个待配置符号并来回切换。两区必须连续、相邻且等长；检查通过后添加反复。右键也可压缩选中的两段相同音乐。校验两轨音高、起止、力度、和弦标签、拍号与调性；不同歌词按段落堆叠在格点下方；跨区间延音、内容不同或嵌套压缩不可用。D.C. '
-  '从全曲开头重复，D.S. 自动配对 Segno；al Fine 只用于演奏时间线末段。N/R 表示跳转后不再执行内部反复。<br>尾声跳转需分别记录 A、B、A′、C 四区，要求 A 与 A′ 音乐一致：隐藏第二次 A，自动放置 '
-  'Segno、To Coda、D.S. al Coda 与 Coda。修改音乐后如校验不再通过，自动展开显示。右键谱面上任一结构符号可删除该组逻辑，立即还原完整谱面，Ctrl+Z 可撤销。所有压缩都保留原 MIDI 与播放顺序。',
-  'Expand the score editor, choose a type in Score structure and click Create symbol. Select measures on the score and '
-  'capture regions A and B separately. You can keep multiple drafts and switch between them. Each must be consecutive; '
-  'both must be adjacent and equally long. Add the repeat after validation. The score context menu also supports '
-  'repeat compression. Both tracks are checked for pitches, timing, velocities, chord symbols, meter and key. '
-  'Different lyrics are stacked below the grid as separate verses. Sustains across boundaries, differing content and '
-  'nested compression are unavailable. D.C. returns to the beginning; D.S. pairs with an automatic Segno. Al Fine is '
-  'available only at the end of the performed timeline. N/R means no internal repeats after the jump.<br>For a Coda '
-  'jump, capture four regions: A, B, A′ and C. A and A′ must match: the second A is hidden and Segno, To Coda, D.S. al '
-  'Coda and Coda are placed automatically. If music edits invalidate a match, it expands again. Right-click a rendered '
-  'structure symbol to delete that structure and restore the full score. Ctrl+Z undoes the deletion. MIDI and playback '
-  'order always remain intact.'),
+  '本地 0.54 暂不提供结构逻辑编辑页及对应的创建、删除、反复压缩和跳转编辑命令。已有工程保存的结构标记仍可读取和显示，音乐和 MIDI 不因这些显示标记而改写。普通每行小节数、手动换行与强制合行仍可使用。后续版本再更新结构编辑功能。',
+  'Local version 0.54 temporarily removes the structure editor and its create, delete, repeat-compression and jump-editing commands. Existing saved structure marks can still be loaded and displayed; they do not rewrite music or MIDI. Measures per row, manual line breaks and forced rows remain available. Structure editing is reserved for a later update.'),
  ('其他谱面符号',
   'Other score symbols',
   '小节选择可添加普通小节线、双小节线、结束线、Segno 与 Coda。拍选择可添加 F.O.（淡出）、rit.（渐慢）、ad lib.（自由演奏）和 Fine（结束）。符号菜单会根据选区位置与实际音符启用；结束线、Fine '

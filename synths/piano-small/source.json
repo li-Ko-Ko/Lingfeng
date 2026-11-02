@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "pack": "piano-small",
+  "version": "0.52",
+  "inputs": [
+    {
+      "file": "kw.zip",
+      "url": "https://codeload.github.com/freepats/upright-piano-KW/zip/570f6c60ed2eff67accad3b85d5b452e57a3ad28",
+      "sha256": "4ed71b20eb63758c3c7c458bcf61b977ea918cad4cb0a99bc61f56ce10f9240a",
+      "root": "upright-piano-KW-570f6c60ed2eff67accad3b85d5b452e57a3ad28"
+    },
+    {
+      "file": "greg.zip",
+      "url": "https://codeload.github.com/sfzinstruments/GregSullivan.E-Pianos/zip/8c3e581acda3594b553948ff0222d4f84a698376",
+      "sha256": "c36a5c9092688b9419d7d3ab330d9b317856c3752c3696bdc7e0b65dd4d79bdf",
+      "root": "GregSullivan.E-Pianos-8c3e581acda3594b553948ff0222d4f84a698376"
+    },
+    {
+      "source": "Discord-SFZ-GM-Bank",
+      "revision": "7a9c478fe331f94f246d33332f0adedb25bbbe27",
+      "files": [
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201.sfz",
+          "sha256": "1abaf6b99b0e6d79a17559405a53e650229f22a75f73c09f3b7ed4767a217fd2",
+          "git_sha1": "283b7351fee7f6d626ef837eb61bcf19c72d2b58",
+          "bytes": 2240
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_029__F1_3.wav",
+          "sha256": "0a4f5b9ba83570f5d53d4e737f25cb5426ceef7bbd45a52381ec3a12d30431c3",
+          "git_sha1": "94d930dd4d597cd46838bd85f043f02dc3c2cd46",
+          "bytes": 460916
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_035__B1_3.wav",
+          "sha256": "a227fdd8182e4a542a866cc95f6c5182e981177b899653a46e031a2f3679e876",
+          "git_sha1": "eac72f97ecdb99e2295f7825f69b0030ea72b358",
+          "bytes": 405658
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_040__E2_3.wav",
+          "sha256": "e5836a938d1d1da9f915306ee9f00763af539254d6e7cf2ba8d716fa8df7ffb3",
+          "git_sha1": "a49d7fc78057b11767fab319af6de9f8003faee2",
+          "bytes": 567926
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_045__A2_3.wav",
+          "sha256": "3688af2425db5df663790761432cacd22f9b43006c22d98005fc4d80f56e1ca2",
+          "git_sha1": "988a870272800028801bc12000a5561c21b2e057",
+          "bytes": 597638
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_050__D3_3.wav",
+          "sha256": "3a04b412345ea0b973370cccfd0e3ac46a2bab80cfa20121fb71b6903c196b23",
+          "git_sha1": "3b8d5678bb104eebbebfca6bd4e8405a4696356c",
+          "bytes": 513604
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_055__G3_3.wav",
+          "sha256": "b88b90e7d01a159cb18cd8ebaf1d53aec6e99e3f5637279acfc148aae0d98cc2",
+          "git_sha1": "d79df0b407396859b5e41fadde5c026f44d71bf5",
+          "bytes": 545332
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_059__B3_3.wav",
+          "sha256": "6f9a23dfa45fce4cca920bab53658baa998e4d6bb98576f0494d2b5788ddbf43",
+          "git_sha1": "b6fe92670a9c191cda6f6919c1e7f4193e8cb3f2",
+          "bytes": 450466
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_062__D4_3.wav",
+          "sha256": "2ba9b967ddefb10992b5f6fc17285c878764ea8f653664ae7053e761f226a68a",
+          "git_sha1": "db0e12a900de793ad7154c11de17106b82ab5afe",
+          "bytes": 566168
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_065__F4_3.wav",
+          "sha256": "47d276e1134f2036687a2e292df78d46328b7278c7e68db72084a4d249321098",
+          "git_sha1": "138073651e3c9fad1ab11df13604f3c7b353f056",
+          "bytes": 500578
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_071__B4_4.wav",
+          "sha256": "1f62eb0af7cfb2fb88e739c0ac1278986c3f5eaef46bcebffb2494ffa2c6d0da",
+          "git_sha1": "175dfd30ad2bdc561896afc2c9f4b369ddf13a10",
+          "bytes": 415082
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_076__E5_4.wav",
+          "sha256": "9c167eb907f7829ac7cae219ce852936d6f13912387e4fbd40361e60bec4d376",
+          "git_sha1": "ec3219e84d1c90fc848a365d71dd476b0e825d8b",
+          "bytes": 283322
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_081__A5_4.wav",
+          "sha256": "fff443666868f0d13f211ed38c2cbc0767730087da29376f79313f8a4c3a5568",
+          "git_sha1": "dec3fe48989e2a4919ac3e25246ea820401449e7",
+          "bytes": 352990
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_086__D6_4.wav",
+          "sha256": "eb321105e82c58e87e7d786365b32bf3c92c5eab21476c0f0f42948f63198075",
+          "git_sha1": "64364d58bcebe6167eec79b549f45dc44ce74741",
+          "bytes": 325258
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_091__G6_4.wav",
+          "sha256": "8af87910a84a7ced7102e1517e6a11dbc26158fbf90df9a6131aef1d54ff0dd8",
+          "git_sha1": "dbf7c1e7df7321b42d1479f570893ad3e4f5a708",
+          "bytes": 141148
+        },
+        {
+          "url": "https://raw.githubusercontent.com/sfzinstruments/Discord-SFZ-GM-Bank/7a9c478fe331f94f246d33332f0adedb25bbbe27/Discord%20GM/Melodic/005-Electric%20Piano%201/A_096__C7_4.wav",
+          "sha256": "343f4e86b3a0e0bb13018b5eb132509f2822d1fc92a8ab547f8fcfb7533a6119",
+          "git_sha1": "d6c8fce9c86c24ebc660f1cb4b21bcd784355214",
+          "bytes": 61232
+        }
+      ]
+    },
+    {
+      "file": "sfizz-win64.zip",
+      "url": "https://github.com/sfztools/sfizz/releases/download/1.2.3/sfizz-1.2.3-win64.zip",
+      "sha256": "7431cbe9b7f2e71a9ff4b12fbbe82c766dbf75b1eedecca627e7506cb06a9fcc"
+    },
+    {
+      "file": "sfizz-1.2.3.tar.gz",
+      "url": "https://github.com/sfztools/sfizz/releases/download/1.2.3/sfizz-1.2.3.tar.gz",
+      "sha256": "a9339eac7620d7f0f6b44bdfe860680fab73e66efad4b5f15b21198dd9436822"
+    }
+  ],
+  "modifications": [
+    "All audio samples copied unmodified.",
+    "KW bright variation adds +3 dB broad EQ at 2.8 kHz.",
+    "Greg electric-piano edge zones extended to MIDI21-108; cosmetic ARIA labels removed.",
+    "Rhodes global envelope header made explicit so sfizz applies the original ampeg_sustain=0 setting.",
+    "Preset linear gain calibrated separately; Rhodes uses the separately CC0 licensed single-velocity GM subset."
+  ]
+}

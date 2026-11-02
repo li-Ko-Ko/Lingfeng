@@ -6,11 +6,11 @@ import math
 import copy
 import bisect
 from PySide6.QtCore import Qt, QRectF, QPointF, QMarginsF
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen, QPainterPath, QPdfWriter, QPageSize, QPageLayout,QTransform
-from lingfeng.music.model import PPQ, MODES, Note, spelling, pitch_name
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen, QPainterPath, QPainterPathStroker, QPdfWriter, QPageSize, QPageLayout,QTransform
+from lingfeng.music.model import PPQ, MODES, Note, spelling, pitch_name, FONT_SIZE_MAX
 from lingfeng.ui.fonts import ensure_fonts
 from lingfeng.ui.theme import color as theme_color
-from lingfeng.engraving.presentation import visible_bars, active_compressions, annotation_allowed, lyric_verses
+from lingfeng.engraving.presentation import visible_bars, active_compressions, annotation_allowed, lyric_verses, row_groups
 
 INK = QColor('#263345')
 MUTED = QColor('#8692A2')
@@ -23,9 +23,18 @@ BEAT_LINE='#D2DCE8'
 # MIDI time-base conversions can leave a 1–2 tick remainder at PPQ 960.
 # This tolerance only affects engraving; note timing and playback stay exact.
 RHYTHM_TOLERANCE=2
+# Imported legato tails may overlap the next attack slightly. This changes only
+# traditional voice placement, never note lengths or performed polyphony.
+LEGATO_TAIL_MAX=PPQ//8
+LEGATO_TAIL_FRACTION=4
 RHYTHM_VALUES=(3840,2880,1920,1440,960,720,640,480,360,320,240,180,160,120,90,80,60,45,40,30)
 TRADITIONAL_BEAT_GAP=.75
+TRADITIONAL_ROW_GAP=8.
 SYMBOL_PADDING=1.5
+RHYTHM_DOT_CLEARANCE=.6
+CIRCLE_RADIUS_X=10.
+CIRCLE_RADIUS_Y=12.
+CIRCLE_PEN_WIDTH=.95
 
 
 def is_chord_tone(project,pitch,tick):
@@ -47,6 +56,7 @@ class Fragment:
     ghost: bool = False
     display_duration: int | None = None
     source_ids: tuple = ()
+    extension_beats: int = 0
 
     @property
     def end(self):
@@ -66,9 +76,56 @@ def rhythm_parts(start, duration):
     return result
 
 
+def beat_rhythm_parts(start,duration,bar_start,beat):
+    """Spell cross-beat syncopations with ties, retaining ordinary long dashes."""
+    if ((start-bar_start)%beat==0 and round(duration/PPQ)>=1 and
+            abs(duration-round(duration/PPQ)*PPQ)<=RHYTHM_TOLERANCE):
+        return [(start,duration)]
+    result=[]
+    for left,length in rhythm_parts(start,duration):
+        right=left+length
+        plain_beats=((left-bar_start)%beat==0 and
+                     abs(length-round(length/PPQ)*PPQ)<=RHYTHM_TOLERANCE)
+        if plain_beats:
+            result.append((left,length));continue
+        first=bar_start+((left-bar_start)//beat+1)*beat
+        # A 1–2 tick MIDI conversion remainder is not a separate rhythmic value.
+        boundaries=[left,*range(first,right,beat),right]
+        boundaries=[t for t in boundaries if t in (left,right) or left+RHYTHM_TOLERANCE<t<right-RHYTHM_TOLERANCE]
+        for a,b in zip(boundaries,boundaries[1:]):result.extend(rhythm_parts(a,b-a))
+    return result
+
+
+def voice_lanes(fragments,legato=False):
+    """Allocate visible intervals; optionally disregard only short staggered tails."""
+    visible={}
+    for f in fragments:
+        if f.note is None or f.pitch is None:continue
+        note=f.note
+        if note.id in visible:
+            prior,a,b=visible[note.id];visible[note.id]=(prior,min(a,f.start),max(b,f.end))
+        else:visible[note.id]=(note,f.start,f.end)
+    voices={};lanes=[]
+    for note,start,end in sorted(visible.values(),key=lambda item:(item[1],-item[0].pitch,item[0].start)):
+        lane=len(lanes)
+        for index,(prior,a,b) in enumerate(lanes):
+            overlap=b-start
+            short_tail=(legato and a<start and prior.start<note.start and
+                        0<overlap<=LEGATO_TAIL_MAX and
+                        overlap*LEGATO_TAIL_FRACTION<=min(prior.duration,note.duration))
+            if b<=start or short_tail:
+                lane=index;break
+        if lane==len(lanes):lanes.append((note,start,end))
+        else:lanes[lane]=(note,start,end)
+        voices[note.id]=lane
+    return voices
+
+
 def fragments_for_bar(project,index,lyrics=None,adjustments=()):
     start,end=project.starts[index:index+2];notes=sorted((n for n in project.notes if n.start<end and n.end>start),key=lambda n:n.start)
     pieces=[];coverage=[]
+    beat=PPQ*4//project.measures[index].denominator
+    parts=lambda a,d:beat_rhythm_parts(a,d,start,beat)
     rap_ticks={e['tick'] for e in lyrics or [] if e.get('kind')=='rap_note'}
     for note in notes:
         if note.start in rap_ticks:continue
@@ -76,7 +133,11 @@ def fragments_for_bar(project,index,lyrics=None,adjustments=()):
         boundaries=sorted({a,b,*[c.start for c in project.contexts if a<c.start<b],
                            *[t for item in adjustments for t in item['tail'] if a<t<b]})
         for left,right in zip(boundaries,boundaries[1:]):
-            for t,d in rhythm_parts(left,right-left):pieces.append(Fragment(t,d,note.pitch,note,t>note.start,t+d<note.end,note.lyric if t==note.start else ''))
+            for t,d in parts(left,right-left):
+                f=Fragment(t,d,note.pitch,note,t>note.start,t+d<note.end,note.lyric if t==note.start else '')
+                if (t-start)%beat==0 and abs(d-round(d/PPQ)*PPQ)<=RHYTHM_TOLERANCE:
+                    f.extension_beats=round(d/PPQ)
+                pieces.append(f)
     seen=set()
     for tick in sorted(rap_ticks):
         sources=[n for n in notes if n.start==tick]
@@ -95,7 +156,6 @@ def fragments_for_bar(project,index,lyrics=None,adjustments=()):
         if cursor<a:gaps.append((cursor,a))
         cursor=max(cursor,b)
     if cursor<end:gaps.append((cursor,end))
-    beat=PPQ*4//project.measures[index].denominator
     for left,right in gaps:
         if right-left<=RHYTHM_TOLERANCE:continue
         # Long rests are repeated zeros, including the first beat of a bar.
@@ -123,6 +183,8 @@ def rhythm_style(ticks):
 
 
 def fragment_style(fragment):
+    if fragment.extension_beats and fragment.display_duration is None:
+        return 0,False,False,fragment.extension_beats-1
     return rhythm_style(fragment.display_duration if fragment.display_duration is not None else fragment.duration)
 
 
@@ -185,6 +247,27 @@ class System:
     note_baseline: float=60
     voice_gap: float=48
     left: float=MARGIN+40
+    font_ratio: float=1
+    cell_width: float=0
+    beat_gap: float=0
+    beat_cells: list=field(default_factory=list)
+    traditional_cells: dict=field(default_factory=dict)
+    traditional_maps: dict=field(default_factory=dict)
+    bar_side_gap: float=0
+    symbol_count: int=0
+    gap_units: int=0
+    unit_count: int=0
+    forced_font_ratio: float=1
+    lower_octave_dots: int=0
+    underline_offset: float=11
+    notation_bottom: float=13
+    notation_ink_bottom: float=12
+    natural_width: float=0
+    natural_height: float=0
+    fit_left: float=0
+    fit_width: float=0
+    is_forced: bool=False
+    reference_unit_count: int=0
 
     def pitch_position(self, pitch):
         pitches = self.pitches
@@ -206,7 +289,71 @@ class ScoreLayout:
         self.hit_chords = []
         self.hit_times=[];self.hit_symbols=[];self.dark=False;self.tie_paths=[];self.rest_positions=[];self.symbol_marks=[];self.lyric_positions=[];self.symbol_boxes=[];self.unpitched_positions=[]
         self.pages = 1;self.glyph_scale=1;self.glyph_sizes=[];self.engraving_cache={};self.width_cache={};self.rhythm_adjustments={}
+        self.traditional_grids={};self.cell_width_cache={};self.fragment_cache={};self.fragment_systems={};self.ink_text_cache={};self.dot_ink_cache={}
+        self.tuplet_groups=[];self.tuplet_marks=[];self.fragment_tuplets={}
         self.build()
+
+    def source_tuplets(self):
+        """Group original rhythmic attacks before beat/context spelling splits."""
+        p=self.project;source={}
+        def value(duration):
+            return next((v for v in RHYTHM_VALUES if abs(duration-v)<=RHYTHM_TOLERANCE and rhythm_style(v)[2]),None)
+        for note in p.notes:
+            unit=source.setdefault((note.start,note.end),dict(start=note.start,end=note.end,source_ids=[],rest=False))
+            unit['source_ids'].append(note.id)
+        for event in self.lyrics:
+            if event.get('kind')=='rap' and event.get('duration',0)>0:
+                source.setdefault((event['tick'],event['tick']+event['duration']),dict(start=event['tick'],end=event['tick']+event['duration'],source_ids=[],rest=False))
+        units=sorted(source.values(),key=lambda u:(u['start'],u['end']))
+        for index,unit in enumerate(units):unit.update(token=index,value=value(unit['end']-unit['start']))
+        groups=[];used=set()
+        def add(run):
+            if not any(not u['rest'] for u in run):return
+            ident=f"tuplet:{run[0]['start']}:{run[-1]['end']}:{len(groups)}"
+            groups.append(dict(id=ident,start=run[0]['start'],end=run[-1]['end'],duration=run[0]['value'],
+                source_ids=tuple(ident for unit in run for ident in unit['source_ids']),units=tuple(run),complete=len(run)==3))
+            used.update(u['token'] for u in run)
+        # Full runs of three real attacks take precedence over a preceding
+        # triplet-sized rest; that rest must not steal the first group member.
+        run=[]
+        def complete_run():
+            while len(run)>=3:add(run[:3]);del run[:3]
+        for unit in units:
+            if not unit['value'] or (run and (unit['value']!=run[-1]['value'] or not 0<=unit['start']-run[-1]['end']<=RHYTHM_TOLERANCE)):
+                complete_run();run=[]
+            if unit['value']:run.append(unit)
+        complete_run()
+        anchors=sorted({*p.starts,*[tick for bar in range(len(p.measures)) for tick in range(p.starts[bar],p.starts[bar+1],PPQ*4//p.measures[bar].denominator)]})
+        cursor=0;gaps=[]
+        for unit in units:
+            if cursor<unit['start']:gaps.append((cursor,unit['start']))
+            cursor=max(cursor,unit['end'])
+        if cursor<p.end:gaps.append((cursor,p.end))
+        combined=list(units);token=len(units)
+        for start,end in gaps:
+            edges=[start,end] if value(end-start) else [start,*anchors[bisect.bisect_right(anchors,start):bisect.bisect_left(anchors,end)],end]
+            for a,b in zip(edges,edges[1:]):
+                combined.append(dict(start=a,end=b,source_ids=[],rest=True,token=token,value=value(b-a)));token+=1
+        run=[]
+        def finish():
+            while len(run)>=3:add(run[:3]);del run[:3]
+            if run:add(run[:])
+        for unit in sorted(combined,key=lambda u:(u['start'],u['end'])):
+            if unit['token'] in used or not unit['value']:
+                finish();run=[];continue
+            if run and (unit['value']!=run[-1]['value'] or not 0<=unit['start']-run[-1]['end']<=RHYTHM_TOLERANCE):
+                finish();run=[]
+            run.append(unit)
+        finish()
+        return sorted(groups,key=lambda group:(group['start'],group['end']))
+
+    def tuplet_for_fragment(self,f):
+        if f.note:return self.source_tuplet_ids.get(f.note.id)
+        for ident in f.source_ids:
+            if ident in self.source_tuplet_ids:return self.source_tuplet_ids[ident]
+        for group,unit in self.unpitched_tuplet_units:
+            if unit['start']<=f.start and f.end<=unit['end'] and unit['rest']==(not f.ghost):return group
+        return None
 
     def context_labels(self,bar):
         p=self.project;start,end=p.starts[bar:bar+2];labels={}
@@ -222,12 +369,16 @@ class ScoreLayout:
 
     def build(self):
         p=self.project;per_line=p.notation['per_line'];style=p.notation['style']
+        self.font_size=max(.0001,min(round(p.notation.get('font_size',15),4),FONT_SIZE_MAX))
         left=MARGIN if style=='traditional' else MARGIN+40
         i,page,y=0,0,140;available=PAPER_W-MARGIN-left
         visible=visible_bars(p);forced=dict(p.notation.get('forced_rows',[]));bases={(a,b):n for a,b,n in p.notation.get('forced_row_fonts',[])}
         compressions=active_compressions(p);self.compressions=compressions;self.verses=lyric_verses(p,compressions)
         from lingfeng.engraving.lyrics import display_events, melisma_links
         self.lyrics=display_events(p,compressions)
+        self.tuplet_groups=self.source_tuplets()
+        self.source_tuplet_ids={ident:group['id'] for group in self.tuplet_groups for ident in group['source_ids']}
+        self.unpitched_tuplet_units=[(group['id'],unit) for group in self.tuplet_groups for unit in group['units'] if not unit['source_ids']]
         self.melismas=melisma_links(p,self.lyrics);self.melisma_paths=[]
         self.melisma_notes={ident for _,_,left,right in self.melismas for ident in (left,right)}
         while i<len(visible):
@@ -240,6 +391,7 @@ class ScoreLayout:
                 frags=fragments_for_bar(p,bar,self.lyrics)
                 adjustments=short_pair_adjustments(p,bar,frags);self.rhythm_adjustments[bar]=adjustments
                 if adjustments:frags=fragments_for_bar(p,bar,self.lyrics,adjustments)
+                self.fragment_tuplets.update((id(f),self.tuplet_for_fragment(f)) for f in frags)
                 # A bar is indivisible, including at explicit line and page breaks.
                 bars.append(bar);fragments[bar]=frags;widths.append(1);i+=1
                 if not forced_count and p.measures[bar].break_after:break
@@ -255,16 +407,11 @@ class ScoreLayout:
             if style=='compact':
                 grid=[f.pitch for f in notes if (f.pitch-p.context_at(f.start).tonic)%12 in MODES[p.context_at(f.start).mode]]
             grid=sorted(set(grid)|set(boundaries))
-            # Stable independent lanes prevent simultaneous notes colliding in traditional notation.
-            voices={};ends=[]
-            originals=sorted({f.note.id:f.note for f in notes}.values(),key=lambda n:(n.start,-n.pitch))
-            for note in originals:
-                lane=next((j for j,end in enumerate(ends) if end<=note.start),len(ends))
-                if lane==len(ends):ends.append(note.end)
-                else:ends[lane]=note.end
-                voices[note.id]=lane
+            # Genuine overlapping voices retain independent lanes. Imported
+            # short legato tails alone do not push a melody into a second row.
+            voices=voice_lanes(notes,style=='traditional')
             gap=p.notation['row_gap']
-            height=100+max(0,len(ends)-1)*48 if style=='traditional' else (len(grid)-1)*gap+84
+            height=100+max(voices.values(),default=0)*48 if style=='traditional' else (len(grid)-1)*gap+84
             row_lyrics=[e for e in self.lyrics if not e.get('skip') and e.get('text') and any(p.starts[b]<=e['tick']<p.starts[b+1] for b in bars)]
             verse_count=max((e.get('verse',0)+1 for e in row_lyrics),default=1)
             lyric_rows=verse_count*max((e.get('voice',0)+1 for e in row_lyrics),default=0) if p.notation['lyrics'] else 0
@@ -290,39 +437,48 @@ class ScoreLayout:
             if y+height>PAPER_H-70 and y>76:
                 page+=1;y=76
             scale=min(1,bases.get((bars[0],row_end),per_line)/len(bars)) if forced_count else 1
-            weights=[self.minimum_bar_width(b,fragments[b]) for b in bars]
+            for bar in bars:self.minimum_bar_width(bar,fragments[bar])
+            weights=[self.bar_spacing_weight(b,fragments[b]) for b in bars]
             widths=[available*w/sum(weights) for w in weights]
             system=System(bars,fragments,grid,y,height,page,widths,boundaries,tonic,gap,scale,voices,layout_scale,extra,grid_bottom,lyric_rows,verse_count)
             system.left=left
+            system.is_forced=bool(forced_count)
+            system.forced_font_ratio=scale
+            system.font_ratio=1 if style=='traditional' else scale
+            if style=='traditional':
+                system.symbol_scale=1
+                system.lower_octave_dots=max((self.lower_dots(f) for f in notes),default=0)
+                system.underline_offset=11+4*system.lower_octave_dots
             system.context_height=context_height;system.notation_clearance=clearance
+            self.fragment_systems.update((id(f),system) for parts in fragments.values() for f in parts)
             self.systems.append(system);y+=height+p.notation.get('system_gap',12)
         self.pages=page+1
-        # One safety limit for the entire score. Forced rows retain an explicit
-        # ratio to this global size; neither individual bars nor glyphs shrink.
-        limit=26/15
-        for system in self.systems:
-            ratio=system.symbol_scale
-            limit=min(limit,available/sum(self.width_cache[b] for b in system.bars)/ratio)
-            for bar in system.bars:
-                notes=[f for f in system.fragments[bar] if f.pitch is not None]
-                for i,f in enumerate(notes):
-                    for g in notes[i+1:]:
-                        if max(f.start,g.start)>=min(f.end,g.end) or f.pitch==g.pitch:continue
-                        if style=='traditional':
-                            dy=abs(system.voices[f.note.id]-system.voices[g.note.id])*48
-                            upper,lower=(f,g) if system.voices[f.note.id]<system.voices[g.note.id] else (g,f)
-                        else:
-                            dy=abs(system.pitch_position(f.pitch)-system.pitch_position(g.pitch))*system.row_gap
-                            upper,lower=(f,g) if f.pitch>g.pitch else (g,f)
-                        needed=max(52,self.vertical_extents(upper)[1]+self.vertical_extents(lower)[0]+4)
-                        limit=min(limit,dy/needed/ratio)
-        self.max_font_size=15*limit
-        # Expose a selectable limit instead of accepting larger values that
-        # render identically. Sub-unit limits remain explicit for dense scores.
-        self.font_limit=math.floor(self.max_font_size+1e-7) if self.max_font_size>=1 else math.floor(self.max_font_size*10000)/10000
-        self.font_limit=max(.0001,min(26,self.font_limit))
-        self.recommended_font_size=min(15,self.font_limit)
-        self.font_size=max(.0001,min(round(p.notation.get('font_size',15),4),self.font_limit))
+        # Traditional advice follows the score-wide numeric unit budget;
+        # spatial advice follows two-dimensional ink rather than time cells.
+        if style=='traditional':
+            self.digit_advance=max(self.text_width(str(digit),15) for digit in range(8))
+            self.circle_width_ratio=(2*CIRCLE_RADIUS_X+CIRCLE_PEN_WIDTH)/self.digit_advance
+            self.numeric_advance=self.digit_advance*self.circle_width_ratio
+            self.cell_width=self.numeric_advance*self.font_size/15
+            def budget(bars):
+                groups=[beat for bar in bars for beat in self.traditional_grid(bar)]
+                return sum(beat['count'] for beat in groups)+2*len(groups)
+            normal=[system for system in self.systems if not system.is_forced]
+            self.reference_source='nonforced' if normal else 'baseline'
+            self.reference_rows=tuple(tuple(system.bars) for system in normal) if normal else tuple(row['bars'] for row in row_groups(p,use_forced=False))
+            self.reference_unit_count=max((budget(bars) for bars in self.reference_rows),default=1)
+            for system in self.systems:
+                units=budget(system.bars);system.reference_unit_count=self.reference_unit_count
+                ratio=min(1,self.reference_unit_count/max(1,units)) if system.is_forced else 1
+                system.font_ratio=system.forced_font_ratio=ratio;system.symbol_scale=ratio
+                self.arrange_traditional_system(system,available,self.cell_width*ratio)
+            self.max_font_size=min(FONT_SIZE_MAX,15*available/self.reference_unit_count/self.numeric_advance)
+            self.font_limit=max(1,math.floor(self.max_font_size))
+        else:
+            self.max_font_size=self.suggest_font_size()
+            self.font_limit=math.floor(self.max_font_size+1e-7) if self.max_font_size>=1 else math.floor(self.max_font_size*10000)/10000
+        self.font_limit=max(.0001,min(FONT_SIZE_MAX,self.font_limit))
+        self.recommended_font_size=self.font_limit if style=='traditional' else min(15,self.font_limit)
         self.glyph_scale=self.font_size/15
         page,y=0,140
         for system in self.systems:
@@ -333,7 +489,7 @@ class ScoreLayout:
             notes=[f for fs in system.fragments.values() for f in fs if f.pitch is not None]
             if style=='traditional':
                 last_voice=max(system.voices.values(),default=0)
-                below=max((self.vertical_extents(f)[1]*system.symbol_scale-(last_voice-system.voices[f.note.id])*48 for f in notes),default=0)
+                below=max((self.vertical_extents(f,system)[1]*system.symbol_scale-(last_voice-system.voices[f.note.id])*48 for f in notes),default=0)
                 bottom_extra=max(0,below+6-48)
             else:
                 below=max((self.vertical_extents(f)[1]*system.symbol_scale-system.pitch_position(f.pitch)*system.row_gap for f in notes),default=0)
@@ -341,15 +497,12 @@ class ScoreLayout:
             system.lyric_gap=22*max(1,system.symbol_scale);system.lyric_offset=20*max(1,system.symbol_scale)
             if style=='traditional':
                 scale=system.symbol_scale
-                # Justify every row to the page margins. Extra space belongs
-                # between beat groups, leaving the symbol cells compact.
-                natural=[self.width_cache[b]*scale for b in system.bars]
-                stretch=[max(1,self.beat_gap_count(b)) for b in system.bars]
-                extra=max(0,available-sum(natural))
-                system.bar_widths=[w+extra*g/sum(stretch) for w,g in zip(natural,stretch)]
                 lower_band=system.height-system.grid_bottom-system.lyric_rows*22-12
-                top=max((self.vertical_extents(f)[0] for f in notes),default=27)
-                bottom=max((self.vertical_extents(f)[1] for f in notes),default=13)
+                fragments=[f for fs in system.fragments.values() for f in fs]
+                top=max((self.vertical_extents(f,system)[0] for f in fragments),default=27)
+                bottom=max((self.vertical_extents(f,system)[1] for f in fragments),default=13)
+                system.notation_bottom=bottom
+                system.notation_ink_bottom=max((self.symbol_ink(f,system)[3] for f in fragments),default=12)
                 system.voice_gap=(top+bottom+6)*scale
                 system.note_baseline=24+system.extra_header-system.notation_clearance+top*scale
                 system.grid_bottom=system.note_baseline+last_voice*system.voice_gap+bottom*scale+3
@@ -358,20 +511,264 @@ class ScoreLayout:
             else:
                 system.grid_bottom+=bottom_extra
                 system.height+=bottom_extra+system.lyric_rows*(system.lyric_gap-22)
+            tuplet_fragments=[f for parts in system.fragments.values() for f in parts if self.fragment_tuplets.get(id(f))]
+            if tuplet_fragments:
+                tops=[]
+                for f in tuplet_fragments:
+                    if style=='traditional':ny=system.note_baseline+(system.voices.get(f.note.id,0)*system.voice_gap if f.note else 0)
+                    else:
+                        baseline=(len(system.pitches)-1)*system.row_gap+60+system.extra_header
+                        ny=baseline-system.pitch_position(f.pitch)*system.row_gap if f.pitch is not None else baseline-(len(system.pitches)-1)*system.row_gap/2
+                    tops.append(self.tuplet_ink_top(f,system,ny))
+                label_top=min(tops)+(self.text_ink('3',9,center=True)[1]-5)*system.symbol_scale
+                padding=max(0,system.context_height+20+6*system.symbol_scale-label_top)
+                system.extra_header+=padding;system.note_baseline+=padding;system.grid_bottom+=padding;system.height+=padding
+            system.natural_width=sum(system.bar_widths);system.natural_height=system.height
+            descriptors=self.ink_descriptors(system)
+            ink_right=max((x+r*system.symbol_scale for _,_,x,_,_,_,r,_ in descriptors),default=system.left+system.natural_width)
+            header_x=system.left
+            for bar,width in zip(system.bars,system.bar_widths):
+                ink_right=max(ink_right,header_x+5+self.text_width(str(bar+1),9))
+                if p.measures[bar].section:ink_right=max(ink_right,header_x+28+self.text_width(p.measures[bar].section,10))
+                header_x+=width
+            system.fit_left=system.left
+            system.fit_width=max(system.left+system.natural_width,ink_right)-system.fit_left
             page_start=140 if page==0 else 76
-            if y>page_start and y+system.height>PAPER_H-70:
+            if y>page_start and y+system.natural_height>PAPER_H-70:
                 page+=1;y=76
+            system.layout_scale=1;system.height=system.natural_height
             system.top=y;system.page=page;y+=system.height+p.notation.get('system_gap',12)
         self.pages=page+1
         self.bar_symbol_scales={b:s.symbol_scale for s in self.systems for b in s.bars}
 
-    def vertical_extents(self,f):
+    def tuplet_ink_top(self,f,system,baseline):
+        scale=system.symbol_scale;top=baseline+self.symbol_ink(f,system)[1]*scale
+        if f.note and (f.continuation or f.continues or f.note.id in self.melisma_notes):
+            octave=spelling(f.pitch,self.project.context_at(f.start).tonic,f.note.flat,mode=self.project.context_at(f.start).mode)[2]
+            top=min(top,baseline-(37+max(0,octave)*4)*scale)
+        return top
+
+    @staticmethod
+    def system_transform(system):
+        transform=QTransform();transform.translate(system.left,system.top)
+        transform.scale(system.layout_scale,system.layout_scale);transform.translate(-system.fit_left,0)
+        return transform
+
+    def system_page_rect(self,system):
+        return self.system_transform(system).mapRect(QRectF(system.fit_left,0,system.fit_width,system.natural_height))
+
+    def text_ink(self,text,size,bold=False,center=False):
+        key=(text,size,bold,center)
+        if key not in self.ink_text_cache:
+            font=QFont('Microsoft YaHei');font.setPixelSize(round(size*1.2))
+            font.setWeight(QFont.Weight.DemiBold if bold else QFont.Weight.Normal)
+            metrics=QFontMetricsF(font);rect=metrics.tightBoundingRect(text)
+            dx=-metrics.horizontalAdvance(text)/2 if center else 0
+            self.ink_text_cache[key]=(rect.left()+dx,rect.top(),rect.right()+dx,rect.bottom())
+        return self.ink_text_cache[key]
+
+    def symbol_ink(self,f,system=None):
+        """Visible digit, accidental, circle, dots and underlines at base size."""
+        if f.note:
+            degree,accidental,octave=spelling(f.pitch,self.project.context_at(f.start).tonic,f.note.flat,mode=self.project.context_at(f.start).mode)
+            text=str(degree)
+        else:text='x' if f.ghost else '0';accidental=octave=0
+        rects=[self.text_ink(text,15,center=True)]
+        if accidental:
+            l,t,r,b=self.text_ink('♭' if accidental<0 else '♯',11);rects.append((l-17,t,r-17,b))
+        if f.note and self.project.notation['circles'] and is_chord_tone(self.project,f.pitch,f.start):
+            if self.project.notation['style']=='traditional':
+                half=CIRCLE_PEN_WIDTH/2
+                rects.append((-CIRCLE_RADIUS_X-half,-6-CIRCLE_RADIUS_Y-half,CIRCLE_RADIUS_X+half,-6+CIRCLE_RADIUS_Y+half))
+            else:rects.append((-10.5,-18.5,10.5,6.5))
+        for k in range(abs(octave)):
+            y=-22-k*4 if octave>0 else 5+k*4;rects.append((-1.35,y-1.35,1.35,y+1.35))
+        under,dotted,_,dashes=fragment_style(f)
+        for k in range(under):
+            offset=self.underline_y(f,system) if self.project.notation['style']=='traditional' else 11+max(0,-octave)*4
+            y=offset+k*4;rects.append((-5.5,y-.5,6.5,y+.5))
+        if dotted and not dashes:rects.append((11.6,-7.4,14.4,-4.6))
+        return min(r[0] for r in rects),min(r[1] for r in rects),max(r[2] for r in rects),max(r[3] for r in rects)
+
+    def ink_descriptors(self,system):
+        """Affine ink boxes, built once per row before the advisory search."""
+        p=self.project;traditional=p.notation['style']=='traditional';result=[];x=system.left
+        notes=[f for fs in system.fragments.values() for f in fs if f.pitch is not None]
+        extents=[f for fs in system.fragments.values() for f in fs] if traditional else notes
+        voice_gap=max((self.vertical_extents(f,system)[0] for f in extents),default=27)+max((self.vertical_extents(f,system)[1] for f in extents),default=13)+6
+        def add(group,layer,x,y,rect,dx=0,dy=0):
+            l,t,r,b=rect;result.append((group,layer,x,y,l+dx,t+dy,r+dx,b+dy))
+        for bar,width in zip(system.bars,system.bar_widths):
+            points,positions,*_=self.bar_map(system,bar,x,width);origins={}
+            def xpos(t):return self.interpolate(points,positions,t)
+            for f in system.fragments[bar]:
+                if traditional:
+                    a,b=system.traditional_cells[(bar,f.start)];nx=x+(a+b)/2;dx=0
+                    ny=0;dy=system.voices.get(f.note.id,0)*voice_gap if f.note else 0
+                else:
+                    nx=xpos(f.start);dx=SYMBOL_PADDING/2+self.column_extents(f)[0]
+                    ny=-system.pitch_position(f.pitch)*system.row_gap if f.pitch is not None else -(len(system.pitches)-1)*system.row_gap/2;dy=0
+                origins.setdefault(f.start,(nx,dx));add(id(f),(0,),nx,ny,self.symbol_ink(f,system),dx,dy)
+                _,dotted,_,dashes=fragment_style(f)
+                for k in range(dashes):
+                    tick=f.start+(k+1)*PPQ
+                    if traditional:
+                        a,b=system.traditional_cells[(bar,tick)];dashx=x+(a+b)/2;offset=0
+                    else:dashx=xpos(tick);offset=12.5
+                    rect=self.text_ink('−',14,center=True)
+                    if dotted and k==dashes-1:rect=(rect[0],min(rect[1],-7.4),max(rect[2],13.4),max(rect[3],-4.6))
+                    add(id(f),(0,),dashx,ny,rect,offset,dy)
+            start,end=p.starts[bar:bar+2]
+            if p.notation['lyrics']:
+                for event in self.lyrics:
+                    if not start<=event['tick']<end or event.get('skip') or not event.get('text'):continue
+                    text=event['text']+('-' if event.get('join_next') else '')
+                    if event['tick'] in origins:nx,dx=origins[event['tick']]
+                    elif traditional:
+                        nx=xpos(event['tick'])+system.cell_width/2;dx=0
+                    else:nx=xpos(event['tick']);dx=SYMBOL_PADDING/2+self.text_width(text,11)/2
+                    add(('lyric',event['id'],event.get('verse',0)),(1,event.get('voice',0),event.get('verse',0)),nx,0,self.text_ink(text,11,center=True),dx)
+            for chord in p.chords:
+                if start<=chord.start<end or chord.start<start<chord.end:
+                    from lingfeng.music.chord_operations import roman_label
+                    add(('chord',chord.id),(2,),xpos(max(start,chord.start)),0,self.text_ink(roman_label(p,chord,chord.flat),12,True),4)
+            if traditional:
+                middle=max(system.voices.values(),default=0)*voice_gap/2-3
+                leading,trailing=self.repeat_padding(bar)
+                distance,radius=self.repeat_dot_geometry(system);distance/=system.symbol_scale;radius/=system.symbol_scale
+                if leading:add(('repeat-start',bar),(0,),x,0,(distance-radius,middle-4-radius,distance+radius,middle+4+radius))
+                if trailing:add(('repeat-end',bar),(0,),x+width,0,(-distance-radius,middle-4-radius,-distance+radius,middle+4+radius))
+            x+=width
+        return result
+
+    @staticmethod
+    def ink_fits(descriptors,scale,left=MARGIN,right=PAPER_W-MARGIN):
+        layers={}
+        for group,layer,x,y,l,t,r,b in descriptors:
+            box=(x+l*scale,y+t*scale,x+r*scale,y+b*scale,group)
+            if box[0]<left-1e-7 or box[2]>right+1e-7:return False
+            layers.setdefault(layer,[]).append(box)
+        for boxes in layers.values():
+            active=[]
+            for current in sorted(boxes,key=lambda box:box[0]):
+                active=[box for box in active if box[2]+.6>current[0]]
+                for prior in active:
+                    if prior[4]!=current[4] and prior[1]<current[3]+.6 and current[1]<prior[3]+.6:return False
+                active.append(current)
+        return True
+
+    def suggest_font_size(self):
+        advice=float(FONT_SIZE_MAX)
+        for system in self.systems:
+            descriptors=self.ink_descriptors(system);ratio=system.font_ratio/15
+            x=system.left
+            for bar,width in zip(system.bars,system.bar_widths):
+                points,positions,*_=self.bar_map(system,bar,x,width)
+                for f in system.fragments[bar]:
+                    _,dotted,_,dashes=fragment_style(f)
+                    if not dotted:continue
+                    tick=f.start+dashes*PPQ;beat=self.beat_cell(system,bar,tick)
+                    if self.project.notation['style']=='traditional':
+                        a,b=system.traditional_cells[(bar,tick)];anchor=x+(a+b)/2
+                        offset=12 if dashes else 13
+                    else:
+                        anchor=self.interpolate(points,positions,tick)
+                        offset=24.5 if dashes else SYMBOL_PADDING/2+self.column_extents(f)[0]+13
+                        if not dashes and f.start==self.project.starts[bar]:offset+=self.repeat_padding(bar)[0]
+                    # Advice leaves the ordinary dot offset intact, with its
+                    # full ellipse inside the beat's content boundary.
+                    advice=min(advice,(beat['right']-anchor)/(offset+1.4+RHYTHM_DOT_CLEARANCE)/ratio)
+                x+=width
+            if self.ink_fits(descriptors,advice*ratio):continue
+            low,high=0.,advice
+            for _ in range(15):
+                middle=(low+high)/2
+                if self.ink_fits(descriptors,middle*ratio):low=middle
+                else:high=middle
+            advice=low
+        return max(.0001,advice)
+
+    @staticmethod
+    def traditional_beat_cell(system,bar,tick):
+        return next(beat for beat in system.beat_cells if beat['bar']==bar and beat['start']<=tick<beat['end'])
+
+    def beat_cell(self,system,bar,tick):
+        if self.project.notation['style']=='traditional':return self.traditional_beat_cell(system,bar,tick)
+        start,end=self.project.starts[bar:bar+2];beat=PPQ*4//self.project.measures[bar].denominator
+        a=start+((tick-start)//beat)*beat;b=min(a+beat,end)
+        index=system.bars.index(bar);x=system.left+sum(system.bar_widths[:index]);width=system.bar_widths[index]
+        points,positions,*_=self.bar_map(system,bar,x,width)
+        return dict(bar=bar,start=a,end=b,left=self.interpolate(points,positions,a),right=self.interpolate(points,positions,b))
+
+    def beat_dot(self,system,bar,tick,center,radius):
+        """Keep the physical dot inside its beat even with a manual large font."""
+        beat=self.beat_cell(system,bar,tick);left,right=beat['left'],beat['right']
+        clearance=min(RHYTHM_DOT_CLEARANCE*system.symbol_scale,(right-left)/4)
+        # Only pathological manual sizes in tiny beat cells reduce the dot
+        # radius; the requested digit size and the row gap are unchanged.
+        radius=min(radius,max(0,(right-left)/2-clearance))
+        return min(max(center,left+radius+clearance),right-radius-clearance),radius
+
+    def traditional_dot(self,system,bar,tick,center,radius):
+        return self.beat_dot(system,bar,tick,center,radius)
+
+    def traditional_cell_dot(self,system,bar,tick,center,radius,text,size=15,circled=False):
+        """Keep augmentation attached to its digit, clear of actual glyph ink."""
+        index=system.bars.index(bar);origin=system.left+sum(system.bar_widths[:index])
+        a,b=system.traditional_cells[(bar,tick)];anchor=origin+(a+b)/2
+        beat=self.beat_cell(system,bar,tick);scale=system.symbol_scale
+        left=(max(origin+a,beat['left'])-anchor)/scale
+        right=(min(origin+b,beat['right'])-anchor)/scale
+        if circled:right=min(right,CIRCLE_RADIUS_X-CIRCLE_PEN_WIDTH/2)
+        desired=(center-anchor)/scale;radius/=scale
+        clearance=min(.2,(right-left)/4)
+        key=(text,size)
+        if key not in self.dot_ink_cache:
+            font=QFont('Microsoft YaHei');font.setPixelSize(round(size*1.2))
+            path=QPainterPath();path.addText(QPointF(-QFontMetricsF(font).horizontalAdvance(text)/2,0),font,text)
+            stroke=QPainterPathStroker();stroke.setWidth(.4)
+            self.dot_ink_cache[key]=path.united(stroke.createStroke(path))
+        ink=self.dot_ink_cache[key]
+        radius=min(radius,max(0,(right-left)/2-clearance))
+        def position(r):return min(max(desired,left+r+clearance),right-r-clearance)
+        def fits(r):
+            dot=QPainterPath();dot.addEllipse(QPointF(position(r),-6),r,r)
+            return not ink.intersects(dot)
+        if not fits(radius):
+            low,high=0.,radius
+            for _ in range(14):
+                middle=(low+high)/2
+                if fits(middle):low=middle
+                else:high=middle
+            radius=low
+        return anchor+position(radius)*scale,radius*scale
+
+    def repeat_dot_geometry(self,system):
+        distance=10*system.symbol_scale;radius=1.8*system.symbol_scale
+        if self.project.notation['style']=='traditional':
+            side=system.bar_side_gap;clearance=min(RHYTHM_DOT_CLEARANCE*system.symbol_scale,side/4)
+            radius=min(radius,max(0,side/2-clearance))
+            distance=min(max(distance,radius+clearance),side-radius-clearance)
+        return distance,radius
+
+    def lower_dots(self,f):
+        return max(0,-spelling(f.pitch,self.project.context_at(f.start).tonic,f.note.flat,mode=self.project.context_at(f.start).mode)[2]) if f.note else 0
+
+    def underline_y(self,f,system=None):
+        if self.project.notation['style']=='traditional':
+            if system is None:system=self.fragment_systems.get(id(f))
+            if system is not None:return system.underline_offset
+        octave=spelling(f.pitch,self.project.context_at(f.start).tonic,mode=self.project.context_at(f.start).mode)[2] if f.pitch is not None else 0
+        return 11+4*max(0,-octave)
+
+    def vertical_extents(self,f,system=None):
         octave=spelling(f.pitch,self.project.context_at(f.start).tonic,f.note.flat,mode=self.project.context_at(f.start).mode)[2] if f.note else 0
         under,_,triplet,_=fragment_style(f)
         top=max(27,24+max(0,octave-1)*4)
         if triplet:top=max(top,34+max(0,octave-1)*4)
         if f.continuation or f.continues or (f.note and f.note.id in self.melisma_notes) or self.melisma_notes.intersection(f.source_ids):top=max(top,37+max(0,octave)*4)
-        bottom=max(13,11+max(0,under-1)*4+max(0,-octave)*4+2) if under else max(13,7+max(0,-octave-1)*4)
+        offset=self.underline_y(f,system) if self.project.notation['style']=='traditional' else 11+max(0,-octave)*4
+        bottom=max(13,offset+max(0,under-1)*4+2) if under else max(13,7+max(0,-octave-1)*4)
         return top,bottom
 
     @staticmethod
@@ -406,12 +803,57 @@ class ScoreLayout:
         return units
 
     def traditional_cell(self,bar,tick,points,positions):
-        slots=self.engraving_cache[bar];i=bisect.bisect_right(slots,tick)-1
-        a=self.interpolate(points,positions,slots[i])
-        return a,a+self.traditional_cell_width(bar)
+        system=next(s for s in self.systems if bar in s.bars)
+        if (bar,tick) in system.traditional_cells:
+            a,b=system.traditional_cells[(bar,tick)]
+            return positions[0]+a,positions[0]+b
+        a=self.interpolate(points,positions,tick)
+        return a,a+system.cell_width
 
     def traditional_cell_width(self,bar):
-        return (self.width_cache[bar]-sum(self.repeat_padding(bar)))*self.bar_symbol_scales[bar]/self.engraving_units(bar)[-1]
+        return next(s.cell_width for s in self.systems if bar in s.bars)
+
+    def traditional_grid(self,bar):
+        """Visible notation columns in each beat; labels do not add note slots."""
+        if bar not in self.traditional_grids:
+            start,end=self.project.starts[bar:bar+2]
+            beat=PPQ*4//self.project.measures[bar].denominator
+            slots={f.start for f in self.fragment_cache[bar]}
+            for f in self.fragment_cache[bar]:slots.update(f.start+(k+1)*PPQ for k in range(fragment_style(f)[3]))
+            regions=[]
+            for a in range(start,end,beat):
+                b=min(a+beat,end);visible=[t for t in slots if a<=t<b]
+                regions.append(dict(start=a,end=b,slots=sorted(visible),count=len(visible)))
+            self.traditional_grids[bar]=regions
+        return self.traditional_grids[bar]
+
+    def arrange_traditional_system(self,system,available,unit):
+        """Score-wide font-driven cells; beat gaps are twice barline-side gaps."""
+        groups=[(bar,beat) for bar in system.bars for beat in self.traditional_grid(bar)]
+        system.symbol_count=sum(beat['count'] for _,beat in groups)
+        system.gap_units=2*len(groups);system.unit_count=system.symbol_count+system.gap_units
+        side=max(unit,(available-system.symbol_count*unit)/max(1,system.gap_units))
+        system.cell_width=unit;system.bar_side_gap=side;system.beat_gap=2*side
+        system.beat_cells=[];system.traditional_cells={};system.traditional_maps={}
+        widths=[];cursor=0.
+        for bar in system.bars:
+            origin=cursor;start,end=self.project.starts[bar:bar+2];knots={start:0.}
+            cursor+=side
+            for index,beat in enumerate(self.traditional_grid(bar)):
+                if index:cursor+=2*side
+                a,b=beat['start'],beat['end'];left=cursor
+                if a!=start:knots[a]=left-origin
+                for column,tick in enumerate(beat['slots']):
+                    cell_left=left+column*unit
+                    system.traditional_cells[(bar,tick)]=(cell_left-origin,cell_left+unit-origin)
+                    if tick!=a:knots[tick]=cell_left+unit/2-origin
+                cursor+=beat['count']*unit
+                system.beat_cells.append(dict(beat,bar=bar,left=system.left+left,right=system.left+cursor))
+                knots[b]=cursor-origin
+            cursor+=side;knots[end]=cursor-origin
+            points=sorted(knots);system.traditional_maps[bar]=(points,[knots[t] for t in points])
+            widths.append(cursor-origin)
+        system.bar_widths=widths
 
     def beat_gap_count(self,bar):
         units=self.engraving_units(bar)
@@ -425,19 +867,40 @@ class ScoreLayout:
             left=max(left,width);right=max(right,width)
         return left,right
 
+    def bar_spacing_weight(self,bar,fragments):
+        """The densest meter beat sets the width of every beat in its bar.
+
+        Simultaneous chord tones share a column. Notated continuations, rests
+        and unpitched rap symbols take space like notes, while extension dashes
+        and annotations do not add attacks. Empty bars keep one unit per beat.
+        Scale by the actual duration so short bars also retain fractional beats.
+        """
+        start,end=self.project.starts[bar:bar+2]
+        beat=PPQ*4//self.project.measures[bar].denominator
+        groups={}
+        for tick in {f.start for f in fragments if start<=f.start<end}:
+            groups.setdefault((tick-start)//beat,set()).add(tick)
+        density=max(1,max((len(ticks) for ticks in groups.values()),default=0))
+        return density*(end-start)/beat
+
     def minimum_bar_width(self,bar,fragments):
         """Required width at the common 15-point base, including annotations."""
         p=self.project;start,end=p.starts[bar:bar+2];traditional=p.notation['style']=='traditional'
+        self.fragment_cache[bar]=fragments
         slots=self.engraving_slots(bar,fragments);leading,trailing=self.repeat_padding(bar)
-        units=self.engraving_units(bar)
+        cell_width=0.;reservations=[]
         def fraction(t):
-            return self.interpolate(slots,units,t)/units[-1] if traditional else (self.spacing_tick(bar,t)-start)/(end-start)
+            return (self.spacing_tick(bar,t)-start)/(end-start)
         required=32.
         def reserve(a,b,width,symbol=False):
-            nonlocal required
-            span=1/units[-1] if traditional and symbol else max(1e-9,fraction(b)-fraction(a))
-            if traditional:required=max(required,width/span+leading+trailing)
-            else:required=max(required,(width+(leading if a==start else 0)+(trailing if b==end else 0))/span)
+            nonlocal required,cell_width
+            if traditional:
+                if symbol:cell_width=max(cell_width,width)
+                else:
+                    reservations.append((a,b,width))
+            else:
+                span=max(1e-9,fraction(b)-fraction(a))
+                required=max(required,(width+(leading if a==start else 0)+(trailing if b==end else 0))/span)
         for f in fragments:
             left,right=self.column_extents(f)
             last=slots[bisect.bisect_right(slots,f.start)] if traditional else min(f.end,f.start+PPQ)
@@ -465,6 +928,11 @@ class ScoreLayout:
         for item in self.compressions:
             if item['kind']!='repeat' and bar in (item['first_end']-1,item['hidden_start']-1):
                 required=max(required,self.text_width('D.S. N/R al Fine',10,True)+16)
+        if traditional:
+            cell_width=max(1.,cell_width)
+            groups=self.traditional_grid(bar)
+            required=max(required,sum(g['count'] for g in groups)*cell_width+max(0,len(groups)-1)*TRADITIONAL_ROW_GAP+leading+trailing)
+            self.cell_width_cache[bar]=cell_width
         self.width_cache[bar]=required
         return required
 
@@ -496,12 +964,13 @@ class ScoreLayout:
     def barline_bounds(self,system):
         if self.project.notation['style']=='traditional':
             baseline=system.top+system.note_baseline
-            return baseline-18*system.symbol_scale,baseline+max(system.voices.values(),default=0)*system.voice_gap+12*system.symbol_scale
+            return baseline-18*system.symbol_scale,baseline+max(system.voices.values(),default=0)*system.voice_gap+max(12,system.notation_ink_bottom)*system.symbol_scale
         return system.top+25,system.top+system.grid_bottom
 
     def time_slots(self,bar,fragments):
         p=self.project;start,end=p.starts[bar:bar+2]
         points=sorted({start,end,*range(start,end,PPQ),*[f.start for f in fragments],*[f.end for f in fragments],
+                       *range(start,end,PPQ*4//p.measures[bar].denominator),
                        *[t for f in fragments for t in range(f.start+PPQ,f.end,PPQ)],
                        *[e['tick'] for e in self.lyrics if start<e['tick']<end],
                        *[c.start for c in p.chords if start<c.start<end],*[c.start for c in p.contexts if start<c.start<end]})
@@ -511,14 +980,8 @@ class ScoreLayout:
         points,_=self.time_slots(bar,system.fragments[bar])
         leading,trailing=(v*system.symbol_scale for v in self.repeat_padding(bar))
         if self.project.notation['style']=='traditional':
-            slots=self.engraving_slots(bar,system.fragments[bar]);units=self.engraving_units(bar);unit=self.traditional_cell_width(bar)
-            extra=max(0,width-leading-trailing-units[-1]*unit);gaps=self.beat_gap_count(bar);offset=0
-            columns=[x+leading]
-            for i,(a,b) in enumerate(zip(units,units[1:]),1):
-                if b-a>1+1e-8:offset+=extra/gaps
-                if not gaps and i==len(units)-1:offset=extra
-                columns.append(x+leading+b*unit+offset)
-            positions=[self.interpolate(slots,columns,t) for t in points]
+            grid,anchors=system.traditional_maps[bar]
+            positions=[x+self.interpolate(grid,anchors,t) for t in points]
             return points,positions,leading,trailing
         # Meter beats stay equal; the isolated short-pair shorthand warps only
         # its beat interior. Hit testing and the playhead use this same map.
@@ -567,7 +1030,7 @@ class ScoreLayout:
 
     def draw(self, painter, page, play_tick=None,dark=False):
         self.melisma_paths=[]
-        self.dark=dark;self.tie_paths=[];self.rest_positions=[];self.symbol_marks=[];self.lyric_positions=[];self.symbol_boxes=[];self.unpitched_positions=[];self.glyph_sizes=[];p = self.project
+        self.dark=dark;self.tie_paths=[];self.rest_positions=[];self.symbol_marks=[];self.lyric_positions=[];self.symbol_boxes=[];self.unpitched_positions=[];self.glyph_sizes=[];self.tuplet_marks=[];p = self.project
         if play_tick is not None:
             for item in self.compressions:
                 if p.starts[item['hidden_start']]<=play_tick<p.starts[item['hidden_end']]:
@@ -588,11 +1051,12 @@ class ScoreLayout:
 
     def draw_system(self, painter, system, play_tick=None):
         scale=system.layout_scale
-        if scale==1:return self.draw_system_content(painter,system,play_tick)
-        local=copy.copy(system);local.top=0;local.height=system.height/scale;local.bar_widths=[w/scale for w in system.bar_widths];local.symbol_scale=1
-        transform=QTransform();left=system.left;transform.translate(left,system.top);transform.scale(scale,scale);transform.translate(-left,0)
+        if scale==1 and system.fit_left==system.left:return self.draw_system_content(painter,system,play_tick)
+        local=copy.copy(system);local.top=0;local.height=system.natural_height
+        transform=self.system_transform(system)
         counts=[len(x) for x in (self.hit_notes,self.hit_bars,self.hit_chords,self.hit_times,self.tie_paths,self.rest_positions,self.symbol_marks,self.lyric_positions,self.hit_symbols)]
         melisma_count=len(self.melisma_paths)
+        box_count=len(self.symbol_boxes);unpitched_count=len(self.unpitched_positions);tuplet_count=len(self.tuplet_marks)
         painter.save();painter.setTransform(transform,True);self.draw_system_content(painter,local,play_tick);painter.restore()
         for items,count in zip((self.hit_notes,self.hit_bars,self.hit_chords),counts[:3]):
             for i in range(count,len(items)):
@@ -613,6 +1077,13 @@ class ScoreLayout:
 
         for i in range(counts[8],len(self.hit_symbols)):
             pg,rect,key=self.hit_symbols[i];self.hit_symbols[i]=(pg,transform.mapRect(rect),key)
+        for i in range(box_count,len(self.symbol_boxes)):
+            a,b,*xs=self.symbol_boxes[i];self.symbol_boxes[i]=(a,b,*[transform.map(QPointF(x,0)).x() for x in xs])
+        for i in range(unpitched_count,len(self.unpitched_positions)):
+            tick,kind,x,y=self.unpitched_positions[i];point=transform.map(QPointF(x,y));self.unpitched_positions[i]=(tick,kind,point.x(),point.y())
+        for mark in self.tuplet_marks[tuplet_count:]:
+            a=transform.map(QPointF(mark['left'],mark['top']));b=transform.map(QPointF(mark['right'],mark['top']))
+            mark.update(left=a.x(),right=b.x(),top=a.y())
 
     def draw_bar_symbols(self,painter,system,bar,x,width,xpos):
         p=self.project;start,end=p.starts[bar:bar+2];y=system.top+43+system.context_height;upper_y=y;lower_y=system.top+system.grid_bottom+system.lyric_rows*system.lyric_gap+18
@@ -626,8 +1097,9 @@ class ScoreLayout:
                 for dx,weight in offsets:
                     painter.setPen(QPen(self.color(INK),weight));painter.drawLine(QPointF(px+dx,top),QPointF(px+dx,bottom))
                 if kind.startswith('repeat'):
-                    painter.setPen(Qt.PenStyle.NoPen);painter.setBrush(self.color(INK));dx=(10 if kind=='repeat_start' else -10)*system.symbol_scale
-                    for dy in (-4,4):painter.drawEllipse(QPointF(px+dx,(top+bottom)/2+dy*system.symbol_scale),1.8*system.symbol_scale,1.8*system.symbol_scale)
+                    painter.setPen(Qt.PenStyle.NoPen);painter.setBrush(self.color(INK))
+                    distance,radius=self.repeat_dot_geometry(system);dx=distance if kind=='repeat_start' else -distance
+                    for dy in (-4,4):painter.drawEllipse(QPointF(px+dx,(top+bottom)/2+dy*system.symbol_scale),radius,radius)
                 return
             if kind in ('coda','segno'):self.hit_symbols.append((system.page,QRectF(px-12,y-23,24,30),key))
             if kind=='coda':
@@ -683,7 +1155,8 @@ class ScoreLayout:
         if style=='traditional':
             baseline=system.top+system.note_baseline
         line_top,line_bottom=self.barline_bounds(system)
-        x=system.left;tie_anchors={};slur_anchors={}
+        x=system.left;tie_anchors={};slur_anchors={};tuplet_anchors={}
+        tie_start=len(self.tie_paths);melisma_start=len(self.melisma_paths)
         if style!='traditional':
             for pitch in system.boundaries:
                 gy=baseline-system.pitch_position(pitch)*gap
@@ -736,7 +1209,7 @@ class ScoreLayout:
                 fit=scale
                 painter.save();painter.translate(x+4,label_y);painter.scale(fit,fit)
                 self.text(painter,0,0,label,8,MUTED);painter.restore()
-            tuplets=[];lyric_anchors={}
+            lyric_anchors={}
             for f in fragments:
                 accidental=spelling(f.pitch,p.context_at(f.start).tonic,f.note.flat,mode=p.context_at(f.start).mode)[1] if f.note else 0
                 underline,dotted,triplet,dashes=fragment_style(f)
@@ -768,8 +1241,8 @@ class ScoreLayout:
                     in_scale=(f.pitch-context.tonic)%12 in MODES[context.mode]
                     color=CHROMATIC if p.notation['color'] and not in_scale else INK
                     if p.notation['circles'] and is_chord_tone(p,f.pitch,f.start):
-                        painter.setPen(QPen(self.color('#6B9C90'),.95));painter.setBrush(Qt.BrushStyle.NoBrush)
-                        painter.drawEllipse(QPointF(nx,ny-6),10,12)
+                        painter.setPen(QPen(self.color('#6B9C90'),CIRCLE_PEN_WIDTH));painter.setBrush(Qt.BrushStyle.NoBrush)
+                        painter.drawEllipse(QPointF(nx,ny-6),CIRCLE_RADIUS_X,CIRCLE_RADIUS_Y)
                     self.text(painter,nx,ny,str(degree),15,color,center=True)
                     if accidental:
                         self.text(painter,nx-17,ny,'♭' if accidental<0 else '♯',11,color)
@@ -781,7 +1254,7 @@ class ScoreLayout:
                     self.hit_notes.append((system.page,QRectF(nx-left_extent*horizontal_scale,ny-27*symbol_scale,(left_extent+right_extent)*horizontal_scale,52*symbol_scale),f.note.id))
                 for k in range(underline):
                     painter.setPen(QPen(self.color(INK),1))
-                    uy=ny+11+k*4+(max(0,-spelling(f.pitch,p.context_at(f.start).tonic,mode=p.context_at(f.start).mode)[2])*4 if f.pitch is not None else 0)
+                    uy=ny+self.underline_y(f,system)+k*4
                     painter.drawLine(QPointF(nx-5,uy),QPointF(nx+6,uy))
                 dotx=nx+13
                 for k in range(dashes):
@@ -793,9 +1266,17 @@ class ScoreLayout:
                     self.text(painter,dx,ny,'−',14,center=True);dotx=dx+12
                 if dotted:
                     painter.setPen(Qt.PenStyle.NoPen);painter.setBrush(self.color(INK))
-                    painter.drawEllipse(QPointF(dotx,ny-6),1.4,1.4)
-                if triplet:
-                    tuplets.append((nx,ny,f))
+                    radius=1.4
+                    actual=nx+(dotx-nx)*horizontal_scale
+                    if style=='traditional':
+                        text='−' if dashes else 'x' if f.ghost else '0' if f.pitch is None else str(degree)
+                        circled=f.pitch is not None and p.notation['circles'] and is_chord_tone(p,f.pitch,f.start)
+                        actual,radius=self.traditional_cell_dot(system,bar,f.start+dashes*PPQ,actual,radius*horizontal_scale,text,14 if dashes else 15,circled)
+                    else:actual,radius=self.beat_dot(system,bar,f.start+dashes*PPQ,actual,radius*horizontal_scale)
+                    dotx=nx+(actual-nx)/horizontal_scale;radius/=horizontal_scale
+                    painter.drawEllipse(QPointF(dotx,ny-6),radius,radius)
+                group=self.fragment_tuplets.get(id(f))
+                if group:tuplet_anchors.setdefault(group,[]).append((f,nx,ny,bar))
                 painter.restore()
             if p.notation['lyrics']:
                 for event in self.lyrics:
@@ -810,26 +1291,6 @@ class ScoreLayout:
                     painter.save();painter.translate(lx,ly);painter.scale(scale,scale)
                     self.text(painter,0,0,event['text']+('-' if event.get('join_next') else ''),11,center=True);painter.restore()
                     self.lyric_positions.append((event['id'],verse,lx,ly))
-            # Group consecutive equal tuplets in threes; mark incomplete groups too.
-            k=0
-            while k<len(tuplets):
-                group=[tuplets[k]]
-                while k+len(group)<len(tuplets) and len(group)<3:
-                    other=tuplets[k+len(group)]
-                    if other[2].start!=group[-1][2].end or other[2].duration!=group[0][2].duration:
-                        break
-                    group.append(other)
-                a=max(xpos(group[0][2].start)+1,group[0][0]-7)
-                b=min(xpos(group[-1][2].end)-1,group[-1][0]+7)
-                y=min(ny-(34+max(0,spelling(f.pitch,p.context_at(f.start).tonic,f.note.flat,mode=p.context_at(f.start).mode)[2]-1)*4 if f.note else 34)*system.bar_scales[bar] for nx,ny,f in group)
-                ts=scale
-                painter.setPen(QPen(self.color(MUTED),.8*ts))
-                painter.drawLine(QPointF(a,y),QPointF(b,y))
-                painter.drawLine(QPointF(a,y),QPointF(a,y+4*ts));painter.drawLine(QPointF(b,y),QPointF(b,y+4*ts))
-                painter.fillRect(QRectF((a+b)/2-6*ts,y-8*ts,12*ts,12*ts),self.color('white'))
-                painter.save();painter.translate((a+b)/2,y+3*ts);painter.scale(ts,ts)
-                self.text(painter,0,0,'3',9,center=True);painter.restore()
-                k+=len(group)
             self.draw_bar_symbols(painter,system,bar,x,bw,xpos)
             if play_tick is not None and start<=play_tick<end:
                 painter.setPen(QPen(self.color('#D15F49'),1.5))
@@ -875,6 +1336,33 @@ class ScoreLayout:
                 kind='incoming';start=QPointF(system.left+scale,right[1]-4*scale);end=QPointF(right[0]-5*scale,right[1]);color=right[2]
             else:continue
             self.melisma_paths.append((a,b,kind,curve(start,end,color,kind)))
+        self.draw_tuplet_groups(painter,system,tuplet_anchors,self.tie_paths[tie_start:],self.melisma_paths[melisma_start:])
+
+    def draw_tuplet_groups(self,painter,system,anchors,ties,melismas):
+        scale=system.symbol_scale
+        for group in self.tuplet_groups:
+            members=anchors.get(group['id'],[])
+            if not members:continue
+            left=min(nx+min(-7,self.symbol_ink(f,system)[0])*scale for f,nx,_,_ in members)
+            right=max(nx+max(7,self.symbol_ink(f,system)[2])*scale for f,nx,_,_ in members)
+            left=max(system.fit_left,left);right=min(system.fit_left+system.fit_width,right)
+            ink_top=min(self.tuplet_ink_top(f,system,ny) for f,_,ny,_ in members)
+            for ident,_,path in ties:
+                if ident in group['source_ids']:ink_top=min(ink_top,path.boundingRect().top()-.475*scale)
+            for a,b,_,path in melismas:
+                if a<group['end'] and b>=group['start']:ink_top=min(ink_top,path.boundingRect().top()-.475*scale)
+            top=ink_top-8*scale
+            painter.setPen(QPen(self.color(MUTED),.8*scale))
+            painter.drawLine(QPointF(left,top),QPointF(right,top))
+            painter.drawLine(QPointF(left,top),QPointF(left,top+4*scale))
+            painter.drawLine(QPointF(right,top),QPointF(right,top+4*scale))
+            painter.fillRect(QRectF((left+right)/2-6*scale,top-8*scale,12*scale,12*scale),self.color('white'))
+            painter.save();painter.translate((left+right)/2,top+3*scale);painter.scale(scale,scale)
+            self.text(painter,0,0,'3',9,center=True);painter.restore()
+            self.tuplet_marks.append(dict(group_id=group['id'],start=group['start'],end=group['end'],source_ids=group['source_ids'],
+                fragment_starts=tuple(sorted({f.start for f,_,_,_ in members})),
+                fragments=tuple(dict(start=f.start,end=f.end,note_id=f.note.id if f.note else None) for f,_,_,_ in members),
+                page=system.page,bars=tuple(system.bars),left=left,right=right,top=top))
 
 
 def export_pdf(project,path,pages=None):

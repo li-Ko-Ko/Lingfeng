@@ -19,6 +19,7 @@ class Transport(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.synth = None
+        self.router_opener = None
         self.thread = None
         self.cancel = threading.Event()
         self.wake=threading.Event();self.revision_lock=threading.Lock();self.pending_revision=None
@@ -38,7 +39,7 @@ class Transport(QObject):
 
     def open(self):
         if self.synth is None:
-            self.synth = ProcessRouter(self.settings)
+            self.synth = self.router_opener(self.settings) if self.router_opener else ProcessRouter(self.settings)
             self._volume_signature=None
             self.set_volumes(self.volumes)
 

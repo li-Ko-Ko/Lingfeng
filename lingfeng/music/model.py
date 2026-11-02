@@ -11,6 +11,7 @@ import zipfile
 import hashlib
 
 PPQ = 960
+FONT_SIZE_MAX = 72
 MAJOR = (0, 2, 4, 5, 7, 9, 11)
 MODES = {
     'Ionian': (0, 2, 4, 5, 7, 9, 11),
@@ -608,7 +609,7 @@ class Project:
         # a project: users may install a missing pack after opening their score.
         if type(self.notation['per_line']) is not int or not 1<=self.notation['per_line']<=16 or self.notation['style'] not in ('spatial','compact','traditional'):
             raise ValueError('谱面分行或谱式设置无效。')
-        if not .0001<=self.notation.get('font_size',15)<=26 or not isinstance(self.notation.get('show_scale_lines',False),bool):raise ValueError('谱面字号或谱线设置无效。')
+        if not .0001<=self.notation.get('font_size',15)<=FONT_SIZE_MAX or not isinstance(self.notation.get('show_scale_lines',False),bool):raise ValueError('谱面字号或谱线设置无效。')
         if not 4<=self.notation['row_gap']<=32 or not 0<=self.notation.get('system_gap',12)<=80:
             raise ValueError('谱面间距超出范围。')
         if any(not 21 <= n.pitch <= 108 or not 1 <= n.velocity <= 127 for n in self.notes):

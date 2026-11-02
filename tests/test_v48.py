@@ -1,4 +1,4 @@
-"""Page justification and an explicit, effective font-size range."""
+"""Page justification and an advisory font range that preserves user choices."""
 import copy,os,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +8,7 @@ from PySide6.QtGui import QImage,QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from lingfeng.ui.main_window import MainWindow
-from lingfeng.music.model import Project, Note, Measure, Context
+from lingfeng.music.model import Project, Note, Measure, Context, FONT_SIZE_MAX
 from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
 from lingfeng.engraving.presentation import apply_forced_row, add_compression, visible_bars
 APP=QApplication.instance() or QApplication([])
@@ -24,6 +24,9 @@ def render(layout,page=0):
 
 class JustificationTests(unittest.TestCase):
     def assertMargins(self,p):
+        # Full-width justification is evaluated at the explicit unit-fit size;
+        # oversized user choices deliberately retain their natural width.
+        p.notation['font_size']=ScoreLayout(p).recommended_font_size
         layout=ScoreLayout(p)
         self.assertEqual([b for s in layout.systems for b in s.bars],visible_bars(p))
         for s in layout.systems:
@@ -44,18 +47,29 @@ class JustificationTests(unittest.TestCase):
         p=song(12);add_compression(p,list(range(4)),'repeat');apply_forced_row(p,list(range(4,10)))
         layout=self.assertMargins(p);forced=next(s for s in layout.systems if s.bars[0]==4)
         self.assertEqual(forced.bars,list(range(4,10)))
-        self.assertAlmostEqual(forced.symbol_scale,layout.glyph_scale*2/3)
+        self.assertEqual((layout.reference_unit_count,forced.unit_count),(32,96))
+        self.assertAlmostEqual(forced.symbol_scale,layout.glyph_scale/3)
+        self.assertAlmostEqual(forced.forced_font_ratio,1/3)
+        self.assertEqual(forced.layout_scale,1)
 
-    def test_justification_expands_beat_gaps_without_stretching_symbol_cells(self):
-        one=song(1);four=song(4)
-        layouts=[ScoreLayout(p) for p in (one,four)]
-        centers=[]
+    def test_justification_expands_proportional_cells_with_uniform_beat_gaps(self):
+        layouts=[ScoreLayout(song(count)) for count in (1,4)]
         for layout in layouts:
-            s=layout.systems[0];points,xs,*_=layout.bar_map(s,0,0,s.bar_widths[0])
-            centers.append([sum(layout.traditional_cell(0,t,points,xs))/2 for t in range(0,3840,480)])
-        self.assertAlmostEqual(layouts[0].traditional_cell_width(0),layouts[1].traditional_cell_width(0))
-        for a,b in zip(centers[0][::2],centers[0][1::2]):self.assertAlmostEqual(b-a,centers[1][1]-centers[1][0])
-        self.assertGreater(centers[0][2]-centers[0][1],centers[1][2]-centers[1][1])
+            system=layout.systems[0]
+            for left,right in system.traditional_cells.values():self.assertAlmostEqual(right-left,system.cell_width)
+            for beat in system.beat_cells:
+                self.assertEqual(beat['count'],2)
+                self.assertAlmostEqual(beat['right']-beat['left'],2*system.cell_width)
+            for left,right in zip(system.beat_cells,system.beat_cells[1:]):
+                self.assertAlmostEqual(right['left']-left['right'],system.beat_gap)
+            origin=system.left
+            for bar,width in zip(system.bars,system.bar_widths):
+                last=next(beat for beat in reversed(system.beat_cells) if beat['bar']==bar)
+                self.assertAlmostEqual(last['right']+system.bar_side_gap,origin+width)
+                origin+=width
+        sparse,dense=(layout.systems[0] for layout in layouts)
+        self.assertAlmostEqual(sparse.cell_width,dense.cell_width)
+        self.assertGreater(sparse.beat_gap,dense.beat_gap)
 
     def test_single_beat_bar_has_finite_map_and_contained_notes(self):
         p=song(1);p.measures=[Measure(1,4)];p.contexts=[Context(0,p.end)];p.notes=p.notes[:2]
@@ -88,22 +102,24 @@ class FontLimitTests(unittest.TestCase):
         self.assertEqual(w.note_font.value(),w.project.notation['font_size'])
         self.assertEqual(w.note_font.value(),canvas.project.notation['font_size'])
         self.assertAlmostEqual(w.note_font.value(),15*layout.glyph_scale)
-        self.assertEqual(w.note_font.maximum(),layout.font_limit)
+        self.assertEqual(w.note_font.maximum(),FONT_SIZE_MAX)
         self.assertIn(f'{layout.font_limit:g}',w.font_limit_label.text())
-        self.assertLessEqual(w.note_font.value(),layout.max_font_size+1e-7)
+        self.assertLessEqual(w.note_font.value(),FONT_SIZE_MAX)
 
-    def test_existing_oversized_value_is_normalized_and_saved_with_same_size(self):
+    def test_initial_oversized_traditional_font_is_recommended_and_saved(self):
         p=song(step=120);p.notation['font_size']=26;self.enter(p);w=self.w
-        self.assertLess(w.note_font.maximum(),26);self.assertEffective();self.assertTrue(w.dirty)
+        self.assertLess(w.score_view.canvas.layout.font_limit,26);self.assertEffective();self.assertTrue(w.dirty)
+        self.assertEqual(w.project.notation['font_size'],w.score_view.canvas.layout.recommended_font_size)
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             file=Path(folder)/'font.lfs';w.project.save(file);w.replace_project(Project.load(file))
             self.assertEffective()
 
-    def test_buttons_and_typed_value_cannot_exceed_visible_cap(self):
-        self.enter();w=self.w;cap=w.note_font.maximum();w.note_font.setValue(cap);w.note_font.stepUp()
-        self.assertEffective();self.assertEqual(w.note_font.value(),cap)
-        editor=w.note_font.lineEdit();editor.selectAll();QTest.keyClicks(editor,'99');QTest.keyClick(editor,Qt.Key.Key_Return)
-        self.assertEffective();self.assertLessEqual(w.note_font.value(),cap)
+    def test_buttons_and_typed_values_can_exceed_the_advisory(self):
+        self.enter(song(step=120));w=self.w;advisory=w.score_view.canvas.layout.font_limit
+        w.note_font.setValue(40);w.note_font.stepUp()
+        self.assertEffective();self.assertEqual(w.note_font.value(),41);self.assertGreater(w.note_font.value(),advisory)
+        editor=w.note_font.lineEdit();editor.selectAll();QTest.keyClicks(editor,'60');QTest.keyClick(editor,Qt.Key.Key_Return)
+        self.assertEffective();self.assertEqual(w.note_font.value(),60)
 
     def test_every_accepted_font_changes_glyph_scale_without_changing_rows(self):
         for style in ('spatial','compact','traditional'):
@@ -115,40 +131,42 @@ class FontLimitTests(unittest.TestCase):
                 self.assertTrue(all(abs(size-value)<1e-7 for _,size in w.score_view.canvas.layout.glyph_sizes))
 
     def test_per_line_change_updates_limit_and_undo_redo_restores_font(self):
-        self.enter();w=self.w;w.note_font.setValue(w.note_font.maximum());first=(w.note_font.value(),w.note_font.maximum())
-        w.set_notation('per_line',8);self.assertEffective();second=(w.note_font.value(),w.note_font.maximum())
-        self.assertLess(second[1],first[1]);self.assertEqual(len(w.score_view.canvas.layout.systems[0].bars),8)
-        w.undo();self.assertEffective();self.assertEqual((w.note_font.value(),w.note_font.maximum()),first)
-        w.redo();self.assertEffective();self.assertEqual((w.note_font.value(),w.note_font.maximum()),second)
+        self.enter();w=self.w;w.note_font.setValue(40);first=(w.note_font.value(),w.score_view.canvas.layout.font_limit)
+        w.set_notation('per_line',8);self.assertEffective();second=(w.note_font.value(),w.score_view.canvas.layout.font_limit)
+        self.assertLess(second[1],first[1]);self.assertEqual(second[0],w.score_view.canvas.layout.recommended_font_size);self.assertEqual(len(w.score_view.canvas.layout.systems[0].bars),8)
+        w.undo();self.assertEffective();self.assertEqual((w.note_font.value(),w.score_view.canvas.layout.font_limit),first)
+        w.redo();self.assertEffective();self.assertEqual((w.note_font.value(),w.score_view.canvas.layout.font_limit),second)
 
     def test_pitch_gap_and_forced_row_recompute_safe_limit(self):
-        p=song(style='spatial');p.notes=[Note(0,960,60),Note(0,960,62)];p.notation.update(row_gap=16,font_size=26)
-        self.enter(p);w=self.w;first=w.note_font.maximum();w.set_notation('row_gap',8)
-        self.assertLess(w.note_font.maximum(),first);self.assertEffective()
+        p=song(style='spatial');p.notes=[Note(0,60,60),Note(60,60,61)];p.notation.update(row_gap=16,font_size=26)
+        self.enter(p);w=self.w;first=w.score_view.canvas.layout.font_limit;w.set_notation('row_gap',8)
+        self.assertLess(w.score_view.canvas.layout.font_limit,first);self.assertEffective()
         w.mutate('merge',lambda q:apply_forced_row(q,list(range(6))),source='score');self.assertEffective()
         s=w.score_view.canvas.layout.systems[0];self.assertEqual(s.bars,list(range(6)))
         self.assertAlmostEqual(s.symbol_scale,w.note_font.value()/15*2/3)
 
     def test_music_snapshot_keeps_limit_until_reentry_and_compose_is_idle(self):
-        canvas=self.enter();w=self.w;old=canvas.layout;cap=w.note_font.maximum()
+        canvas=self.enter();w=self.w;old=canvas.layout;cap=canvas.layout.font_limit
         w.mutate('dense',lambda p:setattr(p,'notes',song(step=120).notes))
-        self.assertIs(canvas.layout,old);self.assertEqual(w.note_font.maximum(),cap)
+        self.assertIs(canvas.layout,old);self.assertEqual(canvas.layout.font_limit,cap)
         w.switch_workspace('compose')
         with patch('lingfeng.ui.score_view.ScoreLayout',wraps=ScoreLayout) as build:
             w.refresh();w.show_cursor(120);build.assert_not_called()
-        w.switch_workspace('score');self.assertLess(w.note_font.maximum(),cap);self.assertEffective()
+        w.switch_workspace('score');self.assertLess(canvas.layout.font_limit,cap);self.assertEffective()
 
     def test_language_rebuild_keeps_limit_value_and_layout(self):
         canvas=self.enter();layout=canvas.layout;w=self.w;w.note_font.setValue(2);layout=canvas.layout
         w.change_language('en',False);self.assertEffective();self.assertIs(w.score_view.canvas.layout,layout)
-        self.assertIn('Max',w.font_limit_label.text());self.assertIn('measures per line',w.note_font.toolTip())
+        from lingfeng.platform.i18n import tr
+        self.assertEqual(w.font_limit_label.text(),tr('建议上限 {0}',f'{canvas.layout.font_limit:g}'))
+        self.assertIn(f'{canvas.layout.font_limit:g}',w.note_font.toolTip())
 
     def test_dense_sub_unit_limit_is_explicit_and_persists(self):
         p=song(count=16,step=60);p.notation.update(per_line=16,style='spatial',font_size=26)
         before=copy.deepcopy(p.notes);canvas=self.enter(p);cap=canvas.layout.font_limit
         self.assertLess(cap,1);self.assertGreaterEqual(cap,.0001);self.assertEffective()
-        p.validate();restored=Project.from_dict(p.to_dict());self.assertEqual(restored.notation['font_size'],cap)
+        p.validate();restored=Project.from_dict(p.to_dict());self.assertEqual(restored.notation['font_size'],26)
         self.assertEqual(before,p.notes);self.assertEqual(len(canvas.layout.systems),1)
-        self.assertTrue(all(canvas.layout.width_cache[b]*canvas.layout.glyph_scale<=w+1e-7 for s in canvas.layout.systems for b,w in zip(s.bars,s.bar_widths)))
+        self.assertGreater(canvas.layout.font_size,cap);self.assertEqual(canvas.layout.font_size,26)
 
 if __name__=='__main__':unittest.main()

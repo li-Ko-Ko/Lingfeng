@@ -26,19 +26,26 @@ class BeatTests(unittest.TestCase):
             cells=[layout.traditional_cell(0,t,points,xs) for t in range(0,p.end,step)]
             width=cells[0][1]-cells[0][0];centers=[(a+b)/2 for a,b in cells]
             for a,b in cells:self.assertAlmostEqual(b-a,width)
-            extra=(s.bar_widths[0]-(8+3*TRADITIONAL_BEAT_GAP)*width)/3
             for i,(a,b) in enumerate(zip(centers,centers[1:])):
-                self.assertAlmostEqual(b-a,width*(1+TRADITIONAL_BEAT_GAP)+(extra) if i%2 else width)
+                self.assertAlmostEqual(b-a,width+s.beat_gap if i%2 else width)
+            self.assertAlmostEqual(cells[0][0],s.bar_side_gap)
+            self.assertAlmostEqual(cells[-1][1]+s.bar_side_gap,s.bar_widths[0])
             self.assertEqual([n.duration for n in p.notes],[step]*8)
 
-    def test_syncopation_and_extension_dashes_do_not_create_fake_notes(self):
+    def test_syncopation_is_tied_at_the_beat_without_creating_source_notes(self):
         p=Project();p.notation.update(style='traditional',per_line=1)
         p.notes=[Note(0,1440,60),Note(1440,480,62),Note(1920,1920,64)]
         original=copy.deepcopy(p.notes);layout=ScoreLayout(p);s=layout.systems[0]
-        self.assertEqual(layout.engraving_slots(0,s.fragments[0]),[0,1440,1920,2880,3840])
+        self.assertEqual(layout.engraving_slots(0,s.fragments[0]),[0,960,1440,1920,2880,3840])
+        played=[f for f in s.fragments[0] if f.note]
+        self.assertEqual([(f.start,f.duration) for f in played],[(0,960),(960,480),(1440,480),(1920,1920)])
+        self.assertIs(played[0].note,p.notes[0]);self.assertIs(played[1].note,p.notes[0])
+        self.assertTrue(played[0].continues and played[1].continuation)
+        self.assertFalse(played[2].continuation or played[2].continues)
+        self.assertFalse(played[3].continuation or played[3].continues)
         self.assertEqual(p.notes,original)
-        units=layout.engraving_units(0)
-        self.assertEqual(units,[0,1.75,3.5,5.25,6.25])
+        self.assertEqual([beat['count'] for beat in s.beat_cells],[1,2,1,1])
+        for left,right in zip(s.beat_cells,s.beat_cells[1:]):self.assertAlmostEqual(right['left']-left['right'],s.beat_gap)
 
 class ViewTests(unittest.TestCase):
     def setUp(self):

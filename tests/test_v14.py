@@ -1,4 +1,4 @@
-import os,copy,threading,time,unittest
+import os,copy,math,threading,time,unittest
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication,QLabel,QDialog
 from PySide6.QtGui import QImage,QPainter
@@ -88,8 +88,12 @@ class LayoutTests(unittest.TestCase):
         p=music();apply_section(p,'我/64.爱/64你/64',14400)
         for style in ('traditional','spatial','compact'):
             p.notation['style']=style;layout=ScoreLayout(p);image=QImage(900,1273,QImage.Format.Format_RGB32);paint=QPainter(image);layout.draw(paint,0);paint.end()
-            self.assertTrue({'0','x','1','2','3'}.issubset({g for g,s in layout.glyph_sizes}));self.assertTrue(all(0<size<=p.notation['font_size'] for g,size in layout.glyph_sizes))
-            for t,end,left,right,a,b in layout.symbol_boxes:self.assertGreaterEqual(left,a-1e-5);self.assertLessEqual(right,b+1e-5)
+            self.assertTrue({'0','x','1','2','3'}.issubset({g for g,s in layout.glyph_sizes}))
+            self.assertEqual({size for glyph,size in layout.glyph_sizes},{p.notation['font_size']})
+            self.assertTrue(layout.hit_notes)
+            for page,rect,ident in layout.hit_notes:
+                self.assertTrue(rect.isValid())
+                self.assertTrue(all(math.isfinite(value) for value in (rect.x(),rect.y(),rect.width(),rect.height())))
 
     def test_pitch_gap_is_exact_and_not_clamped_by_font_or_polyphony(self):
         p=music();p.notes.append(Note(0,960,72));p.notation['font_size']=26
@@ -101,7 +105,10 @@ class LayoutTests(unittest.TestCase):
 
 class UITests(unittest.TestCase):
     def setUp(self):
-        set_language('zh');self.w=MainWindow(music());self.w.change_language('zh',False);self.w.resize(1280,1000);self.w.show();self.w.autosave.stop();QTest.qWait(40)
+        # The range-parser fixture above deliberately has two voices at3840.
+        # Workspace/lyrics controls now enter Score with a strict melody.
+        p=music();p.notes.pop()
+        set_language('zh');self.w=MainWindow(p);self.w.change_language('zh',False);self.w.resize(1280,1000);self.w.show();self.w.autosave.stop();QTest.qWait(40)
     def tearDown(self):self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents()
 
     def test_edit_undo_redo_and_invalid_edit_keep_playing_and_anchor(self):

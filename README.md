@@ -6,17 +6,24 @@
 
 A lightweight Windows app for songwriting and jianpu, with melody, chords, accompaniment and lyrics.
 
-**当前版本 0.51 · Windows x64 · 便携免安装 / Portable, no installation required**
+**当前本地版本 0.55；最近生成的发行包 0.55 · Windows x64 · 便携免安装**
 
-[下载最新版本 / Download](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
+**Current local version: 0.55; most recently generated release archive: 0.55 · Windows x64 · Portable**
 
-完整解压下载的 ZIP，运行 `Lingfeng.exe`，保留 `_internal/` 和 `synths/`。无需安装 Python，附带三组合成音源、37 个预设。
+[下载已发布版本 / Download a published release](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
-Extract the full ZIP and run `Lingfeng.exe`, keeping `_internal/` and `synths/`. Python is not required; three synth packs with 37 presets are included.
+本地构建后运行 `dist/0.55/Lingfeng/Lingfeng.exe`，保留 `_internal/` 和 `synths/`。默认构建只更新独立程序文件夹；明确要求归档时才生成新的 ZIP 和校验文件，已有归档保持不变。使用下载的历史发行 ZIP 时，先完整解压再运行其中的 `Lingfeng.exe`。
+
+After a local build, run `dist/0.55/Lingfeng/Lingfeng.exe`, keeping `_internal/` and `synths/`. Builds update only the standalone folder by default. A new ZIP and checksum require an explicit archive request; existing archives remain unchanged. Extract a downloaded historical release ZIP completely before running its executable.
+
+独立程序无需安装 Python，附带免费钢琴、电钢琴及 37 个合成音色，大型钢琴与键盘音源可按需下载。
+
+The standalone application needs no Python installation. Free piano, electric pianos and 37 synth presets are included, with optional piano and keyboard downloads.
 
 ## 主要功能 / Features
 
 - 旋律与和弦卷帘、伴奏节奏型、和弦进行库 / Piano rolls, accompaniment patterns and chord progressions.
+- 和弦右键批量修改力度；可自定义常用值并手动检测采样力度区间 / Batch chord velocities, custom presets and opt-in sample velocity inspection.
 - 传统、立体和紧凑简谱，支持歌词与 Rap 排版 / Traditional, spatial and compact jianpu with lyrics and rap.
 - MIDI 导入，PDF、MIDI、MP3 导出；工程保存为 `.lfs` / MIDI import; PDF, MIDI and MP3 export; `.lfs` projects.
 
@@ -35,7 +42,7 @@ Extract the full ZIP and run `Lingfeng.exe`, keeping `_internal/` and `synths/`.
 
 ## 文档 / Documentation
 
-[源码运行与构建 / Build from source](CONTRIBUTING.md) · [工程格式 / Project format](docs/FORMAT.md) · [音源 / Soundbanks](docs/SOUNDBANKS.md) · [更新日志 / Changelog](CHANGELOG.md)
+[源码运行与构建 / Build from source](CONTRIBUTING.md) · [工程格式 / Project format](docs/FORMAT.md) · [音源 / Soundbanks](docs/SOUNDBANKS.md) · [发行日志 / Release history](CHANGELOG.md)
 
 个人维护的开源项目，使用 Python 3.13 与 PySide6。原创代码采用 [MIT](LICENSE)；依赖与音源保留[各自许可](docs/THIRD_PARTY.md)。
 

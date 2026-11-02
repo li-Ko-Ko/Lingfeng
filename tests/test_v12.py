@@ -2,7 +2,7 @@ import os,copy,tempfile,time,unittest
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
 from unittest.mock import patch
-from PySide6.QtCore import Qt,QPoint
+from PySide6.QtCore import Qt,QPoint,QPointF
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtWidgets import QApplication,QMenu,QDialog
 from PySide6.QtTest import QTest
@@ -91,7 +91,9 @@ class MusicTests(unittest.TestCase):
             image=QImage(900,1273,QImage.Format.Format_RGB32);painter=QPainter(image);layout.draw(painter,0);painter.end()
             self.assertEqual(len(layout.lyric_positions),3)
             self.assertFalse(any(nid.startswith('lyric:') for _,_,nid in layout.hit_notes))
-            self.assertTrue(all(y>layout.systems[0].top+layout.systems[0].grid_bottom for _,_,_,y in layout.lyric_positions))
+            system=layout.systems[0]
+            paper_bottom=layout.system_transform(system).map(QPointF(0,system.grid_bottom)).y()
+            self.assertTrue(all(y>paper_bottom for _,_,_,y in layout.lyric_positions))
         with tempfile.TemporaryDirectory(dir=Path('tmp').resolve()) as folder:
             path=Path(folder)/'lyrics.lfs';p.save(path);self.assertEqual(events(Project.load(path)),events(p))
             midi=Path(folder)/'lyrics.mid';export_midi(p,midi);self.assertEqual(sum(len(t.notes) for t in read_midi(midi).tracks),1)

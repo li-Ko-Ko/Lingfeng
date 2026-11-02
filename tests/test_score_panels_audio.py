@@ -21,15 +21,15 @@ class ScorePanelsTests(unittest.TestCase):
 
     def test_first_entry_order_and_mode_specific_menu(self):
         w=self.w
-        self.assertEqual([w.score_tabs.tabText(i) for i in range(4)],['旋律卷帘','和弦卷帘','歌词','结构逻辑'])
+        self.assertEqual([w.score_tabs.tabText(i) for i in range(3)],['旋律卷帘','和弦卷帘','歌词'])
         self.assertTrue(w.score_tools.isVisible());self.assertFalse(w.edit_toggle.isVisible())
         self.assertEqual(w.view_menu.actions(),list(w.score_view_actions.values()))
         w.switch_workspace('compose');self.assertEqual(w.view_menu.actions(),w.compose_menu_actions)
-        w.switch_workspace('score');self.assertEqual(w.score_tabs.count(),4)
+        w.switch_workspace('score');self.assertEqual(w.score_tabs.count(),3)
 
     def test_float_close_and_reopen_affect_one_tab_and_restore_modes(self):
         w=self.w;w.show_score_panel('lyrics');w.score_float.activated.emit();APP.processEvents()
-        lyrics=w.score_floats['lyrics'];self.assertTrue(lyrics.isVisible());self.assertEqual(w.score_tabs.count(),3)
+        lyrics=w.score_floats['lyrics'];self.assertTrue(lyrics.isVisible());self.assertEqual(w.score_tabs.count(),2)
         w.toggle_score_panel_floating('melody');w.set_score_panel_visible('logic',False)
         self.assertEqual(w.score_tabs.currentWidget(),w.score_harmony_page)
         self.assertIs(w.roll.window(),w.score_floats['melody'])
@@ -41,7 +41,7 @@ class ScorePanelsTests(unittest.TestCase):
         lyrics.close();self.assertFalse(w.score_panel_state['lyrics']['visible']);self.assertTrue(w.score_floats['melody'].isVisible())
         w.score_view_actions['lyrics'].setChecked(True);self.assertTrue(lyrics.isVisible())
         lyrics.title_bar.dock.activated.emit();self.assertFalse(lyrics.isFloating());self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
-        w.show_score_panel('logic');self.assertEqual([w.score_tabs.tabText(i) for i in range(w.score_tabs.count())],['和弦卷帘','歌词','结构逻辑'])
+        self.assertIsNone(w.show_score_panel('logic'));self.assertEqual([w.score_tabs.tabText(i) for i in range(w.score_tabs.count())],['和弦卷帘','歌词'])
 
     def test_all_closed_and_restore_one_then_language_keeps_float_and_draft(self):
         w=self.w
@@ -51,7 +51,7 @@ class ScorePanelsTests(unittest.TestCase):
         w.lyric_panel.text.setPlainText('草稿');w.toggle_score_panel_floating('lyrics')
         w.change_language('en',persist=False);APP.processEvents()
         self.assertTrue(w.score_floats['lyrics'].isVisible());self.assertEqual(w.lyric_panel.text.toPlainText(),'草稿')
-        self.assertFalse(w.score_panel_state['logic']['visible']);w.change_language('zh',persist=False)
+        self.assertNotIn('logic',w.score_panel_state);w.change_language('zh',persist=False)
 
     def test_lyrics_apply_update_delete_and_undo_change_current_score(self):
         w=self.w;w.show_score_panel('lyrics');panel=w.lyric_panel;panel.count.setValue(1);panel.text.setPlainText('春风');panel.commit()

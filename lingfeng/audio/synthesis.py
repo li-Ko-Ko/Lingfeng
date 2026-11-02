@@ -36,7 +36,13 @@ def library(device):
         if key in _libraries:return _libraries[key]
         if any(p==str(path) for p,h in _libraries):raise RuntimeError(tr('音源已更新，请重启程序后使用新版本。'))
         if hashlib.sha256(path.read_bytes()).hexdigest()!=info['sha256']:raise ValueError(tr('音源文件已更改，请重新扫描。'))
+        if info.get('engine')=='sf2':
+            from lingfeng.audio.sf2 import load_library
+            _libraries[key]=load_library(path,info);return _libraries[key]
         lib=C.CDLL(str(path));P=C.c_void_p;I=C.c_int
+        if info.get('engine')=='sfz':
+            from lingfeng.audio.sfz import configure_library
+            _libraries[key]=configure_library(lib);return lib
         signatures={'abi':([],I),'error':([],C.c_char_p),'create':([I,I,I],P),'free':([P],None),'control':([P,I,C.c_double],I),'event':([P,I,I,I],I),'render':([P,C.POINTER(C.c_float),I],I)}
         for name,(args,result) in signatures.items():
             func=getattr(lib,'lf_'+name);func.argtypes=args;func.restype=result
@@ -45,7 +51,16 @@ def library(device):
         _libraries[key]=lib;return lib
 
 class SynthVoice:
-    def __init__(self,program,device=DEFAULT_DEVICE):
+    def __new__(cls,program,device=DEFAULT_DEVICE,offline=False):
+        info=pack(device)
+        if info.get('engine')=='sfz':
+            from lingfeng.audio.sfz import SfzVoice
+            return SfzVoice(library(device),info,instrument(program,device),RATE,BLOCK,offline)
+        if info.get('engine')=='sf2':
+            from lingfeng.audio.sf2 import Sf2Voice
+            return Sf2Voice(library(device),info,instrument(program,device),RATE,BLOCK,offline)
+        return super().__new__(cls)
+    def __init__(self,program,device=DEFAULT_DEVICE,offline=False):
         self.handle=None;self.api=library(device);item=instrument(program,device);self.gain=item['gain']
         with _library_lock:self.handle=self.api.lf_create(RATE,item['model'],32)
         if not self.handle:raise RuntimeError((self.api.lf_error() or b'Cannot create synth').decode('utf-8','replace'))
@@ -68,15 +83,15 @@ class SynthVoice:
 
 class SynthEngine:
     """Independent channel voices with frame-exact scheduled events for export."""
-    def __init__(self,device=DEFAULT_DEVICE,channel_devices=None):
-        self.device=device;self.channel_devices=channel_devices or {};self.channels={};self.programs={};self.events=[];self.sequence=0;self.volumes={};self.limiter_gain=1.0
+    def __init__(self,device=DEFAULT_DEVICE,channel_devices=None,offline=False):
+        self.device=device;self.channel_devices=channel_devices or {};self.offline=offline;self.channels={};self.programs={};self.events=[];self.sequence=0;self.volumes={};self.limiter_gain=1.0
     def send(self,status,a=0,b=0,delay=0):
         if not all(type(v) is int for v in (status,a,b,delay)) or not 0<=a<=127 or not 0<=b<=127 or delay<0:raise ValueError('Invalid MIDI event')
         if delay:self.sequence+=1;self.events.append((delay,self.sequence,status,a,b));return
         ch=status&15;kind=status&0xf0
         if kind==0xc0:
             if self.programs.get(ch)==a:return
-            new=SynthVoice(a,self.channel_devices.get(ch,self.device));old=self.channels.get(ch)
+            new=SynthVoice(a,self.channel_devices.get(ch,self.device),offline=self.offline);old=self.channels.get(ch)
             self.channels[ch]=new;self.programs[ch]=a;new.send(0xb0,7,self.volumes.get(ch,100))
             if old:old.close()
             return
@@ -132,7 +147,8 @@ def _synthesis_worker(connection,channel_devices,programs,language=None):
                 block=min(BLOCK,target)
                 connection.send(('ready',None))
                 while True:
-                    for _ in range(256):
+                    command_deadline=time.perf_counter()+.0015
+                    for _ in range(64):
                         if not connection.poll():break
                         packet=connection.recv();command,args=packet[:2]
                         if len(packet)>2:i18n.set_language(packet[2])
@@ -141,6 +157,7 @@ def _synthesis_worker(connection,channel_devices,programs,language=None):
                         elif command=='midi':
                             engine.send(*args)
                             if args[0]&0xf0==0xc0:connection.send(('program',None))
+                        if time.perf_counter()>=command_deadline:break
                     missing=max(0,target-player.currentpadding)
                     if missing<block:
                         connection.poll(.001);continue
@@ -168,7 +185,8 @@ class NativeSynth:
             self.process.start()
             started=True
             if not threaded:child.close()
-            self._reply('ready',10)
+            # Six large sampled channels can take over 20 seconds to preload.
+            self._reply('ready',60)
         except Exception:
             # In threaded mode the worker owns this exact Connection object.
             # Closing it here races its error/finally path and can replace the

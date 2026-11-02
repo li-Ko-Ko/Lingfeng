@@ -2,7 +2,7 @@
 import os,unittest,time
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import Qt,QPoint,QPointF
-from PySide6.QtGui import QImage,QPainter,QColor
+from PySide6.QtGui import QImage,QPainter,QColor,QFont,QFontMetricsF
 from PySide6.QtWidgets import QApplication,QMenuBar
 from PySide6.QtTest import QTest
 from lingfeng.ui.main_window import MainWindow
@@ -24,9 +24,13 @@ class ScoreTimingTests(unittest.TestCase):
         last=max((r for r in layout.rest_positions if r[0]<p.starts[4]),key=lambda r:r[0])
         left=next(x for kind,x,y in layout.symbol_marks if kind=='repeat_start')
         right=next(x for kind,x,y in layout.symbol_marks if kind=='repeat_end')
-        first_box=next(box for box in layout.symbol_boxes if box[0]==first[0])
-        last_box=next(box for box in layout.symbol_boxes if box[0]==last[0])
-        self.assertGreater(first_box[2],left+12);self.assertLess(last_box[3],right-12)
+        font=QFont('Microsoft YaHei');font.setPixelSize(18);metrics=QFontMetricsF(font)
+        ink=metrics.tightBoundingRect('0');offset=metrics.horizontalAdvance('0')/2
+        system=layout.systems[0];distance,radius=layout.repeat_dot_geometry(system)
+        physical_scale=system.symbol_scale*system.layout_scale
+        distance*=system.layout_scale;radius*=system.layout_scale
+        self.assertGreater(first[2]+(ink.left()-offset)*physical_scale,left+distance+radius)
+        self.assertLess(last[2]+(ink.right()-offset)*physical_scale,right-distance-radius)
         self.assertLess(abs(layout.time_position(3839)[1]-layout.time_position(3840)[1]),1)
 
     def test_bar_boundaries_are_continuous_and_notes_follow_onset(self):
@@ -36,7 +40,7 @@ class ScoreTimingTests(unittest.TestCase):
                 before=layout.time_position(bar*3840-1);after=layout.time_position(bar*3840)
                 self.assertLess(abs(after[1]-before[1]),1)
             cursor=layout.time_position(0)[1];rect=layout.hit_notes[0][1];self.assertGreater(rect.center().x()-cursor,5)
-            if style=='traditional':self.assertAlmostEqual(rect.center().x()-cursor,layout.traditional_cell_width(0)/2)
+            if style=='traditional':self.assertAlmostEqual(rect.center().x()-cursor,(layout.systems[0].bar_side_gap+layout.traditional_cell_width(0)/2)*layout.systems[0].layout_scale)
             else:self.assertLess(rect.center().x()-cursor,15)
     def test_forced_system_and_hidden_repeat_share_the_same_time_map(self):
         p=song();p.notation['forced_rows']=[[0,8]];layout,_=render(p)

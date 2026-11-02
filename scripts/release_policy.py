@@ -6,7 +6,7 @@ notices are public. Local design notes and maintenance records stay local.
 from pathlib import Path
 import shutil
 
-APPROVED_PACKS=('stk-essentials','stk-colors','stk-acoustic')
+APPROVED_PACKS=('stk-essentials','stk-colors','stk-acoustic','piano-small')
 SOURCE_ROOT_FILES=('README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE',
                    'main.py','requirements.txt','requirements-build.txt','build.ps1',
                    '.gitignore','.gitattributes')
@@ -24,12 +24,13 @@ PUBLIC_SCREENSHOTS=(
     'docs/screenshots/lyrics-rap.png','docs/screenshots/progression-library.png',
 )
 PUBLIC_SCRIPTS=(
-    'scripts/audit_text.py','scripts/build_synth_packs.py','scripts/collect_qt_notices.py',
+    'scripts/audit_text.py','scripts/build_synth_packs.py','scripts/build_piano_packs.py','scripts/collect_qt_notices.py',
     'scripts/export_help.py','scripts/package_release.py',
     'scripts/release_policy.py','scripts/run_regression.py','scripts/verify_audio.py',
     'scripts/verify_release.py',
 )
 PRIVATE_SOURCE_FILES=(
+    'CHANGELOG_LOCAL.md',
     'docs/ARCHITECTURE.md','docs/INTERFACES.md','docs/MAINTENANCE.md',
     'docs/BASELINE_VALIDATION.md','docs/module_inventory.json',
     'scripts/audit_architecture.py','tests/test_architecture.py',

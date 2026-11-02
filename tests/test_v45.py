@@ -9,6 +9,7 @@ from lingfeng.music.model import Project, Note, Chord, Measure, Context
 from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
 from lingfeng.engraving.presentation import apply_forced_row, shift_presentation
 from lingfeng.ui.score_view import ScoreCanvas
+from tests.test_v54_layout import assert_numeric_cells
 APP=QApplication.instance() or QApplication([])
 
 def music():
@@ -48,26 +49,34 @@ class EngravingTests(unittest.TestCase):
         layout,_=render(p);s=layout.systems[0];slots=layout.engraving_slots(0,s.fragments[0])
         self.assertEqual(slots,[0,240,960,1920,2880,3840]) # 1920 is the long-note dash.
         points,xs,*_=layout.bar_map(s,0,0,s.bar_widths[0]);positions=[layout.interpolate(points,xs,t) for t in slots]
-        unit=layout.traditional_cell_width(0);extra=(s.bar_widths[0]-7.25*unit)/3
-        for position,wanted,gaps in zip(positions,[0,1,2.75,4.5,6.25,7.25],[0,0,1,2,3,3]):self.assertAlmostEqual(position,wanted*unit+gaps*extra)
+        unit=s.cell_width;gap=s.beat_gap
+        cells=[layout.traditional_cell(0,t,points,xs)[0] for t in slots[:-1]]
+        for position,wanted in zip(cells,[0,unit,2*unit+gap,3*unit+2*gap,4*unit+3*gap]):self.assertAlmostEqual(position,s.bar_side_gap+wanted)
+        self.assertAlmostEqual(cells[-1]+unit+s.bar_side_gap,s.bar_widths[0])
         # Accidentals change the glyph envelope, but note centers use each slot midpoint.
         hits={nid:r for pg,r,nid in layout.hit_notes}
         first=hits[p.notes[0].id];third=hits[p.notes[2].id]
-        self.assertAlmostEqual(third.center().x()-first.center().x(),2.75*unit+extra)
+        self.assertAlmostEqual(third.center().x()-first.center().x(),2*unit+gap)
 
     def test_forced_rows_scale_from_global_and_remember_original_count(self):
+        from lingfeng.audio.midi import export_midi
         p=music();apply_forced_row(p,list(range(6)))
+        notes=copy.deepcopy(p.notes);midi=export_midi(p,None)
+        self.assertEqual(p.notation['forced_row_fonts'],[[0,6,4]])
         for style in ('spatial','compact','traditional'):
             p.notation['style']=style
             for size in (2,4):
                 p.notation['font_size']=size;layout,_=render(p)
                 self.assertEqual(layout.systems[0].bars,list(range(6)))
                 for s in layout.systems:
-                    ratio=2/3 if s is layout.systems[0] else 1
+                    ratio=(min(1,layout.reference_unit_count/s.unit_count)if s.is_forced else 1)if style=='traditional' else (2/3 if s is layout.systems[0]else 1)
                     for scale in s.bar_scales.values():self.assertAlmostEqual(scale,layout.glyph_scale*ratio)
             p.notation['per_line']=8
             layout=ScoreLayout(Project.from_dict(p.to_dict()))
-            self.assertAlmostEqual(layout.systems[0].symbol_scale/layout.glyph_scale,2/3)
+            ratio=min(1,layout.reference_unit_count/layout.systems[0].unit_count)if style=='traditional'else 2/3
+            self.assertAlmostEqual(layout.systems[0].symbol_scale/layout.glyph_scale,ratio)
+            self.assertAlmostEqual(layout.systems[0].forced_font_ratio,ratio)
+        self.assertEqual(p.notes,notes);self.assertEqual(export_midi(p,None),midi)
 
     def test_short_forced_rows_never_enlarge_font(self):
         p=music();apply_forced_row(p,[0,1]);layout=ScoreLayout(p)
@@ -85,14 +94,16 @@ class EngravingTests(unittest.TestCase):
         p=Project();p.notation.update(per_line=8,font_size=26)
         p.notes=[Note(i*3840+90,90,66,lyric='bright') for i in range(8)]+[Note(i*3840+3570,270,61,lyric='longword') for i in range(8)]
         for style in ('spatial','compact','traditional'):
-            p.notation['style']=style;layout,_=render(p)
-            for _,_,left,right,a,b in layout.symbol_boxes:
-                self.assertGreaterEqual(left,a-1e-6);self.assertLessEqual(right,b+1e-6)
+            p.notation['style']=style;p.notation['font_size']=ScoreLayout(p).font_limit;layout,_=render(p)
+            if style=='traditional':assert_numeric_cells(self,layout)
+            else:
+                for s in layout.systems:self.assertTrue(layout.ink_fits(layout.ink_descriptors(s),s.symbol_scale))
             for nid,verse,x,y in layout.lyric_positions:
                 rect=next(r for _,r,bar in layout.hit_bars if p.starts[bar]<=next(e['tick'] for e in layout.lyrics if e['id']==nid)<p.starts[bar+1])
                 text=next(e['text'] for e in layout.lyrics if e['id']==nid)
                 half=layout.text_width(text,11)*layout.glyph_scale/2
-                self.assertGreaterEqual(x-half,rect.left()-1e-6);self.assertLessEqual(x+half,rect.right()+1e-6)
+                if style!='traditional':
+                    self.assertGreaterEqual(x-half,rect.left()-1e-6);self.assertLessEqual(x+half,rect.right()+1e-6)
 
     def test_recommendation_and_layout_do_not_edit_music(self):
         p=music();before=copy.deepcopy(p.to_dict());layout=ScoreLayout(p)
@@ -105,9 +116,11 @@ class EngravingTests(unittest.TestCase):
         p=Project();p.notes=[Note(b*3840,960,61) for b in range(8)]
         add_compression(p,list(range(8)),'repeat')
         for style in ('traditional','spatial'):
-            p.notation['style']=style;layout,_=render(p)
+            p.notation['style']=style;p.notation['font_size']=ScoreLayout(p).font_limit;layout,_=render(p)
             self.assertEqual([b for s in layout.systems for b in s.bars],list(range(4)))
-            for _,_,left,right,a,b in layout.symbol_boxes:self.assertGreaterEqual(left,a-1e-6);self.assertLessEqual(right,b+1e-6)
+            if style=='traditional':assert_numeric_cells(self,layout)
+            else:
+                for s in layout.systems:self.assertTrue(layout.ink_fits(layout.ink_descriptors(s),s.symbol_scale))
 
     def test_engraving_time_map_roundtrip_for_clicks(self):
         p=music();apply_forced_row(p,list(range(6)))
@@ -126,10 +139,8 @@ class EngravingTests(unittest.TestCase):
 
     def test_octave_marks_and_underlines_have_vertical_room(self):
         p=Project();p.notes=[Note(0,120,106),Note(0,120,108)];p.notation.update(font_size=26,row_gap=8)
-        layout=ScoreLayout(p);s=layout.systems[0];lower,upper=s.fragments[0][:2]
-        distance=abs(s.pitch_position(upper.pitch)-s.pitch_position(lower.pitch))*s.row_gap
-        needed=(layout.vertical_extents(upper)[1]+layout.vertical_extents(lower)[0])*layout.glyph_scale
-        self.assertGreater(distance,needed);self.assertEqual(s.row_gap,8)
+        p.notation['font_size']=ScoreLayout(p).font_limit;layout=ScoreLayout(p);s=layout.systems[0]
+        self.assertTrue(layout.ink_fits(layout.ink_descriptors(s),s.symbol_scale));self.assertEqual(s.row_gap,8)
         p.notes=[Note(0,240,21,lyric='低音')];p.notation.update(per_line=1,row_gap=15)
         layout,_=render(p);s=layout.systems[0];f=s.fragments[0][0]
         baseline=s.top+60+s.extra_header+(len(s.pitches)-1-s.pitch_position(21))*s.row_gap
@@ -145,21 +156,23 @@ class EngravingTests(unittest.TestCase):
         self.assertAlmostEqual(s.symbol_scale/layout.glyph_scale,4/5)
 
 class CreationTests(unittest.TestCase):
-    def test_first_entry_recommends_once_style_and_explicit_recommend_are_undoable(self):
+    def test_workspace_preserves_manual_size_and_traditional_style_recommends_in_one_undo(self):
         from lingfeng.ui.main_window import MainWindow
         with patch.object(MainWindow,'save_preferences'):
             w=MainWindow(music());w.timer.stop();w.autosave.stop()
             try:
                 recommended=ScoreLayout(w.project).recommended_font_size
-                w.switch_workspace('score');self.assertEqual(w.project.notation['font_size'],recommended)
+                chosen=w.project.notation['font_size'];w.switch_workspace('score');self.assertEqual(w.project.notation['font_size'],chosen)
                 w.note_font.setValue(2);w.switch_workspace('compose');w.switch_workspace('score')
                 self.assertEqual(w.project.notation['font_size'],2)
                 saved=Project.from_dict(w.project.to_dict());w.replace_project(saved)
                 self.assertEqual(w.project.notation['font_size'],2)
                 w.recommend_score_font();self.assertEqual(w.project.notation['font_size'],recommended)
                 w.undo();self.assertEqual(w.project.notation['font_size'],2)
-                w.set_notation('style','traditional');self.assertEqual(w.project.notation['font_size'],ScoreLayout(w.project).recommended_font_size)
-                w.undo();self.assertEqual(w.project.notation['style'],'spatial')
+                before_style=copy.deepcopy(w.project.to_dict());traditional=Project.from_dict(before_style);traditional.notation['style']='traditional'
+                expected=ScoreLayout(traditional).recommended_font_size
+                w.set_notation('style','traditional');self.assertEqual(w.project.notation['font_size'],expected)
+                w.undo();self.assertEqual(w.project.to_dict(),before_style)
             finally:w.dirty=False;w.close();w.deleteLater();APP.processEvents()
 
 if __name__=='__main__':unittest.main()

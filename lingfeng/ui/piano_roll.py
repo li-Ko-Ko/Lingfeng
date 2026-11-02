@@ -6,7 +6,7 @@ import time
 from fractions import Fraction
 from PySide6.QtCore import Qt, QRectF, QPointF, QPoint, Signal, QTimer
 from PySide6.QtGui import QPainter, QPen, QColor, QFont, QKeySequence,QPainterPath,QAction
-from PySide6.QtWidgets import QAbstractScrollArea, QWidget, QMenu, QApplication,QFrame
+from PySide6.QtWidgets import QAbstractScrollArea, QWidget, QMenu, QApplication,QFrame,QInputDialog
 from lingfeng.ui.theme import color as paint_color, roll_color, label_color, colored_category
 import lingfeng.ui.theme as theme
 from lingfeng.ui.painting import cached_layer, roll_view_key
@@ -406,6 +406,19 @@ class ChordLane(QWidget):
         action('编辑和弦…',lambda:e.chordRequested.emit(chord.id,tick),single,key='edit_chord')
         action('在和弦钢琴卷帘中编辑',lambda:e.harmonyRequested.emit(chord.id),single)
         action('试听实际和弦',lambda:e.chordCommand.emit('audition',ids),bool(selected))
+        from lingfeng.audio.velocity import options
+        velocity=menu.addMenu(tr('修改力度'));menu.velocity_menu=velocity;velocity.setEnabled(bool(selected))
+        velocities={n.velocity for c in selected for n in c.render_notes()}|{c.velocity for c in selected}
+        for value in options():
+            a=velocity.addAction(str(value),lambda checked=False,v=value:e.chordCommand.emit('velocity:'+str(v),ids))
+            a.setData(value);a.setCheckable(True)
+            a.setChecked(velocities=={value})
+        velocity.addSeparator()
+        def custom_velocity():
+            value,ok=QInputDialog.getInt(self,tr('修改力度'),tr('MIDI 力度（1–127）'),selected[0].velocity if selected else 72,1,127)
+            if ok:e.chordCommand.emit('velocity:'+str(value),ids)
+        velocity.addAction(tr('自定义力度…'),custom_velocity)
+        velocity.action_refs=velocity.actions()
         roots=menu.addMenu(tr('和弦根音'));menu.root_menu=roots;roots.setEnabled(known)
         context=e.project.context_at(chord.start if chord else tick);tonic=context.tonic
         for label,pc in theme.pitch_class_choices(tonic,context.mode):

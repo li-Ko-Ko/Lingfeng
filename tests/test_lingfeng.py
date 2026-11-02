@@ -142,7 +142,7 @@ class ScoreSelectionTests(unittest.TestCase):
     def test_score_context_availability_and_beat_ranges(self):
         self.canvas.selected_bars=set(range(8));menu=self.canvas.context_menu(self.point(0))
         self.assertTrue(next(a for a in menu.actions() if a.text()=='强制合并为一行').isEnabled())
-        self.assertTrue(menu.compression_menu.actions()[0].isEnabled());self.canvas.set_selection_unit('beat')
+        self.assertFalse(hasattr(menu,'compression_menu'));self.assertIsNotNone(compression_candidate(self.p,list(range(8)),'repeat'));self.canvas.set_selection_unit('beat')
         self.click(0);self.assertEqual(len(self.canvas.selected_beats),1);a,b=next(iter(self.canvas.selected_beats));self.assertEqual(b-a,PPQ)
     def test_draw_single_delete_and_structure_frame_resize(self):
         r=PianoRoll(self.p,role='harmony');r.resize(1000,650);r.set_panel('chords',False);r.show();QTest.qWait(30);r.center_pitch(60)

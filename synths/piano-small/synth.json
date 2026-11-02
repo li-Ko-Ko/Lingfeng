@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "id": "piano-small",
+  "name": "轻量钢琴与电钢琴",
+  "name_en": "Piano & Electric Essentials",
+  "version": "0.52",
+  "abi": 1,
+  "platform": "windows-x64",
+  "engine": "sfz",
+  "library": "sfizz.dll",
+  "sha256": "aa4bfa4ad9a57cfbb3c832a50be14bfe5aeaf7a36ffcdf0178547abe8719e653",
+  "license": "CC0-1.0; CC-BY-3.0; sfizz BSD-2-Clause",
+  "license_file": "LICENSE-SAMPLES.txt",
+  "source": "https://github.com/freepats/upright-piano-KW ; https://github.com/sfzinstruments/GregSullivan.E-Pianos ; https://github.com/sfzinstruments/Discord-SFZ-GM-Bank",
+  "author": "Gonzalo and Roberto / FreePats; Greg Sullivan; kinwie (SFZ mapping); Jeff Learman",
+  "voices": 128,
+  "presets": [
+    {
+      "program": 0,
+      "name": "Kawai 原声钢琴",
+      "name_en": "Kawai acoustic piano",
+      "model": 0,
+      "sfz": "acoustic/UprightPianoKW-20220221.sfz",
+      "gain": 0.55,
+      "license": "CC0-1.0",
+      "author": "Gonzalo, Roberto / FreePats"
+    },
+    {
+      "program": 1,
+      "name": "明亮原声钢琴",
+      "name_en": "Bright acoustic piano",
+      "model": 0,
+      "sfz": "acoustic/bright.sfz",
+      "gain": 0.5,
+      "license": "CC0-1.0",
+      "author": "Gonzalo, Roberto / FreePats; Lingfeng bright variation"
+    },
+    {
+      "program": 2,
+      "name": "CP80 电大钢琴",
+      "name_en": "CP80 electric grand",
+      "model": 0,
+      "sfz": "electric/CP80/CP80.sfz",
+      "gain": 0.45,
+      "license": "CC-BY-3.0",
+      "author": "Greg Sullivan; SFZ mapping by kinwie"
+    },
+    {
+      "program": 4,
+      "name": "Rhodes 电钢琴",
+      "name_en": "Rhodes electric piano",
+      "model": 0,
+      "sfz": "rhodes/005-Electric Piano 1.sfz",
+      "gain": 0.5,
+      "license": "CC0-1.0",
+      "author": "Jeff Learman"
+    },
+    {
+      "program": 5,
+      "name": "Wurlitzer 电钢琴",
+      "name_en": "Wurlitzer electric piano",
+      "model": 0,
+      "sfz": "electric/Wurlitzer EP200/Wurlitzer EP200.sfz",
+      "gain": 0.5,
+      "license": "CC-BY-3.0",
+      "author": "Greg Sullivan; SFZ mapping by kinwie"
+    },
+    {
+      "program": 6,
+      "name": "Pianet T 电键盘",
+      "name_en": "Pianet T electric keys",
+      "model": 0,
+      "sfz": "electric/Pianet T/Pianet T.sfz",
+      "gain": 0.6,
+      "license": "CC-BY-3.0",
+      "author": "Greg Sullivan; SFZ mapping by kinwie"
+    }
+  ]
+}

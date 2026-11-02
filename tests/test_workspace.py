@@ -3,8 +3,8 @@ import os,copy,tempfile,unittest
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
 from PySide6.QtWidgets import QApplication,QMessageBox
-from PySide6.QtCore import QPoint,Qt
-from PySide6.QtGui import QImage,QPainter
+from PySide6.QtCore import QPoint,QPointF,Qt
+from PySide6.QtGui import QImage,QPainter,QFont,QFontMetricsF
 from PySide6.QtTest import QTest
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.music.model import Project, Note, Chord, Measure, PPQ
@@ -62,8 +62,21 @@ class StructureTests(unittest.TestCase):
             p.notation['style']=style;layout=ScoreLayout(p);s=layout.systems[0]
             image=QImage(PAPER_W,PAPER_H,QImage.Format.Format_ARGB32);painter=QPainter(image);layout.draw(painter,0);painter.end()
             self.assertEqual(layout.verses[p.notes[0].id],['风','云']);self.assertEqual(len(layout.lyric_positions),8)
-            self.assertTrue(all(y>s.top+s.grid_bottom for _,_,_,y in layout.lyric_positions))
-            ys=[y for nid,_,_,y in layout.lyric_positions if nid in (p.notes[0].id,p.notes[4].id)];self.assertEqual(ys[1]-ys[0],17 if style=='traditional' else 22)
+            grid_bottom=layout.system_transform(s).map(QPointF(s.left,s.grid_bottom)).y()
+            self.assertTrue(all(y>grid_bottom for _,_,_,y in layout.lyric_positions))
+            ys=[y for nid,_,_,y in layout.lyric_positions if nid in (p.notes[0].id,p.notes[4].id)]
+            self.assertEqual(s.lyric_rows,2);self.assertAlmostEqual(ys[1]-ys[0],s.lyric_gap*s.layout_scale)
+            # The paper transform scales glyph ink and row spacing together.
+            # Keep checking the actual envelopes and positive physical clearance.
+            font=QFont('Microsoft YaHei');font.setPixelSize(round(11*1.2));metrics=QFontMetricsF(font)
+            bounds=[]
+            for text,baseline in zip(layout.verses[p.notes[0].id],ys):
+                ink=metrics.tightBoundingRect(text)
+                physical_scale=s.symbol_scale*s.layout_scale
+                bounds.append((baseline+ink.top()*physical_scale,baseline+ink.bottom()*physical_scale))
+            self.assertGreater(bounds[0][0],grid_bottom)
+            self.assertGreaterEqual(bounds[1][0]-bounds[0][1],1)
+            self.assertLessEqual(bounds[1][1],s.top+s.height)
     def test_lower_directions_do_not_overlap_lyrics(self):
         from lingfeng.engraving.presentation import add_annotation
         p=repeated();add_annotation(p,'rit',7*3840,p.end);add_annotation(p,'fine',7*3840,p.end)
@@ -96,10 +109,13 @@ class WorkspaceTests(unittest.TestCase):
     def test_occupied_insert_enabled_and_empty_insert_undo(self):
         w=self.w;lane=w.chord_lane;menu=lane.context_menu(QPoint(round(lane.x_at(480)),25));self.assertTrue(menu.actions()[0].isEnabled())
         w.project.chords=[];w.refresh();w.chord_command('insert',480);self.assertEqual((w.project.chord_at(480).start,w.project.chord_at(480).end),(480,3840));self.assertFalse(w.project.harmony_notes());w.undo();self.assertFalse(w.project.chords)
-    def test_shared_score_tab_and_logic_capture(self):
+    def test_shared_score_tabs_and_retained_structure_backend(self):
         w=self.w;w.switch_workspace('score');w.open_score_roll('chords',0);QTest.qWait(20)
         self.assertEqual(w.score_tabs.currentWidget(),w.score_harmony_page);w.open_score_roll('melody',0);self.assertEqual(w.score_tabs.currentWidget(),w.score_melody_page)
-        logic=w.logic_panel;logic.create_draft();w.score_view.canvas.selected_bars={0,1,2,3};logic.capture(0);w.score_view.canvas.selected_bars={4,5,6,7};logic.capture(1);self.assertTrue(logic.apply.isEnabled());logic.commit();self.assertEqual(len(w.project.notation['compressions']),1)
+        from lingfeng.engraving.structure import apply_draft
+        draft=dict(id='legacy',kind='repeat',regions=[dict(bars=list(range(a,b)),ranges=[[a*3840,b*3840]])for a,b in ((0,4),(4,8))])
+        w.mutate('stored structure',lambda p:apply_draft(p,draft));self.assertEqual(len(w.project.notation['compressions']),1)
+        self.assertFalse(w.logic_panel.isEnabled());self.assertEqual(w.score_tabs.count(),3)
         w.toggle_score_panel_floating('melody');self.assertTrue(w.score_floats['melody'].isFloating());w.toggle_score_panel_floating('melody');self.assertEqual(w.score_splitter.widget(1),w.score_tools)
     def test_half_screen_minimum_and_size_buttons(self):
         w=self.w;w.resize(680,900);QTest.qWait(30);self.assertEqual(w.width(),680)

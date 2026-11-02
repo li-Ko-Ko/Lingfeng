@@ -6,7 +6,8 @@ from pathlib import Path
 from PySide6.QtCore import Qt,QTimer
 from PySide6.QtGui import QFont,QAction,QKeySequence,QShortcut,QIcon,QActionGroup
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QToolButton, QComboBox, QCheckBox, QStackedWidget, QSplitter, QFileDialog, QMessageBox, QInputDialog, QDialog, QMenu, QMenuBar, QSizePolicy, QSlider, QWidgetAction, QFormLayout, QAbstractSpinBox
-from lingfeng.music.model import Project, PPQ, pitch_name, uid, demo_project
+from lingfeng.music.model import Project, PPQ, FONT_SIZE_MAX, pitch_name, uid, demo_project
+from lingfeng.music.onsets import overlap_conflicts
 from lingfeng.ui.piano_roll import PianoRoll
 from lingfeng.ui.score_view import ScoreView
 from lingfeng.ui.dialogs import NoteDialog, ChordDialog, MarkerDialog, SoundSettingsDialog
@@ -56,10 +57,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.harmony_window=None;self.syncing_views=False;self.volume_before=None
         self.volume_timer=QTimer(self);self.volume_timer.setSingleShot(True);self.volume_timer.setInterval(350);self.volume_timer.timeout.connect(self.commit_volume)
         self.transport=Transport(self);self.transport.error.connect(self.status_message)
+        self.transport.router_opener=self.load_audio_router
         self.setWindowFlags(Qt.WindowType.Window|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowMinMaxButtonsHint);self.setWindowTitle(BRAND);self.resize(1420,900);self.setMinimumSize(620,560)
         self.setWindowIcon(QIcon(str(resource_root()/'assets'/'lingfeng.ico')))
         from lingfeng.platform.preferences import load_preferences
         preferences=load_preferences(user_data_dir());self._preferences=preferences
+        from lingfeng.audio.velocity import set_options
+        set_options(preferences.get('chord_velocity_options'))
         from lingfeng.music.chord_operations import set_quality_order
         from lingfeng.ui.keybindings import load_bindings, EditorKeys
         self.keybindings=load_bindings(preferences.get('keybindings',{}));self.editor_keys=EditorKeys(self);QApplication.instance().installEventFilter(self.editor_keys)
@@ -95,6 +99,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.subtitle=QLabel();self.subtitle.setObjectName('subtitle');self.subtitle.setMaximumWidth(240);self.subtitle.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred);brand.addWidget(self.subtitle);h.addLayout(brand);h.addSpacing(12)
         self.compose_button=button(tr('创作'),lambda:self.switch_workspace('compose'),True);self.score_button=button(tr('制谱'),lambda:self.switch_workspace('score'),True)
         self.score_button.setToolTip(tr('切入制谱时同步音乐；卷帘编辑期间保留当前谱面。'))
+        self.score_button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         h.addWidget(self.compose_button);h.addWidget(self.score_button);h.addStretch()
         self.play_button=IconButton('play');self.play_button.activated.connect(self.toggle_play);self.play_button.setObjectName('play');h.addWidget(self.play_button)
         self.replay_button=IconButton('replay');self.replay_button.activated.connect(self.replay);self.replay_button.doubleActivated.connect(self.return_to_start);h.addWidget(self.replay_button)
@@ -118,7 +123,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             st.addWidget(group)
         self.perline=SizeControl(4,1,16);self.perline.setSuffix('')
         self.perline.currentIndexChanged.connect(lambda:self.set_notation('per_line',self.perline.currentData()));score_field('每行小节',self.perline)
-        self.note_font=FontSizeControl();self.font_limit_label=QLabel(tr('上限 {0}',26))
+        self.note_font=FontSizeControl();self.note_font.setMaximum(FONT_SIZE_MAX);self.font_limit_label=QLabel(tr('建议上限 {0}',FONT_SIZE_MAX))
         self.note_font.currentIndexChanged.connect(lambda:self.set_notation('font_size',self.note_font.currentData()));score_field('音符字号',self.note_font,self.font_limit_label)
         st.addWidget(button(tr('推荐字号'),self.recommend_score_font))
         self.rowgap=SizeControl(15,4,32);self.rowgap.setSuffix('');self.rowgap.valueChanged.connect(lambda n:self.set_notation('row_gap',n));score_field('音高间距',self.rowgap)
@@ -199,6 +204,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         action(settings,tr('MIDI 键盘输入…'),self.midi_input_settings)
         settings.addSeparator()
         action(settings,tr('和弦菜单偏好…'),self.chord_preferences)
+        action(settings,tr('力度选项…'),self.velocity_preferences)
         action(settings,tr('快捷键设置…'),self.keybinding_settings)
         settings.addSeparator()
         themes=settings.addMenu(tr('外观'));group=QActionGroup(self);group.setExclusive(True);self.theme_actions={}
@@ -233,6 +239,10 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         help_menu=self.menuBar().addMenu(tr('帮助'));action(help_menu,tr('操作说明'),self.help)
         action(help_menu,tr('关于伶风'),lambda:HelpDialog(self,about=True).exec())
         bar=self.menuBar();bar.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Preferred);self.title_bar=TitleBar(self,bar);self.setMenuWidget(self.title_bar)
+
+    def load_audio_router(self,settings):
+        from lingfeng.ui.audio_loading import AudioLoadingDialog
+        return AudioLoadingDialog.open_router(settings,self)
 
     def status_message(self,text):
         self.statusBar().showMessage(text,18000)
@@ -305,10 +315,12 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if getattr(self,'workspace_ready',False):self.logic_panel.refresh();self.lyric_panel.refresh();self.sync_views(self.roll);self.update_shared_views();self.update_transport_buttons()
 
     def switch_workspace(self,workspace,refresh_score=True):
+        if workspace=='score' and not self.score_entry_allowed():return False
         if workspace==self.workspace:return True
         self.switching_workspace=True
         if workspace=='score':
             if self.project.notation.get('font_layout_version')!=45:self.prepare_score_font()
+            self.prepare_recommended_score_font()
             self.compose_float_state=(self.melody_window.isFloating(),self.harmony_window.isFloating())
             self.compose_view_state={key:self.visibility_actions[key].isChecked() for key in ('melody','harmony','chords')}
             self.compose_float_open=(self.melody_window.floating_visible,self.harmony_window.floating_visible)
@@ -326,9 +338,31 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
                 action=self.visibility_actions[key];blocked=action.blockSignals(True);action.setChecked(value);action.blockSignals(blocked)
         self.switching_workspace=False
         self.mount_panels();self.roll.update_ranges();self.harmony_window.roll.update_ranges()
-        if workspace=='score':self.status_message(tr('谱面：拖动框选 · Ctrl 增选 · Shift 连续选择 · 右键打开对应卷帘；结构逻辑中记录 A、B 区域。'))
+        if workspace=='score':self.status_message(tr('谱面：拖动框选 · Ctrl 增选 · Shift 连续选择 · 右键打开对应卷帘。'))
         else:self.status_message(tr('Smart：空白拖动框选 · Draw：单击写入或删除，拖动编辑 · 右键复制变换'))
         return True
+
+    def score_entry_allowed(self,project=None,conflicts=None):
+        project=self.project if project is None else project
+        conflicts=overlap_conflicts(project.notes) if conflicts is None else conflicts
+        if not conflicts:return True
+        self.compose_button.setChecked(self.workspace=='compose');self.score_button.setChecked(self.workspace=='score')
+        details=[]
+        for conflict in conflicts:
+            bar=project.measure_at(min(conflict.start,project.end-1));beat=PPQ*4//project.measures[bar].denominator
+            number,remainder=divmod(conflict.start-project.starts[bar],beat)
+            where=tr('第 {0} 小节 · 第 {1} 拍 + {2} tick · tick {3}–{4}',bar+1,number+1,remainder,conflict.start,conflict.end)
+            notes='\n'.join(tr('{0}（MIDI {1}，ID {2}，tick {3}–{4}）',pitch_name(n.pitch),n.pitch,n.note_id,n.start,n.end) for n in conflict.notes)
+            details.append(where+'\n'+notes)
+        focus=QApplication.focusWidget()
+        box=QMessageBox(QMessageBox.Icon.Warning,tr('无法进入制谱'),
+            tr('旋律存在 {0} 处音符重叠。制谱目前仅支持严格单声部，请先在创作中修正。',len(conflicts)),
+            QMessageBox.StandardButton.Ok,self)
+        box.setInformativeText('\n\n'.join(details[:3]))
+        if len(details)>3:box.setDetailedText('\n\n'.join(details))
+        box.exec()
+        if focus is not None and focus.isVisible():focus.setFocus()
+        return False
 
     def change_score_zoom(self):
         if not hasattr(self,'score_view'):return
@@ -339,18 +373,14 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
     def sync_score_font(self):
         canvas=self.score_view.canvas
         if self.workspace!='score' or canvas.layout is None:return
-        limit=canvas.layout.font_limit;value=canvas.project.notation['font_size']
-        if self.project.notation.get('font_size',15)!=value:
-            self.project.notation['font_size']=value;self.dirty=True
-            self.subtitle.setText(self.project.title+tr('  ·  未保存'))
-            self.setWindowTitle(f"{self.project.title} * — {'Lingfeng' if self.language=='en' else '伶风'}")
+        limit=canvas.layout.font_limit;value=self.project.notation.get('font_size',15)
         blocked=self.note_font.blockSignals(True)
         try:
-            self.note_font.setMaximum(limit);self.note_font.setSingleStep(1 if limit>=1 else .01 if limit>=.01 else .0001)
+            self.note_font.setMaximum(FONT_SIZE_MAX);self.note_font.setSingleStep(1 if value>=1 else .01 if value>=.01 else .0001)
             self.note_font.setValue(value)
         finally:self.note_font.blockSignals(blocked)
-        self.font_limit_label.setText(tr('上限 {0}',f'{limit:g}'))
-        tip=tr('当前排版的字号上限为 {0}；保持每行小节数，不允许重叠。调整排版后重新计算上限，强制合行仍按比例缩小。',f'{limit:g}')
+        self.font_limit_label.setText(tr('建议上限 {0}',f'{limit:g}'))
+        tip=tr('当前排版推荐字号为 {0}；可手动修改。传统简谱按非强制行计算推荐字号，强制合行按完整符号预算绑定字号比例。',f'{canvas.layout.recommended_font_size:g}')
         self.note_font.setToolTip(tip);self.font_limit_label.setToolTip(tip)
 
     def sync_score_zoom(self,scale,mode):
@@ -372,8 +402,28 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
     def score_font_project(self,project):
         if self.workspace!='score' or self.score_view.canvas.layout is None:return project
         snapshot=copy.deepcopy(self.score_view.canvas.project)
-        for key in ('style','per_line','font_size','row_gap','circles','color','lyrics'):snapshot.notation[key]=project.notation[key]
+        if snapshot.starts==project.starts:
+            snapshot.notation=copy.deepcopy(project.notation)
+            for before,after in zip(snapshot.measures,project.measures):before.break_after=after.break_after
+        else:
+            for key in ('style','per_line','font_size','row_gap','circles','color','lyrics'):snapshot.notation[key]=project.notation[key]
         return snapshot
+
+    def apply_recommended_score_font(self,project):
+        if project.notation['style']=='traditional':
+            project.notation['font_size']=ScoreLayout(self.score_font_project(project)).recommended_font_size
+            project.notation['font_layout_version']=45
+
+    def prepare_recommended_score_font(self):
+        """Fit new traditional row content, retaining deliberate manual overrides."""
+        if self.project.notation['style']!='traditional':return
+        current=ScoreLayout(self.project);previous=self.score_view.canvas.layout
+        budget=lambda layout:tuple((tuple(row.bars),row.unit_count,row.font_ratio) for row in layout.systems)
+        changed=previous is not None and (previous.project.notation['style']!='traditional' or budget(previous)!=budget(current))
+        if changed or previous is None and current.font_size>current.recommended_font_size:
+            value=current.recommended_font_size
+            if self.project.notation['font_size']!=value:
+                self.project.notation['font_size']=value;self.dirty=True;self.refresh()
 
     def change_volume(self,key,value):
         if self.loading:return
@@ -704,14 +754,14 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if not self.loading:
             def op(p):
                 p.notation[key]=value
-                if key=='style':p.notation['font_size']=ScoreLayout(self.score_font_project(p)).recommended_font_size
                 p.notation['font_layout_version']=45
+                if key in ('per_line','style'):self.apply_recommended_score_font(p)
             self.mutate(tr('已更新谱面排版'),op,source='score')
 
     def prepare_score_font(self):
-        # Initial engraving is part of entering score mode, not an extra undo
-        # step above the user's last music edit. The result persists in the file.
-        self.project.notation.update(font_size=ScoreLayout(self.project).recommended_font_size,font_layout_version=45)
+        # Keep legacy layout metadata current without replacing the user's size.
+        # Applying the advisory size is an explicit action on the score toolbar.
+        self.project.notation['font_layout_version']=45
         self.dirty=True;self.refresh()
 
     def recommend_score_font(self):
@@ -721,7 +771,9 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
 
     def toggle_linebreak(self,bar):
         if not self.score_structure_current():return
-        def op(p):p.measures[bar].break_after=not p.measures[bar].break_after
+        def op(p):
+            p.measures[bar].break_after=not p.measures[bar].break_after
+            self.apply_recommended_score_font(p)
         self.mutate(tr('已更新换行'),op)
 
     def score_bar_clicked(self,bar):
@@ -822,12 +874,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.restore_history(self.redo_history,self.undo_history)
 
     def save_preferences(self):
+        from lingfeng.audio.velocity import options as velocity_options
         from lingfeng.ui.theme import CUSTOM_PALETTES, ROLL_COLORING, SHOW_NOTE_DEGREES, ACCIDENTAL_PREFERENCE
         from lingfeng.music.chord_operations import QUALITY_ORDER
         from lingfeng.music.progression_catalog import CATALOG_VERSION
         try:
             from lingfeng.platform.preferences import save_preferences
-            self._preferences=save_preferences(user_data_dir(),{'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE},getattr(self,'_preferences',{}))
+            self._preferences=save_preferences(user_data_dir(),{'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'chord_velocity_options':velocity_options(),'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE},getattr(self,'_preferences',{}))
         except OSError as exc:self.status_message(tr('偏好设置未保存：{0}',exc))
 
     def change_language(self,language,persist=True):
@@ -882,7 +935,9 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         unit,bars,beats,anchor=session['score_selection'];self.score_selection.setCurrentIndex(self.score_selection.findData(unit));self.score_view.canvas.selected_bars=bars;self.score_view.canvas.selected_beats=beats;self.score_view.canvas.selection_anchor=anchor
         for key,value in session['visibility'].items():self.visibility_actions[key].setChecked(value)
         self.melody_window.setFloating(session['melody_float']);self.score_tools.setFloating(session['score_float']);self.score_tabs.setCurrentIndex(session['tab']);self.logic_panel.restore_state(session['logic'])
-        if workspace=='score':self.switch_workspace('score',refresh_score=False);self.edit_toggle.setChecked(editing);self.toggle_editor()
+        if workspace=='score':
+            if self.switch_workspace('score',refresh_score=False):self.edit_toggle.setChecked(editing);self.toggle_editor()
+            else:workspace='compose'
         if dock and workspace=='compose':
             self.harmony_window.setFloating(dock[1]);self.harmony_window.current_id=dock[2]
         for pane,visible in zip((self.melody_window,self.harmony_window),session['float_open']):
@@ -892,9 +947,10 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             self.compose_float_state=session['compose_floats']
             if session['compose_view_state'] is not None:self.compose_view_state=session['compose_view_state']
             if session['compose_float_open'] is not None:self.compose_float_open=session['compose_float_open']
-        self.score_panel_state=session['score_panels'];self.mount_panels()
-        for key,geometry in session['score_geometry'].items():self.score_floats[key].restoreGeometry(geometry)
-        if session['score_active']:self.score_tabs.setCurrentWidget(self.score_pages[session['score_active']])
+        self.score_panel_state={key:session['score_panels'].get(key,dict(visible=True,floating=False)) for key in self.score_pages};self.mount_panels()
+        for key,geometry in session['score_geometry'].items():
+            if key in self.score_floats:self.score_floats[key].restoreGeometry(geometry)
+        if session['score_active'] in self.score_pages:self.score_tabs.setCurrentWidget(self.score_pages[session['score_active']])
         self.lyric_panel.restore_state(session['lyric_draft'])
         if not self.rolls_linked():
             grid,triplet,length,ltriplet,dotted,previous,previous_id=session['harmony_tools'];h=self.harmony_window;h.grid.setCurrentIndex(grid);h.grid.set_triplet(triplet);h.length.setCurrentIndex(length);h.length.set_triplet(ltriplet);h.dotted.setChecked(dotted);h.roll.previous_duration=previous;h.roll.previous_note_id=previous_id
@@ -1051,12 +1107,14 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         else:self.change_loop(True)
 
     def toggle_play(self):
+        from lingfeng.ui.audio_loading import AudioLoadCancelled
         if self.transport.playing:self.playhead=self.transport.position();self.stop();return
         try:
             loop_start,b=self.loop_bounds()
             a=self.playhead if loop_start<=self.playhead<b else loop_start
             if not loop_start<=self.play_anchor<b:self.play_anchor=a
             self.transport.play(self.project,a,b,self.loop_active(),volumes=self.effective_volumes(),loop_start=loop_start);self.transport_active=True;self.show_cursor(a);self.update_transport_buttons()
+        except AudioLoadCancelled:self.status_message(tr('音源加载已取消。'));self.update_transport_buttons()
         except Exception as exc:QMessageBox.warning(self,tr('播放不可用'),tr(str(exc)))
 
     def show_cursor(self,tick):
@@ -1130,6 +1188,8 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         return self.save() if result==QMessageBox.StandardButton.Save else result==QMessageBox.StandardButton.Discard
 
     def replace_project(self,p,path=None):
+        conflicts=overlap_conflicts(p.notes) if self.workspace=='score' else ()
+        if conflicts:self.switch_workspace('compose')
         self.score_view.canvas.clear_layout()
         if not p.chords:p.fill_chord_gaps()
         for roll in (self.roll,self.harmony_window.roll):roll.previous_duration=None;roll.previous_note_id=''
@@ -1140,7 +1200,9 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.lyric_panel.reset_project()
         if self.workspace=='score':
             if p.notation.get('font_layout_version')!=45:self.prepare_score_font()
+            self.prepare_recommended_score_font()
             self.score_view.canvas.rebuild(self.project)
+        elif conflicts:self.score_entry_allowed(p,conflicts)
 
     def new(self):
         if self.maybe_save():self.replace_project(Project(title=tr('未命名作品')))
@@ -1209,6 +1271,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         dialog=ChordPreferenceDialog(self)
         if dialog.exec()==QDialog.DialogCode.Accepted:set_quality_order(dialog.value());self.save_preferences()
 
+    def velocity_preferences(self):
+        from lingfeng.audio.velocity import options, set_options
+        from lingfeng.ui.velocity_dialog import VelocityOptionsDialog
+        dialog=VelocityOptionsDialog(options(),self.project.audio['chords'],self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            set_options(dialog.value());self.save_preferences()
+
     def progression_settings(self,query='',source=None,ids=None):
         from lingfeng.ui.progression_dialogs import ProgressionManagerDialog
         parent=source.window() if source is not None else self
@@ -1249,6 +1318,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if dialog.exec()==QDialog.DialogCode.Accepted:set_roll_palettes(dialog.values);self.save_preferences()
 
     def score_command(self,command,payload):
+        if command.startswith(('compress:','symbol:')) or command in ('expand','clear_symbols','remove_structure'):return
         if not self.score_structure_current():return
         bars=payload['bars'];ranges=payload['ranges']
         if command=='delete_bars':self.delete_measures(bars);return
@@ -1268,6 +1338,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             elif command=='remove_structure':
                 key,index=payload['key']
                 if key in ('compressions','symbols') and 0<=index<len(p.notation.get(key,[])):p.notation[key].pop(index)
+            if command in ('force_row','auto_rows'):self.apply_recommended_score_font(p)
         self.mutate(tr('已更新谱面排版与符号，演奏时间线保持不变'),operation)
 
     def score_structure_current(self):

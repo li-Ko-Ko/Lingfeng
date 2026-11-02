@@ -1,77 +1,116 @@
-# 0.44 合成音源包 / Synthesis packs
+# 0.55 力度选项 / Velocity options
 
-本版程序包附带全部 3 个轻量 STK 音源包、37 个预设；完整解压即可使用。打包器比较解压后文件总大小（均含源码、许可）：音源总大小不超过程序本体时合并，否则音源独立打包。旧 SFZ/sfizz 采样系统不再加载或分发。
+和弦轨右键一个或多个和弦 → 修改力度。设置 → 力度选项可编辑常用值并点击“检测当前和弦音源并生成选项”；检测当前工程和弦轨所选音色，确认后保存，取消丢弃。默认、启动、打开设置和切换音源均不检测。
 
-## 安装与更新
+SFZ 读取 include／宏展开及 global／master／group／region 继承后的 `lovel`／`hivel`，排除 release 区域；SF2 只读取当前 bank／program 的预设及乐器区域表，合并全局／局部设置并相交键位及力度范围，跳过采样音频。按有效区间生成中间值；重复区域、立体声或轮替采样不重复计数。跨键位边界、重叠与交叉层会影响建议，区间数不等于所有音高统一的采样层数，也不是响度测量。原生合成与外部 MIDI 无法报告采样层时保留常用值；单层音色仍响应力度。
 
-1. 解压程序本体，保留 `_internal/`，运行 `Lingfeng.exe`。
-2. 本版附带 `stk-essentials`（15 个键盘、拨弦、贝斯、弓弦）、`stk-colors`（8 个风琴、钟、敲击条与管乐）和 `stk-acoustic`（14 个扩展乐器预设）。首次启动自动建立索引。
-3. 以后扩展时，把解压出的整个音源文件夹复制到 `Lingfeng.exe` 同级的 `synths/`，例如 `synths/stk-essentials/synth.json`。
-4. 打开 设置 → 音源与音色 → 重新扫描并保存，为旋律和和弦分别选择音源及音色。也可添加外部目录；每个扫描目录查找自身和下一层的 `synth.json`。
-5. 扫描结果与默认选择缓存在用户目录，下次启动直接读取，不遍历音源内容。新增、移动、替换音源后需要重新扫描。关闭程序后替换已加载的 DLL，再启动扫描。
+Right-click one or several chords → Change velocity. Settings → Velocity options edits the common list and optionally inspects the current project’s chord preset. Only the detection button starts inspection; OK saves and Cancel discards it. SFZ attack mappings and the selected SF2 bank/program supply velocity ranges without decoding samples or executing synth DLLs. Deduplicated bands produce midpoint suggestions, with gaps retained. Key-dependent splits, overlaps, crossfades and controllers may differ from a uniform layer model. Native synths and external MIDI keep the existing list. Single-layer sounds still respond to velocity.
 
-没有音源包也能编辑、保存、导出 PDF/MIDI，或用已安装的 Windows MIDI 播放。离线 MP3 必须安装并选择合成包；Windows 音源可使用实时录制。缺失音源不会妨碍打开工程，也不会静默替换工程保存的音色。
+Mapping references: [SFZ velocity selection](https://sfzformat.com/opcodes/lovel/), [SoundFont 2.04 specification](https://www.synthfont.com/sfspec24.pdf).
 
-工程仅保存 `synth:包ID` 和 GM 程序编号，不保存本机路径。旧 `samples`/`builtin` 自动迁移到 `synth:stk-essentials`，编号保留。新工程初始旋律为 02 明亮 FM 键盘；确认音源设置后，新工程使用上次选择。已保存工程保留自身设置。
+---
 
-## 引擎、预设与许可
+# 0.53 音源 / Sound packs
 
-采用 [STK 5.0.1](https://github.com/thestk/stk/tree/5.0.1) 原生 C++ 乐器算法：Rhodey/Wurley FM 电键盘、BeeThree 风琴、TubeBell、Plucked/StifKarp 拨弦、Bowed 弓弦、Brass、Clarinet、Flute、Saxofony 和 BandedWG；新增 Sitar、BlowHole、BlowBotl、Recorder、PercFlut 与 FMVoices。
+0.53 新增两个可选下载：**Greg Sullivan 电钢琴合集**（Wurlitzer、CP80、Pianet T，与小型包同一批录音的独立合集）和 **FluidR3 GM 键盘音源**（128 种钢琴、电钢琴、弦乐、吉他等 GM 乐器）。二者均免费，不放入主程序 ZIP。现有小型音源和 Salamander 大钢琴继续兼容。
 
-这些是合成风格预设，不承诺模拟真实录音。GM 编号用于保留 MIDI 导出及 DAW 对应关系，不表示与系统 GM 音色完全相同。没有乐器录音库；FM 振荡器使用 STK 原有两个单周期数学波形表，编译进 DLL，无音频文件加载。
+Version 0.53 adds optional Greg Sullivan electric pianos and the 128-instrument FluidR3 GM keyboard bank. Both are free and stay outside the main ZIP. The Greg collection is a standalone version of the recordings already included in the small pack, not a higher-resolution recording upgrade.
 
-STK 使用自己的宽松许可，允许使用、修改和再分发，需保留原版权与许可文本。每包附带 `LICENSE-STK.txt`、MIT 桥接代码许可、实际编译源码和重建命令。修改包括：内嵌数学振荡器表、独立伪随机状态、预分配复音池、MIDI 事件与释放包络；Sitar 使用稳定的线性延迟插值，铜管最小激励与输出力度分开；各预设去直流并衰减多余高频，主输出保留峰值保护。合成器软件许可不替代作品、歌词及其他素材版权；MP3 窗口显示商用提示，并保存 `.mp3.licenses.txt`。
+| 可选下载 / Optional download | 下载 / Download | 完整安装 / Installed with runtime sources |
+| --- | --- | --- |
+| Salamander 音乐会钢琴 / Concert Grand | 约 182 MiB | 约 238 MiB |
+| Greg Sullivan 电钢琴合集 / E-Pianos | 约 18.4 MiB | 约 41.8 MiB |
+| FluidR3 GM 键盘音源 / GM Keyboards | 约 137 MiB | 约 151 MiB |
 
-重建音源时，向 `scripts/build_synth_packs.py` 显式传入官方 STK 5.0.1 源码根目录 `--stk` 和完整 Zig 0.14.1 工具链中的可执行文件 `--zig`。也可按各音源包 `source/BUILD.txt`，直接编译随包提供的对应源码。
+首次播放或试听显示可取消的后台加载窗口，包含等待时间；播放中添加音符继续使用同一个播放进程和音源。校验缓存追踪映射、样本和父目录的变化；检测变动后重新验证。编辑命令后台发送、相邻的过期谱表修订合并，MIDI 顺序和同步操作边界保留；输出线程定期处理音频，避免持续命令挤占填充时间。
 
-## 音源包接口 v1
+Initial loading uses a responsive, cancellable window. Live edits reuse the worker and loaded instruments. Validated file metadata is cached with change detection; audio buffers are reused. Background command delivery preserves MIDI order and barriers while coalescing superseded adjacent schedule revisions.
 
-兼容包由 `synth.json`、独立 Windows x64 DLL、许可文件组成；普通 VST/CLAP/SFZ 不能直接复制使用。扫描阶段不执行 DLL，只校验清单、路径和 SHA-256；开始播放时检查 ABI。只安装可信来源的原生音源包。
+伶风附带免费的小型钢琴／电钢琴包，以及原有三组 STK 合成包。大钢琴独立下载，不增加主程序 ZIP 的体积。完整解压程序包，保留 `_internal/` 与 `synths/` 即可离线使用附带音源。
 
-清单要求 `schema: 1`、`abi: 1`、`platform: windows-x64`、稳定 `id`、中英名称、版本、`library`、`sha256`、作者、来源、许可与 `presets`。每个预设具有 0–127 唯一 GM `program`、中英名称、整数 `model`、线性 `gain`、可选 `controls`，以及可选 `cutoff_hz`（200–16000 Hz）。示例见基础包 `synth.json`。路径不得指向包外。重复包 ID 按扫描顺序保留第一个，并显示冲突。
+Lingfeng includes a free small piano/electric-piano pack and three STK synth packs. The optional grand is downloaded separately. Extract the whole ZIP and retain `_internal/` and `synths/`; installed sounds work offline.
 
-C ABI（cdecl，导出名不修饰）：
+## 随附音源 / Included sounds
 
-```c
-int lf_abi(void);                          // 必须为 1
-const char *lf_error(void);                // 线程局部 UTF-8 错误
-void *lf_create(int rate,int model,int voices); // rate=44100, voices=32
-void lf_free(void *engine);
-int lf_control(void *engine,int control,double value); // 预设参数
-int lf_event(void *engine,int status,int a,int b);      // MIDI
-int lf_render(void *engine,float *stereo,int frames);  // 交错双声道
-int lf_tone(void *engine,double cutoff); // 可选扩展；有 cutoff_hz 的预设必须支持
+| 包 / Pack | 音色 / Instruments | 解压体积 / Unpacked size |
+| --- | --- | --- |
+| `piano-small` | Kawai 原声与明亮钢琴、Rhodes、Wurlitzer、CP80、Pianet T / Acoustic and bright piano, Rhodes, Wurlitzer, CP80, Pianet T | 约 79 MiB，含引擎、源码和许可 / About 79 MiB including runtime source and notices |
+| `stk-essentials` | 15 个 FM 键盘、拨弦、贝斯与弓弦预设 / 15 FM keyboard, plucked, bass and bowed presets | 轻量原生合成 / Lightweight native synthesis |
+| `stk-colors` | 8 个风琴、钟、敲击条与管乐预设 / 8 organ, bell, bar and wind presets | 同上 / As above |
+| `stk-acoustic` | 14 个钟琴、元音、竖笛、吹瓶、西塔琴和拨弦模型 / 14 bell, vowel, recorder, bottle, sitar and plucked models | 同上 / As above |
+
+小型包的 FreePats Kawai 立式钢琴为双力度层；Rhodes 为独立发布的单力度层 CC0 GM 子集。Wurlitzer、CP80 与 Pianet 由 Greg Sullivan 录音、kinwie 映射。这些采样在体积与实际钢琴音色之间折中，不承诺达到深度采样商业乐器的真实度。新用户默认旋律为明亮原声钢琴、和弦为原声钢琴；已保存默认值和已有工程音色继续保留。
+
+The small pack balances size and piano character: a two-layer Kawai upright, a single-layer CC0 Rhodes GM subset, and Greg Sullivan electric pianos mapped by kinwie. Fresh settings prefer bright acoustic for melody and acoustic for chords. Saved defaults and existing projects retain their selected sounds.
+
+## 下载与本地添加 / Download and local installation
+
+1. 打开 **设置 → 音源与音色 → 下载／添加音源…**。
+2. 选择需要的音源，点击 **下载并添加**。Salamander 为 16 层力度的 Yamaha C5；Greg 合集为三种电钢琴；FluidR3 提供 128 种 GM 乐器。大小和许可在窗口中显示。
+3. 下载在后台显示进度，可取消；固定版本、大小和 SHA-256 校验通过后才安装。取消或失败清理本次临时文件，不改动已经安装的音源。成功后自动扫描，可为旋律和和弦分别选择音源及音色。
+4. 已有完整伶风音源 ZIP 时，选择 **从本地 ZIP 添加…**。也可复制完整文件夹到程序同级 `synths/`，点击 **重新扫描并保存**，或添加其它扫描目录。
+
+Use **Settings → Sound sources and instruments → Download / add sounds…** to choose a sound bank or install a local pack ZIP. Background downloads are explicit, cancellable, pinned and SHA-256 checked. Success refreshes the index; failure preserves existing packs. The GM download verifies all soundfont, runtime and source archives separately before installing.
+
+安装目标为程序同级 `synths/`，程序目录必须可写。同名音源已存在时不覆盖；关闭程序后再移动或更新旧包。自动下载大钢琴需要本版本小型包中的已核验引擎；手工安装完整大钢琴 ZIP 则自带引擎。普通 VST/CLAP 插件、裸 SFZ 或 SF2 不是完整伶风音源 ZIP。
+
+The application folder must be writable. Existing pack folders are never overwritten; close Lingfeng before moving or replacing them. Automatic grand installation reuses the small pack's verified runtime. A complete offline grand ZIP includes its own runtime. Plain plugins, SFZ and SF2 files are not complete pack ZIPs.
+
+索引、额外目录与默认音色持久保存，普通启动读取缓存，不联网。覆盖旧目录升级时按新版本刷新一次索引，保留默认选择和额外目录；之后不重复扫描。新增、移动或更新外部音源后显式扫描。工程只保存稳定包 ID 与 GM 程序号。缺失音源不妨碍打开、编辑、保存或 PDF/MIDI 导出；离线音频需要工程指定音源。Windows MIDI 仍可用，系统资源不随包分发。
+
+大钢琴首次加载播放／试听通道时可能需要十几至数十秒；加载后继续使用已建立的通道。Large sampled pianos may take tens of seconds to load initially; established channels are reused afterward.
+
+## 播放与许可 / Playback and licenses
+
+播放、试听、监听和离线 MP3 使用同一所选引擎。小型包 128 复音，大钢琴 256 复音。离线 SFZ 导出启用 freewheeling，等待采样流读取完成；主输出保留立体声峰值保护。
+
+Playback, audition, monitoring and MP3 share the selected renderer. Small/grand packs use 128/256 voices. Offline SFZ rendering waits for sample reads through freewheeling. The common stereo peak limiter remains active.
+
+- **FreePats KW、Rhodes GM 子集 / subset**：CC0-1.0。Rhodes CC0 只适用于包内 GM 子集，不扩展到完整 jRhodes3c/3d 库。
+- **Greg Sullivan 电钢琴、Salamander 采样 / samples**：CC-BY-3.0；分发保留署名、许可链接和修改说明。大钢琴映射为 CC0；原作者、重制和转换署名随包保存。
+- **sfizz 1.2.3**：BSD-2-Clause；完整源码归档、依赖通知、来源与哈希在每包 `runtime/`。上游于 2026-06-21 归档，本版固定并验证该版本。
+- **STK 5.0.1**：STK 宽松许可；各包保留实际编译源码、修改、Zig 运行库通知和重建命令。STK 包没有乐器录音，FM 使用内嵌数学波形表。
+- **FluidR3 GM**：MIT；音源版权与许可原文随包保存。FluidSynth 2.6.1 通过独立 DLL 播放 SF2，不创建自己的音频／MIDI 设备，复用伶风输出和离线导出。
+- **FluidSynth / libsndfile / mpg123 / LAME**：保留各自 LGPL 条款、对应源码、编译信息及补丁；静态编入运行库的 FLAC、Ogg、Vorbis、Opus 等保留各自宽松许可。全部位于可选 GM 包的 `runtime/`，DLL 位于 `bin/`；不统一改标 MIT，不随主程序包分发。
+
+实际来源、固定提交、输入哈希和修改见每包 `source.json`，文件校验见 `files.sha256.json`。修改包括电钢琴 88 键边缘扩展、Rhodes 全局包络头修正、大钢琴最低力度从 2 扩展到 1；样本音频不变。MP3 导出保留音源许可说明；作品、歌词及其它素材的权利另行适用。
+
+Credits, revisions, hashes and modifications are recorded in each pack. SFZ curation includes edge ranges, the Rhodes envelope header and the grand's velocity-1 region; audio samples remain unchanged. MP3 exports retain credits. Sound licenses do not replace rights in compositions, lyrics or other material.
+
+来源 / Sources: [FreePats KW](https://github.com/freepats/upright-piano-KW), [Greg Sullivan](https://github.com/sfzinstruments/GregSullivan.E-Pianos), [CC0 Rhodes GM](https://github.com/sfzinstruments/Discord-SFZ-GM-Bank), [compact Accurate Salamander](https://github.com/jlearman/zynthian-salamander-grand), [sfizz](https://github.com/sfztools/sfizz), [STK](https://github.com/thestk/stk/tree/5.0.1).
+
+## 重建 / Rebuild
+
+```powershell
+python scripts/build_piano_packs.py --download --pack all --zip
+python scripts/build_piano_packs.py --download --pack upgrades --zip
 ```
 
-每个 MIDI 通道具有独立实例，宿主串行访问同一实例；不同实例可能在实时与导出线程并发调用。返回码 0 成功。`lf_create` 失败返回空指针。输出有限的线性浮点数，不含主音量归一化。支持 note on/off、力度、CC7/11/10、延音、弯音、CC120/123；不需要完整 MIDI 文件播放器。主程序用同一音源渲染编辑、键盘监听、试听和离线 MP3。
+脚本使用 Python 标准库，只在显式 `--download` 时联网，每个固定输入通过哈希后才使用。缓存为 `output/piano-sources/`，输出为 `synths/`；`--zip` 生成完整可安装 ZIP。之后不带 `--download` 可离线重建。主程序发行白名单只有小型钢琴与三组 STK；大钢琴始终独立。
 
-## Build and install (English)
+The standard-library builder only accesses the network with `--download`; all fixed inputs are hash-verified. Omit that switch to rebuild offline from cache. `--pack upgrades` builds the optional electric/GM packs; `--zip` produces installable archives. All large/optional packs remain separate from the application release.
 
-The three lightweight packs (37 presets) are bundled with the application. If the total unpacked synth payload exceeds the core application size, packaging produces separate synth ZIPs instead. Copy each complete pack folder into `synths/` beside Lingfeng.exe, then open Settings → Sound sources and instruments → Rescan and save. The validated JSON index and defaults persist under `%LOCALAPPDATA%/Lingfeng/synth-index/`, keyed per application location. Startup reads that index. Rescan after adding/moving/updating packs; restart after replacing a loaded DLL. The project stores stable IDs rather than paths.
+STK 重建仍使用 `scripts/build_synth_packs.py --stk <STK-5.0.1> --zig <Zig-0.14.1>`，或包内 `source/BUILD.txt`。程序源码在发行包 `source/`。
 
-The native packs use STK 5.0.1 algorithmic instruments, not recorded instrument libraries. FM oscillators embed two synthetic, single-cycle tables. Source, modifications, notices and a Zig 0.14.1 rebuild command accompany each pack. Run `scripts/build_synth_packs.py` with explicit `--stk` and `--zig` paths to rebuild from official sources, or follow the included `source/BUILD.txt`. Standard VST/CLAP plugins are not accepted by the ABI above.
+## 音源接口 / Pack interface
 
-原生包静态编译所用 Zig 0.14.1 / libc++ / libc++abi / libunwind / MinGW 运行库许可随包保存在 `synths/<pack>/licenses/zig-runtime/`。Windows 输出适配器修正 SoundCard 0.4.5 短缓冲写入与提交长度不一致的问题；未修改已安装的 SoundCard 包。
+清单保留 `schema: 1`、`abi: 1`、`platform: windows-x64`、稳定 ID、双语名称、版本、来源、作者、许可、DLL 与 SHA-256。`engine` 缺省为 `native`，原接口不变：
 
-## 0.44 校准与验证
+```c
+int lf_abi(void);
+const char *lf_error(void);
+void *lf_create(int rate, int model, int voices);
+void lf_free(void *engine);
+int lf_control(void *engine, int control, double value);
+int lf_event(void *engine, int status, int a, int b);
+int lf_render(void *engine, float *stereo, int frames);
+int lf_tone(void *engine, double cutoff); /* optional */
+```
 
-音色滤波在原生线程中按音符执行，截止频率随高音上移，避免低通截掉高音基频。持续音、延音、弯音与重触发继续支持；每通道预分配 32 复音。设置试听先释放主播放的 Windows MIDI 占用；默认 MIDI 映射器与其实际设备名称通过 WinMM 查询结果去重。关闭后清空句柄，下次播放按工程设置重新打开。
+`engine: "sfz"` 使用 sfizz C API，预设另外指定包内相对 `sfz` 路径，`voices` 可设 32–1024。预设保留 `program`、`model`、双语名称、线性 `gain` 与可选 MIDI `controls`；滤波写在 SFZ，不使用原生 `cutoff_hz`。扫描检查清单、DLL 和样本引用，不执行 DLL；播放加载时再次核对 DLL 哈希。只安装可信来源的原生音源包。
 
-`scripts/verify_audio.py --loopback` 检查全部合成预设的 88 键、锚点力度、8 秒长音、延音/止音、复音性能，以及本机 Windows GM 128 音色和全部音源组合的实际输出。结果写入 `output/audio-verification/report.json`；每包有简短 WAV 试听。自动检查衡量无声、数值稳定、峰值和尾音，不代替主观音色评价。
+SFZ packs declare `engine: "sfz"`, use sfizz's C API, and add a relative SFZ mapping to each preset. Scans validate manifests and referenced files without executing native code; DLL hashes are checked again on load. Native packs keep the ABI above.
 
-The new models use the same STK permissive license. Sitar uses bounded linear delay interpolation; brass separates minimum physical excitation from MIDI loudness. Preset-specific tone filters, DC removal, smoothed note transitions and a stereo limiter protect the output. Run the verification script for offline checks and optional actual output loopback. Synthetic tone is intentional; no recorded sample bank is included.
+SF2 包声明 `engine: "sf2"`，各预设使用相对 `sf2` 路径、`model`（GM 程序号）和可选 `bank`。`library_hashes` 列出引擎及依赖 DLL 的 SHA-256；只加载包内经核验的 DLL，声音文件检查 SF2 头和路径。完整包 ZIP 安装保持原流程。
 
-Windows MIDI 音色按 GM1 编号显示完整中英名称。设备打开/映射依据 [Microsoft WinMM 文档](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-midioutmessage)；GM 编号对照厂商公开 [miniEngine Pro 手册附录](https://www.midiplus.com.tw/en/MIDIPLUS-Download-detail/0/Manual_Of_miniEnginePro_EN/)。Windows 原有音色资源未随包分发。
-
-
-## Windows MIDI 持续音清理 / Sustain-state recovery
-
-0.50.2 打开 Windows MIDI 输出后，仅初始化本程序占用的 0–5 通道：重置控制器（CC121）、释放持续踏板（CC64）、立即停止声音（CC120）、清除音符（CC123），并将弯音归中，然后应用工程选择的 program 和音量。这样可清理设备遗留的踏板/弯音状态，不替换已保存音色或改变乐谱音高。
-
-播放停止仅清理两条播放通道（0、1）；完整停止再清理试听与监听通道（2–5）。保留试听的停止路径不应切断其它通道。Windows 默认映射器与其实际设备名称仍复用同一输出。
-
-These controls reset only the six channels owned by Lingfeng. Opening Windows MIDI resets controllers, releases sustain, sends All Sound Off and All Notes Off, and centers pitch bend before applying the selected programs and volumes. Stopping playback clears channels 0 and 1; a full stop also clears audition and monitoring channels 2–5. A stop that preserves auditions leaves those other channels sounding.
-
-Windows MIDI 音色及其高频组成由系统或设备提供。本轮修复针对持续音状态残留，不对全部 GM 音色做滤波，不替换 Windows 音源，也不改变 MIDI/PDF 导出内容。实际输出和停音检查不等于已消除所有设备上的主观高频不适。
-
-Windows MIDI timbre and its high-frequency content come from the system or device. This repair addresses retained sustain state; it does not filter all GM instruments, replace Windows MIDI, or change MIDI/PDF exports. Output and note-release checks do not establish that every device is free of subjective high-frequency discomfort.
+SF2 packs use FluidSynth and provide relative soundfont paths, program/bank IDs and checksums for every runtime DLL. Native/SFZ/SF2 all expose the same host send/render/close contract.

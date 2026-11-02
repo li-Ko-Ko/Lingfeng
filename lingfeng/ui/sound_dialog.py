@@ -17,6 +17,7 @@ class SoundSettingsDialog(QDialog):
         buttons=QHBoxLayout();open_button=QPushButton(tr('打开音源目录'));open_button.clicked.connect(self.open_directory);buttons.addWidget(open_button)
         add_button=QPushButton(tr('添加扫描目录…'));add_button.clicked.connect(self.add_directory);buttons.addWidget(add_button)
         self.scan_button=QPushButton(tr('重新扫描并保存'));self.scan_button.clicked.connect(self.scan);buttons.addWidget(self.scan_button);form.addRow(buttons)
+        self.library_button=QPushButton(tr('下载／添加音源…'));self.library_button.clicked.connect(self.open_library);form.addRow(self.library_button)
         self.directories=QPlainTextEdit();self.directories.setMaximumHeight(65)
         self.directories.setPlaceholderText(tr('额外扫描目录，每行一个；可填音源包文件夹或其上级目录。'))
         self.directories.setPlainText('\n'.join(p for p in banks.registry()['roots'] if Path(p)!=banks.default_root()))
@@ -58,9 +59,12 @@ class SoundSettingsDialog(QDialog):
         device,combo=self.fields[key];previous=combo.currentData() if initial is None else initial;combo.clear()
         selected=device.currentData()
         if banks.is_synth_source(selected):
-            for number in banks.available_programs(selected):
-                combo.addItem(banks.instrument_label(number,selected),number)
-                p=banks.pack(selected);combo.setItemData(combo.count()-1,p['author']+' · '+p['license'],3)
+            from lingfeng.platform.i18n import LANGUAGE
+            p=banks.pack(selected)
+            for item in p['presets']:
+                number=item['program'];name=item['name_en' if LANGUAGE=='en' else 'name']
+                combo.addItem(f'{number+1:02} · '+name,number)
+                combo.setItemData(combo.count()-1,p['author']+' · '+p['license'],3)
         elif selected is not None:
             from lingfeng.audio.gm_instruments import label
             for number in range(128):combo.addItem(label(number),number)
@@ -85,11 +89,18 @@ class SoundSettingsDialog(QDialog):
         # Keep preferences if a previous scan found no devices.
         settings={k:v if v['program'] is not None else self.settings[k] for k,v in settings.items()}
         try:
-            banks.rescan([p.strip() for p in self.directories.toPlainText().splitlines() if p.strip()])
             transport=getattr(self.parent(),'transport',None)
             if transport:transport.close()
+            banks.rescan([p.strip() for p in self.directories.toPlainText().splitlines() if p.strip()])
             self.reload(settings)
         except (OSError,ValueError) as exc:QMessageBox.warning(self,tr('音源扫描失败'),str(exc))
+
+    def open_library(self):
+        from lingfeng.ui.sound_library import SoundLibraryDialog
+        self.stop_preview()
+        transport=getattr(self.parent(),'transport',None)
+        if transport:transport.close()
+        dialog=SoundLibraryDialog(self);dialog.installed.connect(lambda path:self.scan());dialog.exec()
 
     def value(self):return {key:dict(device=d.currentData(),program=p.currentData()) for key,(d,p) in self.fields.items()}
 
@@ -104,15 +115,20 @@ class SoundSettingsDialog(QDialog):
 
     def preview(self,key):
         from lingfeng.audio.routing import MidiRouter
+        from lingfeng.ui.audio_loading import AudioLoadingDialog,AudioLoadCancelled
         self.stop_preview()
         try:
             # WinMM GS allows one owner. Stopped playback can still hold its
             # handle; give the modal audition exclusive use until it closes.
             transport=getattr(self.parent(),'transport',None)
             if transport:transport.close()
-            spec=self.value()[key];self.preview_router=MidiRouter({role:dict(spec) for role in ('melody','chords')})
+            spec=self.value()[key];settings={role:dict(spec) for role in ('melody','chords')}
+            if banks.is_synth_source(spec['device']) and banks.pack(spec['device']).get('engine') in ('sfz','sf2'):
+                self.preview_router=AudioLoadingDialog.open_router(settings,self)
+            else:self.preview_router=MidiRouter(settings)
             for pitch in ((36,40,43) if spec['program'] in (32,33,43) else (60,64,67)):self.preview_router.send(0x90,pitch,75)
             self.preview_timer.start(700)
+        except AudioLoadCancelled:self.stop_preview()
         except Exception as exc:self.stop_preview();QMessageBox.warning(self,tr('音源与音色'),str(exc))
 
     def done(self,result):self.stop_preview();super().done(result)

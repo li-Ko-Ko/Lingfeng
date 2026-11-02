@@ -36,6 +36,27 @@ DLL/PYD files remain separate under `_internal/`. Compatible Python 3.13 / Windo
 - [Qt 6.9.2 source archives](https://download.qt.io/archive/qt/6.9/6.9.2/submodules/) · [Qt for Python 6.9.2 source](https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.9.2-src/) · [Qt licensing](https://doc.qt.io/archives/qt-6.9/licensing.html) · [LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.html)
 - `licenses/audio-source/` 包含 lameenc/LAME 对应源码归档、上游 Windows 构建补丁、SHA-256 与兼容扩展替换说明。LAME 静态构建于独立、可替换的 lameenc 扩展内，未合并到应用原创代码；采用上游 wheel，没有额外编码器补丁。
 
+## 钢琴与电钢琴 / Piano and electric-piano packs
+
+0.53 增加可选的 Greg Sullivan 独立合集和 FluidR3 GM 包；前者使用与小型包相同的 CC BY 3.0 录音。FluidR3 soundfont 为 MIT，FluidSynth 2.6.1 与 libsndfile、mpg123、LAME 分别保留各自 LGPL 条款。可选包随附对应源码、原版权文本、构建资料与所需补丁，以及 FLAC/Ogg/Vorbis/Opus 等编入依赖的通知；引擎及依赖 DLL 独立可替换，未静态合并到原创应用代码。所有新大型音源均不进入主程序 ZIP。
+
+Version 0.53 adds optional Greg Sullivan and FluidR3 GM packs. FluidR3 samples retain MIT terms. FluidSynth and its codec dependencies retain their respective LGPL or permissive licenses, complete corresponding source, notices, build information and patches in the optional pack. Runtime DLLs remain separate from the original application. See [FluidSynth](https://github.com/FluidSynth/fluidsynth), [FluidR3 Debian source](https://deb.debian.org/debian/pool/main/f/fluid-soundfont/) and each pack's `source.json`/`runtime/`.
+
+0.52 增加 `piano-small` 免费采样包，使用未修改的 sfizz 1.2.3 Windows x64 C API。sfizz 为 BSD-2-Clause；完整源码归档及依赖通知位于每包 `runtime/`，构建脚本固定官方二进制及源码哈希。原有 STK 继续保留。
+
+Version 0.52 adds the free `piano-small` pack using unmodified sfizz 1.2.3. The BSD-2-Clause engine's complete source archive and dependency notices are included under `runtime/`. Official binary/source hashes are pinned by the builder.
+
+| 样本 / Samples | 来源 / Source | 许可 / License |
+| --- | --- | --- |
+| Kawai upright | [FreePats KW](https://github.com/freepats/upright-piano-KW) | CC0-1.0 |
+| Rhodes GM subset | [Jeff Learman / Discord GM](https://github.com/sfzinstruments/Discord-SFZ-GM-Bank) | CC0-1.0，仅这个独立 GM 子集 / This separately released GM subset only |
+| Wurlitzer, CP80, Pianet T | [Greg Sullivan / kinwie](https://github.com/sfzinstruments/GregSullivan.E-Pianos) | CC-BY-3.0 |
+| Optional Salamander grand | [Alexander Holm / Chisato Yamauchi / Jeff Learman](https://github.com/jlearman/zynthian-salamander-grand) | CC-BY-3.0 samples; CC0 SFZ |
+
+各包保留许可、署名、固定提交、修改和文件 SHA-256。修改仅涉及 SFZ／预设：明亮钢琴 EQ、电钢琴边缘音域、Rhodes 包络头和大钢琴最低力度；录音样本不重新编码。大钢琴独立下载／安装，不进入主程序 ZIP。引擎来源为 [sfizz 1.2.3](https://github.com/sfztools/sfizz/releases/tag/1.2.3)；上游已归档，本版固定并实测该版本。
+
+Packs retain licenses, attribution, revisions, mapping modifications and file hashes; recorded samples are not re-encoded. The optional grand stays outside the main ZIP. Sources, installation and reproduction are documented in [SOUNDBANKS](SOUNDBANKS.md) and `scripts/build_piano_packs.py`.
+
 ## 合成音源 / Synth packs
 
 三个 STK 包附带实际编译源码、重建命令、STK 许可与 MIT 桥接器许可；安装及 ABI 见 [SOUNDBANKS](SOUNDBANKS.md)。STK 修改包括内嵌单周期数学振荡器表、实例局部伪随机状态、预分配复音池、MIDI/包络处理、Sitar 线性延迟、滤波和力度校准。没有录制乐器采样资产；Microsoft 系统音源与用户系统字体不随包分发。

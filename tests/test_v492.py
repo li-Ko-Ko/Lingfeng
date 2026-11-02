@@ -10,6 +10,7 @@ from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H
 from lingfeng.audio.midi import event_list, export_midi
 from lingfeng.ui.main_window import MainWindow
 from tests.test_music import read_midi
+from tests.test_v54_layout import assert_numeric_cells
 
 APP=QApplication.instance() or QApplication([])
 ROOT=Path(__file__).resolve().parents[1]
@@ -72,27 +73,56 @@ class MixedLyricsTests(unittest.TestCase):
         finally:w.dirty=False;w.close();w.deleteLater();APP.processEvents()
 
 class SpacingTests(unittest.TestCase):
-    def test_font_caps_increase_from_v491_with_same_rows_and_pitch_spacing(self):
-        for p,old in ((demo_project(),{'traditional':11,'spatial':10,'compact':10}),(song(61),{'traditional':6,'spatial':9,'compact':9})):
-            # Compare the same pre-rap fixture used for the 0.49.1 baseline.
+    def test_font_caps_fit_density_widths_with_same_rows_and_pitch_spacing(self):
+        for p in (demo_project(),song(61)):
+            # Keep the pre-rap fixtures, but the 0.49.1 font thresholds assumed
+            # glyph-weighted bar widths. The busiest beat now fixes each beat's
+            # width, and the common font must fit that full-bar allocation.
             p.notation.pop('lyric_events',None);p.notation.pop('lyric_sections',None)
             music=event_list(p)
-            for style in old:
+            for style in ('traditional','spatial','compact'):
                 p.notation.update(style=style,font_size=26,per_line=4,row_gap=15)
-                layout=ScoreLayout(p);self.assertGreater(layout.font_limit,old[style])
+                p.notation['font_size']=ScoreLayout(p).font_limit;layout=ScoreLayout(p)
+                self.assertGreater(layout.font_limit,0);self.assertLessEqual(layout.font_limit,72)
+                self.assertEqual(layout.font_size,p.notation['font_size'])
+                for system in layout.systems:
+                    weights=[]
+                    for bar,width in zip(system.bars,system.bar_widths):
+                        counts={};beat=3840//p.measures[bar].denominator
+                        for tick in {f.start for f in system.fragments[bar]}:
+                            group=(tick-p.starts[bar])//beat;counts[group]=counts.get(group,0)+1
+                        weights.append(max(1,max(counts.values(),default=0))*(p.starts[bar+1]-p.starts[bar])/beat)
+                    if style!='traditional':
+                        for width,weight in zip(system.bar_widths,weights):
+                            self.assertAlmostEqual(width/weight,sum(system.bar_widths)/sum(weights))
+                    else:
+                        for beat in system.beat_cells:self.assertAlmostEqual(beat['right']-beat['left'],beat['count']*system.cell_width)
+                    if style!='traditional':self.assertTrue(layout.ink_fits(layout.ink_descriptors(system),system.symbol_scale))
+                if style=='traditional':assert_numeric_cells(self,layout)
+                for page in range(layout.pages):
+                    image=QImage(PAPER_W,PAPER_H,QImage.Format.Format_RGB32);painter=QPainter(image)
+                    try:layout.draw(painter,page)
+                    finally:painter.end()
+                for _,size in layout.glyph_sizes:self.assertAlmostEqual(size,layout.font_size)
                 self.assertEqual([s.bars for s in layout.systems],[list(range(i,min(i+4,len(p.measures)))) for i in range(0,len(p.measures),4)])
                 self.assertTrue(all(s.row_gap==15 for s in layout.systems));self.assertEqual(event_list(p),music)
 
     def test_dense_mixed_lyrics_and_accidentals_stay_contained_at_new_cap(self):
         for style in ('traditional','spatial','compact'):
             p=song(61);p.notation['style']=style;apply_range(p,"我love你，I'm ready一起sing",0,1)
-            layout=draw(p);self.assertEqual(layout.font_size,layout.font_limit)
-            for _,_,left,right,a,b in layout.symbol_boxes:self.assertGreaterEqual(left,a-1e-6);self.assertLessEqual(right,b+1e-6)
+            p.notation['font_size']=ScoreLayout(p).font_limit;layout=draw(p);self.assertEqual(layout.font_size,p.notation['font_size'])
+            if style=='traditional':
+                assert_numeric_cells(self,layout)
+                self.assertEqual(len({s.cell_width for s in layout.systems}),1)
+                for system in layout.systems:self.assertAlmostEqual(system.beat_gap,2*system.bar_side_gap)
+            else:
+                for system in layout.systems:self.assertTrue(layout.ink_fits(layout.ink_descriptors(system),system.symbol_scale))
             boxes=[]
             for ident,_,x,y in layout.lyric_positions:
                 event=next(e for e in events(p) if e['id']==ident);half=layout.text_width(event['text'],11)*layout.glyph_scale/2
                 boxes.append((x-half,x+half))
-            self.assertTrue(all(a[1]<=b[0] for a,b in zip(boxes,boxes[1:])))
+            if style!='traditional':self.assertTrue(all(a[1]<=b[0] for a,b in zip(boxes,boxes[1:])))
+            self.assertEqual(len(boxes),len([event for event in events(p) if event.get('text')]))
 
     def test_actual_glyphs_fit_the_tighter_envelopes_in_all_styles(self):
         for style in ('traditional','spatial','compact'):

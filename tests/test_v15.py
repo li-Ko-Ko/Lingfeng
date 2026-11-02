@@ -58,13 +58,16 @@ class LayoutTests(unittest.TestCase):
         from lingfeng.engraving.lyrics import apply_section
         p=Project();p.notes=[Note(0,240,60),Note(960,240,64),Note(1920,240,67)];apply_section(p,'我/64.爱/64你/64',3840)
         for style in ('spatial','compact'):
-            p.notation['style']=style;sizes=[];heights=[]
+            p.notation.update(style=style,font_size=15);sizes=[];heights=[]
             for gap in (4,8,15,32):
                 p.notation['row_gap']=gap;layout=ScoreLayout(p);image=QImage(900,1273,QImage.Format.Format_RGB32);painter=QPainter(image);layout.draw(painter,0);painter.end()
                 sizes.append(set(size for _,size in layout.glyph_sizes));heights.append(layout.systems[0].height)
             self.assertTrue(all(s==sizes[0] for s in sizes));self.assertEqual(heights,sorted(set(heights)))
+            self.assertEqual(sizes[0],{15})
             p.notation['font_size']=1;smaller=ScoreLayout(p);p.notation['font_size']=18;larger=ScoreLayout(p);self.assertGreater(larger.glyph_scale,smaller.glyph_scale)
-            self.assertLessEqual(larger.glyph_scale*15,larger.max_font_size)
+            image=QImage(900,1273,QImage.Format.Format_RGB32);painter=QPainter(image);larger.draw(painter,0);painter.end()
+            self.assertEqual(larger.font_size,18);self.assertGreater(larger.glyph_scale,1)
+            self.assertEqual({size for glyph,size in larger.glyph_sizes},{18})
     def test_help_has_no_unbundled_local_references_or_retired_rules(self):
         from lingfeng.ui.help_dialog import TOPICS
         text=' '.join(str(t) for t in TOPICS)+Path('README.md').read_text('utf-8')+Path('docs/THIRD_PARTY.md').read_text('utf-8')

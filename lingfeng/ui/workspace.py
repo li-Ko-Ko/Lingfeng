@@ -110,11 +110,12 @@ class WorkspaceMixin:
         self.score_melody_page=QWidget();self.score_melody_layout=QVBoxLayout(self.score_melody_page);self.score_melody_layout.setContentsMargins(0,0,0,0)
         self.score_harmony_page=QWidget();self.score_harmony_layout=QVBoxLayout(self.score_harmony_page);self.score_harmony_layout.setContentsMargins(0,0,0,0)
         self.score_tabs.addTab(self.score_melody_page,tr('旋律卷帘'));self.score_tabs.addTab(self.score_harmony_page,tr('和弦卷帘'))
-        self.logic_panel=LogicPanel(self);logic_scroll=QScrollArea();logic_scroll.setWidgetResizable(True);logic_scroll.setFrameShape(QFrame.Shape.NoFrame);logic_scroll.setWidget(self.logic_panel);logic_scroll.setMinimumHeight(80);
+        # Retain the editor interface without exposing structure editing.
+        self.logic_panel=LogicPanel(self);self.logic_panel.setParent(body);self.logic_panel.setEnabled(False);self.logic_panel.hide()
         from lingfeng.ui.lyric_panel import LyricsPanel
-        self.lyric_panel=LyricsPanel(self);self.score_tabs.addTab(self.lyric_panel,tr('歌词'));self.score_tabs.addTab(logic_scroll,tr('结构逻辑'));box.addWidget(self.score_tabs)
-        self.score_pages=dict(melody=self.score_melody_page,harmony=self.score_harmony_page,lyrics=self.lyric_panel,logic=logic_scroll)
-        self.score_labels=dict(melody='旋律卷帘',harmony='和弦卷帘',lyrics='歌词',logic='结构逻辑')
+        self.lyric_panel=LyricsPanel(self);self.score_tabs.addTab(self.lyric_panel,tr('歌词'));box.addWidget(self.score_tabs)
+        self.score_pages=dict(melody=self.score_melody_page,harmony=self.score_harmony_page,lyrics=self.lyric_panel)
+        self.score_labels=dict(melody='旋律卷帘',harmony='和弦卷帘',lyrics='歌词')
         self.score_panel_state={key:dict(visible=True,floating=False) for key in self.score_pages}
         self.score_floats={key:FloatingPane(tr(self.score_labels[key]),self,'score_'+key) for key in self.score_pages}
         self.score_view_actions={}
@@ -194,6 +195,7 @@ class WorkspaceMixin:
         self.show_score_panel(key)
 
     def show_score_panel(self,key):
+        if key not in self.score_pages:return None
         self.set_score_panel_visible(key,True)
         pane=self.score_floats[key]
         if self.score_panel_state[key]['floating']:

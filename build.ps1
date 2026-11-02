@@ -1,4 +1,4 @@
-param([string]$Python = 'python', [string]$DistRoot = '')
+param([string]$Python = 'python', [string]$DistRoot = '', [switch]$Archive)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 Push-Location -LiteralPath $projectRoot
@@ -13,6 +13,8 @@ try {
     # Run with a Python environment containing requirements-build.txt.
     & $Python -m PyInstaller --noconfirm --clean --windowed --onedir --name Lingfeng --icon $iconFile --add-data "$(Join-Path $projectRoot 'assets');assets" --add-data "$(Join-Path $projectRoot 'lingfeng\platform\en.json');lingfeng/platform" --collect-data soundcard --hidden-import _cffi_backend --distpath $DistRoot --workpath build --specpath build --exclude-module tkinter --exclude-module matplotlib --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick main.py
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed.' }
-    & $Python scripts/package_release.py (Join-Path $DistRoot 'Lingfeng')
+    $packageArgs = @('scripts/package_release.py', (Join-Path $DistRoot 'Lingfeng'))
+    if ($Archive) { $packageArgs += '--archive' }
+    & $Python @packageArgs
     if ($LASTEXITCODE -ne 0) { throw 'Release packaging failed.' }
 } finally { Pop-Location }

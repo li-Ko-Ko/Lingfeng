@@ -16,9 +16,13 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-当前发行包含三组 STK 原生合成包、37 个预设。预编译包需要保留其完整文件夹；重建音源需要 STK 5.0.1、Zig 0.14.1 和 `scripts/build_synth_packs.py` 的显式 `--stk`、`--zig` 路径。接口与构建说明见 [SOUNDBANKS](docs/SOUNDBANKS.md)。Windows MIDI 使用本机已安装的输出设备，系统音色资源不在仓库中分发。
+当前发行包含免费的小型钢琴与电钢琴包，以及三组 STK 原生合成包、37 个预设。小型包通过 sfizz 播放 SFZ；大钢琴按需下载。使用 `scripts/build_piano_packs.py --download --pack all --zip` 从固定版本与哈希重建钢琴包；只在显式指定 `--download` 时访问网络。预编译包需要保留其完整文件夹；重建音源需要 STK 5.0.1、Zig 0.14.1 和 `scripts/build_synth_packs.py` 的显式 `--stk`、`--zig` 路径。接口与构建说明见 [SOUNDBANKS](docs/SOUNDBANKS.md)。Windows MIDI 使用本机已安装的输出设备，系统音色资源不在仓库中分发。
 
-The release contains three STK native packs with 37 presets. Keep each prebuilt pack folder complete. Rebuilding uses STK 5.0.1, Zig 0.14.1 and explicit `--stk`/`--zig` paths for `scripts/build_synth_packs.py`; see [SOUNDBANKS](docs/SOUNDBANKS.md). Windows MIDI uses locally installed devices; system instrument resources are not redistributed.
+0.53 的独立电钢琴与 FluidR3 GM 键盘包通过 `python scripts/build_piano_packs.py --download --pack upgrades --zip` 重建。可选 SF2 使用包内 FluidSynth DLL 和对应源码；主程序不新增 pip 依赖，也不捆绑大型音源。
+
+The release includes a free small piano/electric-piano pack and three STK native packs with 37 presets. The small pack uses sfizz for SFZ playback; the grand is an optional download. Rebuild piano packs from pinned assets with `python scripts/build_piano_packs.py --download --pack all --zip`; network access occurs only with `--download`. Keep each prebuilt pack folder complete. Rebuilding uses STK 5.0.1, Zig 0.14.1 and explicit `--stk`/`--zig` paths for `scripts/build_synth_packs.py`; see [SOUNDBANKS](docs/SOUNDBANKS.md). Windows MIDI uses locally installed devices; system instrument resources are not redistributed.
+
+Build optional 0.53 electric/FluidR3 GM packs with `python scripts/build_piano_packs.py --download --pack upgrades --zip`. SF2 uses its own FluidSynth runtime and corresponding source. No new pip dependency or large bank is added to the core release.
 
 ## 2. 报告问题 / Report a problem
 
@@ -81,9 +85,24 @@ After editing help, run `python scripts/export_help.py` with the project environ
 .\build.ps1 -Python '.\.venv\Scripts\python.exe'
 ```
 
-构建产物位于 `dist/`。运行独立 EXE 的 `--self-test <输出目录>`，再执行 `python scripts/verify_release.py` 检查 ZIP、校验和、源码与音源一致性。发行包保留第三方许可和对应源码说明。不要把本机构建环境、录音、调试日志或私人工程作为程序源码提交。
+默认只更新 `dist/<版本>/Lingfeng/` 独立程序文件夹，包含源码、许可及四组审核通过的轻量音源；不生成 ZIP 或 `.sha256`，也不改动任何已有归档。运行独立 EXE 的 `--self-test <输出目录>`，再执行 `python scripts/verify_release.py` 检查文件夹的源码、运行资源和音源一致性。可把文件夹路径作为位置参数传入。
 
-Build outputs go to `dist/`. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the archive, checksum, source and synth consistency. Preserve third-party notices and corresponding-source information in releases. Do not commit local environments, recordings, debug logs or private projects as source.
+The default output is the standalone folder `dist/<version>/Lingfeng/`, including source, licenses and all four approved lightweight sound packs. No ZIP or `.sha256` is generated, and existing archives remain untouched. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the folder's source, frozen resources and sounds. An explicit folder path may be supplied as a positional argument.
+
+只有明确要求生成新的发行归档时，才使用下面的可选命令。已有同版本 ZIP 或校验文件会报错并保留，不允许覆盖；不会隐式生成单独的音源 ZIP。
+
+Use the optional commands below only when a new release archive is explicitly requested. An existing version ZIP or checksum causes an error and is preserved. Separate sound-pack ZIPs are never created implicitly.
+
+```powershell
+.\build.ps1 -Python '.\.venv\Scripts\python.exe' -Archive
+# Or archive an already built standalone folder explicitly:
+.\.venv\Scripts\python.exe scripts/package_release.py --archive
+.\.venv\Scripts\python.exe scripts/verify_release.py --archive
+```
+
+常规本地改动写入 `CHANGELOG_LOCAL.md`（仅本地 / local only）；[CHANGELOG](CHANGELOG.md) 仅记录实际已生成发行归档的版本。创建归档不代表已经上传或发布。保留第三方许可和对应源码说明；不要提交本机构建环境、录音、调试日志或私人工程。
+
+Record local work in `CHANGELOG_LOCAL.md`（仅本地 / local only）. [CHANGELOG](CHANGELOG.md) records versions for which release archives were actually generated. Creating an archive does not imply uploading or publishing it. Preserve third-party notices and corresponding-source information; do not commit local environments, recordings, debug logs or private projects as source.
 
 ## 5. 许可 / Licensing
 

@@ -7,7 +7,7 @@ from lingfeng.music.chord_operations import chord_details
 from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
 from lingfeng.ui.theme import color, is_dark
 from lingfeng.music.model import PPQ
-from lingfeng.engraving.presentation import contiguous, forced_row_allowed, compression_candidate, annotation_allowed, active_compressions
+from lingfeng.engraving.presentation import contiguous, forced_row_allowed, active_compressions
 from lingfeng.ui.navigation import watch_scrollbar
 
 
@@ -35,8 +35,6 @@ class ScoreCanvas(QWidget):
 
     def rebuild(self,project):
         self.project=copy.deepcopy(project);self.layout=ScoreLayout(self.project)
-        if self.project.notation.get('font_size',15)!=self.layout.font_size:
-            self.project.notation['font_size']=self.layout.font_size;self.layout=ScoreLayout(self.project)
         self.cache_key=None;self.page_cache.clear()
         self.selected_bars.intersection_update(range(len(project.measures)));self.selected_beats={r for r in self.selected_beats if r[1]<=project.end};self.resize_content();self.update()
         self.layoutChanged.emit()
@@ -156,10 +154,6 @@ class ScoreCanvas(QWidget):
         chord_id=next((cid for pg,r,cid in reversed(self.layout.hit_chords) if pg==page and r.contains(point)),None)
         bar=next((b for pg,r,b in self.layout.hit_bars if pg==page and r.contains(point)),None)
         menu=QMenu(self);menu.setToolTipsVisible(True)
-        symbol=next((key for pg,r,key in reversed(self.layout.hit_symbols) if pg==page and r.contains(point)),None)
-        if symbol:
-            menu.addAction(tr('删除此符号并还原谱面'),lambda:self.commandRequested.emit('remove_structure',dict(bars=[],ranges=[],key=symbol)))
-            return menu
         key=self.unit_at(pos)
         if key is not None and key not in self.selected_units():self.selected_units().clear();self.selected_units().add(key);self.update()
         bars=sorted(self.selected_bars) if self.selection_unit=='measure' else []
@@ -179,17 +173,6 @@ class ScoreCanvas(QWidget):
         action=menu.addAction(tr('强制合并为一行'),lambda:self.commandRequested.emit('force_row',payload));action.setEnabled(forced_row_allowed(self.project,bars,self.layout.systems))
         action.setToolTip(tr('需要连续小节，且选区从当前谱行开头开始。'))
         action=menu.addAction(tr('恢复选区自动分行'),lambda:self.commandRequested.emit('auto_rows',payload));action.setEnabled(bool(bars))
-        copies=menu.addMenu(tr('反复与跳转压缩'));menu.compression_menu=copies
-        for label,kind in [('反复记号 · 两遍','repeat'),('D.C. al Fine','dc'),('D.S. al Fine','ds'),('D.C. N/R al Fine','dc_nr'),('D.S. N/R al Fine','ds_nr'),('尾声 · A–B–A–C','coda')]:
-            candidate=compression_candidate(self.project,bars,kind);action=copies.addAction(tr(label),lambda checked=False,k=kind:self.commandRequested.emit('compress:'+k,payload))
-            action.setEnabled(candidate is not None and not any(candidate['start']<old['end'] and old['start']<candidate['end'] for old in self.project.notation.get('compressions',[])))
-            action.setToolTip(tr('根据两轨音符、节奏、力度及调性校验；歌词可不同，跨界延音或重复嵌套时不可用。'))
-        expand=menu.addAction(tr('展开选区反复段落'),lambda:self.commandRequested.emit('expand',payload));expand.setEnabled(any(set(bars)&set(range(c['start'],c['end'])) for c in self.project.notation.get('compressions',[])))
-        symbols=menu.addMenu(tr('添加谱面符号'));menu.symbol_menu=symbols
-        for label,kind in [('小节线','barline'),('双小节线','double_bar'),('结束线','final_bar'),('Segno','segno'),('Coda','coda'),('F.O. · 淡出','fade'),('rit. · 渐慢','rit'),('ad lib. · 自由演奏','adlib'),('Fine','fine')]:
-            action=symbols.addAction(tr(label),lambda checked=False,k=kind:self.commandRequested.emit('symbol:'+k,payload));action.setEnabled(len(ranges)==1 and annotation_allowed(self.project,kind,*ranges[0]))
-            action.setToolTip(tr('演奏提示只改变谱面；终止、Fine 与淡出须位于实际音乐结尾。'))
-        clear=menu.addAction(tr('清除选区符号'),lambda:self.commandRequested.emit('clear_symbols',payload));clear.setEnabled(bool(ranges))
         menu.addSeparator();delete=menu.addAction(tr('删除所选小节…'),lambda:self.commandRequested.emit('delete_bars',payload));delete.setEnabled(0<len(bars)<len(self.project.measures))
         return menu
 
@@ -383,9 +366,10 @@ class ScoreView(QScrollArea):
         index=system.bars.index(bar);width=system.bar_widths[index]
         points,positions,*_=layout.bar_map(system,bar,0,width)
         ox,oy=self.canvas.page_origin(system.page);scale=self.canvas.scale
-        x=ox+(system.left+sum(system.bar_widths[:index])+layout.interpolate(points,positions,tick))*scale
-        top=oy+(system.top+28*system.layout_scale)*scale
-        bottom=oy+(system.top+system.grid_bottom*system.layout_scale)*scale
+        raw_x=system.left+sum(system.bar_widths[:index])+layout.interpolate(points,positions,tick)
+        transform=layout.system_transform(system)
+        first=transform.map(QPointF(raw_x,28));last=transform.map(QPointF(raw_x,system.grid_bottom))
+        x=ox+first.x()*scale;top=oy+first.y()*scale;bottom=oy+last.y()*scale
         viewport=self.visible_content_rect()
         return viewport.left()<=x<viewport.right() and bottom>viewport.top() and top<viewport.bottom()
 
@@ -396,8 +380,10 @@ class ScoreView(QScrollArea):
         system=next((s for s in layout.systems if bar in s.bars),None)
         if system is None:return None
         index=system.bars.index(bar);ox,oy=self.canvas.page_origin(system.page);scale=self.canvas.scale
-        return QRectF(ox+(system.left+sum(system.bar_widths[:index]))*scale,oy+(system.top-14)*scale,
-                      system.bar_widths[index]*scale,(system.height+14)*scale)
+        natural=QRectF(system.left+sum(system.bar_widths[:index]),-14,
+                       system.bar_widths[index],system.natural_height+14)
+        paper=layout.system_transform(system).mapRect(natural)
+        return QRectF(ox+paper.x()*scale,oy+paper.y()*scale,paper.width()*scale,paper.height()*scale)
 
     @staticmethod
     def reveal(scroll,low,high,size):
@@ -422,6 +408,7 @@ class ScoreView(QScrollArea):
         if rect is None:return
         system=next(s for s in layout.systems if bar in s.bars);width=system.bar_widths[system.bars.index(bar)]
         points,positions,*_=layout.bar_map(system,bar,0,width)
-        x=rect.left()+layout.interpolate(points,positions,tick)*self.canvas.scale
+        raw_x=system.left+sum(system.bar_widths[:system.bars.index(bar)])+layout.interpolate(points,positions,tick)
+        x=self.canvas.page_origin(system.page)[0]+layout.system_transform(system).map(QPointF(raw_x,0)).x()*self.canvas.scale
         self.reveal(self.horizontalScrollBar(),x-4,x+4,self.viewport().width())
         self.reveal(self.verticalScrollBar(),rect.top(),rect.bottom(),self.viewport().height())

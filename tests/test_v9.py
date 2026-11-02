@@ -79,14 +79,17 @@ class UIRegressionTests(unittest.TestCase):
         h.set_row_height(30);self.assertEqual(r.row_height,25);self.assertEqual(h.row_height,30)
         w.harmony_window.sync.setChecked(True);h.horizontalScrollBar().setValue(400);self.assertEqual(r.horizontalScrollBar().value(),h.horizontalScrollBar().value())
     def test_three_tabs_share_tools_and_language_preserves_drafts(self):
-        w=self.w;w.switch_workspace('score');w.open_score_roll('chords',0);self.assertEqual(w.score_tabs.count(),4);self.assertEqual(w.score_tabs.currentIndex(),1)
+        w=self.w;w.switch_workspace('score');w.open_score_roll('chords',0);self.assertEqual(w.score_tabs.count(),3);self.assertEqual(w.score_tabs.currentIndex(),1)
         w.tool.setCurrentIndex(w.tool.findData('draw'));self.assertEqual(w.harmony_window.roll.tool,'draw')
         w.harmony_window.tool.setCurrentIndex(0);self.assertEqual(w.roll.tool,'smart')
-        w.follow_playhead.setChecked(False);w.score_tabs.setCurrentIndex(2);w.logic_panel.create_draft();first=w.logic_panel.current()['id'];w.logic_panel.kind.setCurrentIndex(w.logic_panel.kind.findData('jump_coda'));w.logic_panel.create_draft()
+        w.follow_playhead.setChecked(False);w.score_tabs.setCurrentIndex(2)
+        saved=[dict(id='first',kind='repeat',regions=[None,None]),dict(id='second',kind='jump_coda',regions=[None,None,None])]
+        w.logic_panel.restore_state(dict(drafts=saved,active=('draft','first')));first=w.logic_panel.current()['id']
         self.assertEqual(len(w.logic_panel.drafts),2);w.change_language('en',False);QTest.qWait(30)
         self.assertFalse(w.follow_playhead.isChecked());self.assertEqual(w.score_tabs.currentIndex(),2);self.assertEqual(w.logic_panel.drafts[0]['id'],first);self.assertEqual(len(w.logic_panel.drafts),2)
         self.assertEqual(w.score_tabs.tabText(0),'Melody roll');self.assertEqual(w.score_tabs.tabText(1),'Chord roll');self.assertEqual(w.tool.currentText(),'Smart')
-        w.set_theme('dark');APP.processEvents();image=w.logic_panel.grab().toImage();self.assertLess(image.pixelColor(5,image.height()-8).lightness(),80)
+        self.assertFalse(w.logic_panel.isVisible());self.assertFalse(w.logic_panel.isEnabled())
+        w.set_theme('dark');APP.processEvents();image=w.lyric_panel.grab().toImage();self.assertLess(image.pixelColor(5,image.height()-8).lightness(),80)
     def test_shift_chord_range_and_ctrl_shift_extension(self):
         w=self.w;lane=w.chord_lane;r=w.roll;r.zoom=36;r.update_ranges();r.refresh();QTest.qWait(20)
         def click(bar,mod=Qt.KeyboardModifier.NoModifier):QTest.mouseClick(lane,Qt.MouseButton.LeftButton,mod,QPoint(round(lane.x_at(bar*3840)+30),25))
@@ -120,12 +123,13 @@ class UIRegressionTests(unittest.TestCase):
             w.follow_playhead.setChecked(True);w.playback_tick();self.assertGreater(w.shared_scroll.value(),0);self.assertEqual(w.roll.horizontalScrollBar().value(),w.harmony_window.roll.horizontalScrollBar().value())
             QTest.mouseClick(w.replay_button,Qt.MouseButton.LeftButton);self.assertEqual(w.playhead,0);self.assertFalse(fake.playing)
         finally:w.transport=real;w.stop()
-    def test_score_tooltip_and_symbol_delete_undo_restore(self):
-        w=self.w;w.switch_workspace('score');w.open_score_roll('melody',0);canvas=w.score_view.canvas;logic=w.logic_panel
-        logic.create_draft();canvas.selected_bars={0,1};logic.capture(0);canvas.selected_bars={2,3};logic.capture(1);self.assertTrue(logic.apply.isEnabled());logic.commit();self.assertEqual(visible_bars(w.project),[0,1,4,5,6,7])
+    def test_score_tooltip_and_stored_symbol_backend_undo_restore(self):
+        w=self.w;w.switch_workspace('score');w.open_score_roll('melody',0);canvas=w.score_view.canvas
+        w.mutate('stored symbols',lambda p:apply_draft(p,draft('repeat',[0,1],[2,3])));self.assertEqual(visible_bars(w.project),[0,1,4,5,6,7])
         w.project.notation['forced_rows']=[[0,6]];w.refresh();APP.processEvents();canvas.grab()
         pg,rect,key=next(h for h in canvas.layout.hit_symbols if h[2][0]=='compressions');x,y=canvas.page_origin(pg);point=QPointF(x+rect.center().x()*canvas.scale,y+rect.center().y()*canvas.scale)
-        menu=canvas.context_menu(point);self.assertEqual(menu.actions()[0].text(),'删除此符号并还原谱面');menu.actions()[0].trigger();self.assertEqual(visible_bars(w.project),list(range(8)))
+        menu=canvas.context_menu(point);self.assertNotIn('删除此符号并还原谱面',{a.text()for a in menu.actions()})
+        w.mutate('remove stored symbol',lambda p:p.notation['compressions'].clear());self.assertEqual(visible_bars(w.project),list(range(8)))
         w.undo();self.assertEqual(visible_bars(w.project),[0,1,4,5,6,7]);APP.processEvents();canvas.grab()
         pg,rect,cid=canvas.layout.hit_chords[0];x,y=canvas.page_origin(pg);pos=QPoint(round(x+rect.center().x()*canvas.scale),round(y+rect.center().y()*canvas.scale))
         QTest.mouseMove(canvas,pos);APP.processEvents();self.assertEqual(canvas.hovered_chord,cid);self.assertIn('实际低音',QToolTip.text());self.assertIn('C3',QToolTip.text())

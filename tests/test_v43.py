@@ -73,7 +73,10 @@ class SynthesisTests(unittest.TestCase):
         for pack in banks.installed_packs():
             for p in pack['presets']:
                 with self.subTest(pack=pack['id'],program=p['program']):
-                    e=self.engine(p['program'],'synth:'+pack['id']);e.send(0x90,60,90);out=e.render(8192)
+                    # Sampled basses may retain their real playable register;
+                    # middle C is above FluidR3's contrabass region.
+                    pitch=48 if p['program'] in (32,33,43) else 60
+                    e=self.engine(p['program'],'synth:'+pack['id']);e.send(0x90,pitch,90);out=e.render(8192)
                     self.assertTrue(np.isfinite(out).all());self.assertGreater(float(abs(out).max()),.0001)
                     self.assertLess(np.mean(abs(out)>=.999),.001);e.stop();self.assertFalse(e.render(512).any());e.close()
     def test_edge_pitches(self):

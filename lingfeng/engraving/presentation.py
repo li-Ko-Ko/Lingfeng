@@ -93,6 +93,22 @@ def visible_bars(p):
     return [i for i in range(len(p.measures)) if i not in hidden]
 
 
+def row_groups(p,use_forced=True):
+    """Visible row plans; ignoring merges gives a current, unmerged baseline."""
+    visible=visible_bars(p);forced=dict(p.notation.get('forced_rows',[])) if use_forced else {}
+    rows=[];index=0
+    while index<len(visible):
+        end=forced.get(visible[index]);count=len([bar for bar in visible[index:] if bar<end]) if end else 0
+        limit=count or p.notation['per_line'];bars=[]
+        while index<len(visible) and len(bars)<limit:
+            bar=visible[index]
+            if bars and bar in forced:break
+            bars.append(bar);index+=1
+            if not count and p.measures[bar].break_after:break
+        rows.append(dict(bars=tuple(bars),forced=bool(count)))
+    return rows
+
+
 def forced_row_allowed(p,bars,systems):
     return contiguous(bars) and len(bars)>1 and any(s.bars[0]==min(bars) for s in systems) and all(b in visible_bars(p) for b in bars)
 
@@ -101,6 +117,8 @@ def apply_forced_row(p,bars):
     a,b=min(bars),max(bars)+1
     rows=[r for r in p.notation.get('forced_rows',[]) if not (r[0]<b and a<r[1])]
     p.notation['forced_rows']=sorted(rows+[[a,b]])
+    # Retain legacy row-count metadata for older files and spatial layouts.
+    # Traditional layout recomputes its ratio from current visible symbols.
     fonts=[r for r in p.notation.get('forced_row_fonts',[]) if not (r[0]<b and a<r[1])]
     p.notation['forced_row_fonts']=sorted(fonts+[[a,b,p.notation['per_line']]])
 

@@ -9,7 +9,7 @@ from PySide6.QtTest import QTest
 from lingfeng.music.model import Project, Note, Chord, PPQ, QUALITIES
 from lingfeng.engraving.lyrics import tokenize, bind, apply_section, events, matching_issues, sections, delete_section, put
 from lingfeng.music.chord_operations import change_chords, quality_items, set_quality_order
-from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar
+from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar, SYMBOL_PADDING
 from lingfeng.audio.transport import Transport
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.platform.i18n import set_language
@@ -110,13 +110,16 @@ class ScoreTests(unittest.TestCase):
         a,image=draw(p);p.notation['show_scale_lines']=True;b,other=draw(p)
         self.assertNotEqual(image,other);self.assertEqual(a.systems[0].pitches,b.systems[0].pitches)
 
-    def test_digits_accidentals_and_dots_fit_dense_beat_and_bar_slots(self):
+    def test_dense_decorated_notes_keep_numeric_cells_at_the_recommended_size(self):
         p=Project();p.notation.update(style='traditional',font_size=26,per_line=8)
         p.notes=[Note(i*3840+3570,270,61) for i in range(8)]+[Note(i*3840+90,90,66) for i in range(8)]
+        # Traditional units follow numeric advance. Optional decorations use
+        # surrounding whitespace rather than changing that common cell size.
+        p.notation['font_size']=ScoreLayout(p).recommended_font_size
         layout,_=draw(p)
         self.assertTrue(layout.symbol_boxes)
-        for start,end,left,right,a,b in layout.symbol_boxes:
-            self.assertGreaterEqual(left,a-1e-6);self.assertLessEqual(right,b+1e-6)
+        from tests.test_v54_layout import assert_numeric_cells
+        assert_numeric_cells(self,layout)
 
 
 class ChordTests(unittest.TestCase):
@@ -189,7 +192,7 @@ class WindowTests(unittest.TestCase):
         with patch('lingfeng.ui.lyric_panel.LyricsGateDialog.exec') as gate:
             self.assertTrue(w.switch_workspace('score'));gate.assert_not_called()
         self.assertEqual(w.workspace,'score');self.assertTrue(matching_issues(w.project))
-        self.assertEqual(w.score_tabs.count(),4)
+        self.assertEqual(w.score_tabs.count(),3)
 
     def test_lyrics_tab_commit_unique_onsets_undo_and_rap_only_input(self):
         w=self.w;w.switch_workspace('score');w.batch_lyrics();self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)

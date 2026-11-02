@@ -34,6 +34,7 @@ class LogicPanel(QWidget):
     def current(self):return next((d for d in self.drafts if self.active==('draft',d['id'])),None)
 
     def create_draft(self):
+        if not self.isEnabled():return
         kind=self.kind.currentData();draft=dict(id=uid(),kind=kind,regions=[None]*region_count(kind));self.drafts.append(draft);self.active=('draft',draft['id']);self.refresh()
 
     def select_item(self,item,previous=None):
@@ -41,6 +42,7 @@ class LogicPanel(QWidget):
         self.active=tuple(item.data(Qt.ItemDataRole.UserRole)) if item else None;self.show_details()
 
     def capture(self,index):
+        if not self.isEnabled():return
         draft=self.current()
         if not draft or index>=len(draft['regions']):return
         canvas=self.owner.score_view.canvas
@@ -77,6 +79,7 @@ class LogicPanel(QWidget):
         self.apply.setEnabled(candidate is not None);self.feedback.setText(reason);self.remove_button.setEnabled(self.active is not None)
 
     def commit(self):
+        if not self.isEnabled():return
         draft=self.current()
         if not draft:return
         candidate,_=draft_candidate(self.owner.project,draft)
@@ -86,6 +89,7 @@ class LogicPanel(QWidget):
             self.drafts=[d for d in self.drafts if d['id']!=draft['id']];self.active=result[0];self.refresh()
 
     def remove(self):
+        if not self.isEnabled():return
         if not self.active:return
         collection,key=self.active
         if collection=='draft':self.drafts=[d for d in self.drafts if d['id']!=key]

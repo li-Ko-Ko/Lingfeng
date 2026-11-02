@@ -4,6 +4,7 @@ Only immutable MIDI schedules cross the pipe. The child owns device handles;
 the shared clock contains numbers, never a Project or a Qt widget.
 """
 import multiprocessing
+from collections import deque
 import threading
 import time
 
@@ -138,6 +139,9 @@ def _playback_worker(connection, state, settings, router_factory=None, language=
                 return
             if command == 'midi':
                 output.send(*args)
+            elif command == 'midi_batch':
+                for event in args:
+                    output.send(*event)
             elif command == 'play':
                 schedule.play(*args)
             elif command == 'revise':
@@ -169,7 +173,9 @@ def _playback_worker(connection, state, settings, router_factory=None, language=
 
 class ProcessRouter:
     """IPC facade for playback, auditions, MIDI monitoring and live controls."""
-    def __init__(self, settings, router_factory=None):
+    def __init__(self, settings, router_factory=None, cancel=None):
+        if cancel is not None and cancel.is_set():
+            raise RuntimeError(tr('音源加载已取消。'))
         context = multiprocessing.get_context('spawn')
         self.state = context.Array('d', [0, 0, 0, 0, 1, 0, 0])
         self.lock = threading.RLock()
@@ -178,6 +184,10 @@ class ProcessRouter:
         self.failure = None
         self.process = self.connection = None
         self.reader = None
+        self.writer = None
+        self.outbound = deque()
+        self.outbound_ready = threading.Condition(self.lock)
+        self.closing = False
         parent, child = context.Pipe()
         self.connection = parent
         try:
@@ -187,19 +197,51 @@ class ProcessRouter:
                 args=(child, self.state, settings, router_factory,i18n.LANGUAGE), daemon=True, name='LingfengPlayback')
             self.process.start()
             child.close()
-            if not parent.poll(15):
-                raise RuntimeError(tr('打开合成音源超时，请检查默认音频输出设备。'))
+            # Include the native renderer's 60-second sample-loading allowance.
+            deadline = time.monotonic() + 65
+            while True:
+                if cancel is not None and cancel.is_set():
+                    raise RuntimeError(tr('音源加载已取消。'))
+                if parent.poll(.05):
+                    break
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(tr('打开合成音源超时，请检查默认音频输出设备。'))
             kind, message = parent.recv()
+            if cancel is not None and cancel.is_set():
+                raise RuntimeError(tr('音源加载已取消。'))
             if kind == 'error':
                 raise RuntimeError(message)
             if kind != 'ready':
                 raise RuntimeError('Unexpected playback worker response')
             self.reader = threading.Thread(target=self._listen, daemon=True, name='LingfengPlaybackReplies')
             self.reader.start()
+            self.writer = threading.Thread(target=self._write, daemon=True, name='LingfengPlaybackCommands')
+            self.writer.start()
         except Exception:
             child.close()
+            if cancel is not None and cancel.is_set() and self.process is not None and self.process.is_alive():
+                self.process.terminate()
             self.close()
             raise
+
+    def _write(self):
+        """Keep serialization and pipe backpressure outside the editor thread."""
+        try:
+            while True:
+                with self.outbound_ready:
+                    self.outbound_ready.wait_for(lambda: self.outbound or self.closing)
+                    if not self.outbound:
+                        return
+                    packet = self.outbound.popleft()
+                self.connection.send(packet)
+                if packet[0] == 'close':
+                    return
+        except (EOFError, OSError, TypeError, AttributeError) as exc:
+            with self.lock:
+                if not self.closing:
+                    self.failure = tr('音频输出进程已停止。')
+                    for event, _ in self.pending.values():
+                        event.set()
 
     def _listen(self):
         try:
@@ -235,11 +277,19 @@ class ProcessRouter:
                 token = self.sequence
                 event, values = threading.Event(), []
                 self.pending[token] = (event, values)
-            try:
-                self.connection.send((command, token, args,i18n.LANGUAGE))
-            except (EOFError, BrokenPipeError, OSError) as exc:
-                self.pending.pop(token, None)
-                raise RuntimeError(tr('音频输出进程已停止。')) from exc
+            packet = (command, token, args, i18n.LANGUAGE)
+            # Only adjacent, unobserved schedule replacements can be discarded.
+            # MIDI messages and synchronous replies remain ordering barriers.
+            if self.outbound and command in ('revise', 'recording') and self.outbound[-1][0] == command and self.outbound[-1][1] is None:
+                self.outbound[-1] = packet
+            elif self.outbound and command == 'midi' and token is None and self.outbound[-1][0] == 'midi_batch' and self.outbound[-1][3] == i18n.LANGUAGE and len(self.outbound[-1][2]) < 256:
+                self.outbound[-1][2].append(args)
+            else:
+                if len(self.outbound) >= 512:
+                    self.pending.pop(token, None)
+                    raise RuntimeError(tr('音频命令过多，请停止播放后重试。'))
+                self.outbound.append(('midi_batch', None, [args], i18n.LANGUAGE) if command == 'midi' and token is None else packet)
+            self.outbound_ready.notify()
         if wait:
             try:
                 if not event.wait(15):
@@ -256,13 +306,15 @@ class ProcessRouter:
         self._submit('midi', (status, a, b), wait=status & 0xf0 == 0xc0)
 
     def play_schedule(self, *args):
+        args = (tuple(args[0]), *args[1:])
         return self._submit('play', args, wait=True)
 
     def revise_schedule(self, *args):
+        args = (tuple(args[0]), *args[1:])
         self._submit('revise', args)
 
     def refresh_recording(self, events):
-        self._submit('recording', (events,))
+        self._submit('recording', (tuple(events),))
 
     def stop_schedule(self):
         self._submit('stop', wait=True)
@@ -276,7 +328,10 @@ class ProcessRouter:
         if connection is not None:
             try:
                 with self.lock:
-                    connection.send(('close', None, (),i18n.LANGUAGE))
+                    self.closing = True
+                    self.outbound.clear()
+                    self.outbound.append(('close', None, (), i18n.LANGUAGE))
+                    self.outbound_ready.notify_all()
             except (EOFError, BrokenPipeError, OSError):
                 pass
         if process is not None:
@@ -288,6 +343,8 @@ class ProcessRouter:
             process.close()
         if connection is not None:
             connection.close()
+        if self.writer is not None and self.writer is not threading.current_thread():
+            self.writer.join(timeout=1)
         if self.reader is not None and self.reader is not threading.current_thread():
             self.reader.join(timeout=1)
         self.process = self.connection = None

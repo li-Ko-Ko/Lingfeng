@@ -1,0 +1,8 @@
+Unmodified official sfizz 1.2.3 Windows x64 library.
+https://github.com/sfztools/sfizz/releases/download/1.2.3/sfizz-1.2.3-win64.zip
+DLL SHA256: aa4bfa4ad9a57cfbb3c832a50be14bfe5aeaf7a36ffcdf0178547abe8719e653
+Source: https://github.com/sfztools/sfizz/releases/download/1.2.3/sfizz-1.2.3.tar.gz
+Source SHA256: a9339eac7620d7f0f6b44bdfe860680fab73e66efad4b5f15b21198dd9436822
+The complete upstream source archive and dependency notices are included.
+Some notices cover source-only tools; no plugins or XMMS WavPack plugin are shipped.
+Upstream repository was archived on 2026-06-21.

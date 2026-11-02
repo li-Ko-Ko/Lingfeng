@@ -36,6 +36,7 @@
 /scripts/*
 !/scripts/audit_text.py
 !/scripts/build_synth_packs.py
+!/scripts/build_piano_packs.py
 !/scripts/collect_qt_notices.py
 !/scripts/export_help.py
 !/scripts/package_release.py
@@ -55,6 +56,7 @@
 !/synths/stk-essentials/
 !/synths/stk-colors/
 !/synths/stk-acoustic/
+!/synths/piano-small/
 
 **/__pycache__/
 *.py[cod]

@@ -42,7 +42,7 @@ def offline_pcm(project,which,start,end,cancel,progress,block=4096):
     from lingfeng.audio.synthesis import SynthEngine, BLOCK
     from lingfeng.audio.soundbanks import export_instruments
     export_instruments(project,which,start,end)  # Reject unsupported voices before writing audio.
-    seconds=60/project.bpm/PPQ;events=[];engine=SynthEngine(channel_devices={i:project.audio[role]['device'] for i,role in enumerate(('melody','chords'))})
+    seconds=60/project.bpm/PPQ;events=[];engine=SynthEngine(channel_devices={i:project.audio[role]['device'] for i,role in enumerate(('melody','chords'))},offline=True)
     try:
         for channel,(role,source) in enumerate((('melody',project.notes),('chords',project.harmony_notes()))):
             notes=window_notes(source,start,end) if which in ('both',role) else []

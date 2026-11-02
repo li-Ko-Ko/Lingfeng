@@ -1,9 +1,11 @@
 """Folder-installed synthesis packs and a persistent, per-installation index.
 
-Scanning reads JSON only. Projects store stable IDs, never library paths.
+Scanning validates files without executing synth DLLs. Projects store stable IDs,
+never library paths.
 """
 import hashlib,json,math,os,re,sys
 from pathlib import Path
+from lingfeng import __version__
 from lingfeng.platform.i18n import tr
 
 DEFAULT_DEVICE='synth:stk-essentials'
@@ -45,16 +47,30 @@ def _user_profile():
 def is_synth_source(device):return isinstance(device,str) and device.startswith('synth:')
 
 def _inside(root,relative):
-    if not isinstance(relative,str) or not relative:raise ValueError('Missing pack file')
-    path=(root/relative).resolve()
+    from lingfeng.audio.sfz import relative_file
+    path=(root/relative_file(relative)).resolve()
     if not path.is_relative_to(root) or not path.is_file():raise ValueError('Missing or unsafe pack file: '+relative)
     return path
 
 def _validate(data,root,verify_files=True):
+    if not isinstance(data,dict):raise ValueError('Invalid synth manifest')
     if data.get('schema')!=1 or data.get('abi')!=1 or data.get('platform')!='windows-x64':raise ValueError('Unsupported synth pack version/platform')
+    engine=data.get('engine','native')
+    if engine not in ('native','sfz','sf2'):raise ValueError('Unsupported synth engine')
     if not re.fullmatch('[a-z0-9][a-z0-9._-]{0,63}',data.get('id','')):raise ValueError('Invalid pack ID')
     for name in ('name','name_en','version','license','source','author','library','license_file','sha256'):
         if not isinstance(data.get(name),str) or not data[name]:raise ValueError('Missing '+name)
+    from lingfeng.audio.sfz import relative_file,validate_assets
+    relative_file(data['library']);relative_file(data['license_file'])
+    if not re.fullmatch('[0-9a-f]{64}',data['sha256']):raise ValueError('Invalid library checksum')
+    if type(data.get('voices',128)) is not int or not 32<=data.get('voices',128)<=1024:raise ValueError('Invalid polyphony')
+    if engine=='sf2':
+        hashes=data.get('library_hashes')
+        if not isinstance(hashes,dict) or not 1<=len(hashes)<=64 or hashes.get(data['library'])!=data['sha256']:raise ValueError('Missing SF2 runtime checksums')
+        for name,digest in hashes.items():
+            relative_file(name)
+            if not name.lower().endswith('.dll') or not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest):raise ValueError('Invalid SF2 dependency')
+            if verify_files and hashlib.sha256(_inside(root,name).read_bytes()).hexdigest()!=digest:raise ValueError('SF2 dependency checksum mismatch')
     if verify_files:
         library=_inside(root,data['library']);_inside(root,data['license_file'])
         if library.suffix.lower()!='.dll':raise ValueError('Expected a Windows DLL')
@@ -62,9 +78,10 @@ def _validate(data,root,verify_files=True):
         if hashlib.sha256(binary).hexdigest()!=data.get('sha256'):raise ValueError('Library checksum mismatch')
         offset=int.from_bytes(binary[60:64],'little')
         if binary[:2]!=b'MZ' or binary[offset:offset+6]!=b'PE\x00\x00\x64\x86':raise ValueError('Expected a Windows x64 native library')
-    rows=data.get('presets',[]);seen=set()
+    rows=data.get('presets',[]);seen=set();assets_checked=set()
     if not isinstance(rows,list) or not 1<=len(rows)<=128:raise ValueError('Invalid preset list')
     for item in rows:
+        if not isinstance(item,dict):raise ValueError('Invalid preset')
         p=item.get('program');model=item.get('model');gain=item.get('gain')
         if type(p) is not int or not 0<=p<=127 or p in seen:raise ValueError('Invalid/duplicate program')
         seen.add(p)
@@ -75,6 +92,19 @@ def _validate(data,root,verify_files=True):
         if not isinstance(item.get('name'),str) or not isinstance(item.get('name_en'),str):raise ValueError('Invalid preset name')
         controls=item.get('controls',{})
         if not isinstance(controls,dict) or any(not str(k).isdigit() or not 0<=int(k)<=128 or type(v) not in (int,float) or not math.isfinite(v) or not 0<=v<=128 for k,v in controls.items()):raise ValueError('Invalid controls')
+        if engine=='sfz':
+            relative_file(item.get('sfz'))
+            if 'cutoff_hz' in item:raise ValueError('SFZ presets must set tone in their mapping')
+            if any(int(k)>127 or v>127 for k,v in controls.items()):raise ValueError('Invalid SFZ MIDI control')
+            if verify_files and item['sfz'] not in assets_checked:validate_assets(root,item['sfz']);assets_checked.add(item['sfz'])
+        elif engine=='sf2':
+            relative_file(item.get('sf2'))
+            if model>127 or type(item.get('bank',0)) is not int or not 0<=item.get('bank',0)<=16383:raise ValueError('Invalid SF2 program/bank')
+            if 'cutoff_hz' in item or any(int(k)>127 or v>127 for k,v in controls.items()):raise ValueError('Invalid SF2 controls')
+            if verify_files and item['sf2'] not in assets_checked:
+                with _inside(root,item['sf2']).open('rb') as file:header=file.read(12)
+                if header[:4]!=b'RIFF' or header[8:12]!=b'sfbk':raise ValueError('Expected an SF2 soundfont')
+                assets_checked.add(item['sf2'])
     return data
 
 def _write(state):
@@ -102,7 +132,7 @@ def rescan(roots=None,persist=True):
                 if data['id'] in packs:raise ValueError('Duplicate pack ID: '+data['id'])
                 packs[data['id']]=dict(data,path=str(file.parent.resolve()),manifest_stamp=file.stat().st_mtime_ns)
             except (OSError,ValueError,KeyError,TypeError,AttributeError) as exc:errors.append(str(file)+': '+str(exc))
-    state=dict(schema=1,roots=roots,packs=packs,errors=errors,defaults=prior.get('defaults'))
+    state=dict(schema=1,app_version=__version__,roots=roots,packs=packs,errors=errors,defaults=prior.get('defaults'))
     if persist:_write(state)
     _state=state;_identity=(str(default_root()),str(cache_path()));return state
 
@@ -114,9 +144,13 @@ def registry():
     try:
         state=json.loads(cache_path().read_text('utf-8'))
         if state.get('schema')!=1 or not isinstance(state.get('packs'),dict) or not isinstance(state.get('roots'),list):raise ValueError('Invalid index')
+        if not all(isinstance(p,str) and p for p in state['roots']):raise ValueError('Invalid cached roots')
+        roots=[Path(p).resolve() for p in state['roots']]
         for ident,item in state['packs'].items():
             _validate(item,None,verify_files=False)
             if item['id']!=ident or not isinstance(item.get('path'),str) or type(item.get('manifest_stamp')) is not int:raise ValueError('Invalid cached pack')
+            path=Path(item['path']).resolve()
+            if not any(path==root or path.parent==root for root in roots):raise ValueError('Cached pack is outside its scanned folders')
         profile=_user_profile()
         if profile:
             state['defaults']=profile.get('defaults')
@@ -124,6 +158,11 @@ def registry():
             if roots!=state['roots']:
                 _state=state
                 return rescan(roots)
+        if state.get('app_version')!=__version__:
+            # In-place upgrades can add bundled packs at an unchanged path.
+            # Refresh once, preserving user defaults and extra scan folders.
+            _state=state
+            return rescan()
         _state=state
     except (OSError,ValueError,TypeError,AttributeError,KeyError):
         profile=_user_profile()
@@ -133,19 +172,22 @@ def registry():
             state=rescan(persist=False);state['errors'].append(tr('无法保存音源索引，请检查用户目录权限。'))
     return _state
 
-def installed_packs():
-    result=[]
-    for data in registry()['packs'].values():
-        try:
-            root=Path(data['path']).resolve();file=_inside(root,'synth.json');_inside(root,data['library']);_inside(root,data['license_file'])
-            if file.stat().st_mtime_ns!=data['manifest_stamp']:continue
-            result.append(data)
-        except (OSError,ValueError,KeyError,TypeError):continue
-    return result
+def _installed(data):
+    try:
+        root=Path(data['path']).resolve();file=_inside(root,'synth.json');_inside(root,data['library']);_inside(root,data['license_file'])
+        if file.stat().st_mtime_ns!=data['manifest_stamp']:return False
+        engine=data.get('engine')
+        if engine in ('sfz','sf2'):
+            for mapping in {preset[engine] for preset in data['presets']}:_inside(root,mapping)
+        return True
+    except (OSError,ValueError,KeyError,TypeError):return False
+
+
+def installed_packs():return [data for data in registry()['packs'].values() if _installed(data)]
 
 def pack(device):
-    found=next((p for p in installed_packs() if 'synth:'+p['id']==device),None)
-    if found is None:raise ValueError(tr('合成音源“{0}”未安装或已更改，请复制音源文件夹后在设置中重新扫描。',device))
+    found=registry()['packs'].get(device[6:]) if is_synth_source(device) else None
+    if found is None or not _installed(found):raise ValueError(tr('合成音源“{0}”未安装或已更改，请复制音源文件夹后在设置中重新扫描。',device))
     return found
 
 def pack_label(data):
@@ -169,6 +211,8 @@ def default_audio():
     saved=registry().get('defaults')
     if isinstance(saved,dict) and set(saved)=={'melody','chords'}:
         if all(isinstance(s,dict) and isinstance(s.get('device'),str) and type(s.get('program')) is int and 0<=s['program']<=127 and (not is_synth_source(s['device']) or s['program'] in available_programs(s['device'])) for s in saved.values()):return {k:dict(v) for k,v in saved.items()}
+    piano=available_programs('synth:piano-small')
+    if 0 in piano:return {'melody':dict(device='synth:piano-small',program=1 if 1 in piano else 0),'chords':dict(device='synth:piano-small',program=0)}
     device=DEFAULT_DEVICE if available_programs() else 'default'
     return {'melody':dict(device=device,program=1),'chords':dict(device=device,program=0)}
 
