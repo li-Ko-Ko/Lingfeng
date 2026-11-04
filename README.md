@@ -6,7 +6,7 @@
 
 A lightweight Windows app for songwriting and jianpu, with melody, chords, accompaniment and lyrics.
 
-**0.57 · Windows x64 · 便携免安装 / Portable**
+**0.57.1 · Windows x64 · 便携免安装 / Portable**
 
 [下载 / Download](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
@@ -21,6 +21,7 @@ The standalone application needs no Python installation. Free piano, electric pi
 ## 主要功能 / Features
 
 - 旋律与和弦钢琴卷帘，支持量化、复制、分割合并、撤销及独立悬浮 / Melody and chord piano rolls with quantization, copying, split/join, undo and floating windows.
+- 大工程拖屏更流畅，图像缓存与撤销历史更省内存 / Smoother panning in large projects, with lower memory use for image caches and undo history.
 - 伴奏节奏型与和弦进行库；设置中可全局开关节奏型识别 / Accompaniment patterns and progression library, with a global rhythm-recognition switch.
 - 按段落标识跳转小节，导航器显示无文字段落边界 / Jump to marked sections; navigators show section boundaries without text.
 - 可保存旋律／和弦默认力度、常用力度及快速和弦性质 / Saved note/chord velocity defaults, velocity presets and quick chord qualities.

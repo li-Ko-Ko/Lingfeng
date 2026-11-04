@@ -1640,6 +1640,24 @@ def self_test(folder):
     menu.section_jump_menu.actions()[1].trigger()
     assert window.playhead==probe.starts[3] and window.main_roll.selection==selection and probe.to_dict()==snapshot
     menu.deleteLater()
+    # 0.57.1: camera updates do not rebuild music; undo retains shared records.
+    from lingfeng.ui.history import HistoryState
+    history_project=Project();history_project.notes=[Note(0,480,60)]
+    first=HistoryState(history_project.to_dict(),None)
+    history_project.bpm+=1;second=HistoryState(history_project.to_dict(),None,first)
+    assert second['notes'] is first['notes'] and second['measures'] is first['measures']
+    restored=Project.from_dict(second);restored.notes[0].pitch=72
+    assert first['notes'][0]['pitch']==second['notes'][0]['pitch']==60
+    window.switch_workspace('compose');window.melody_window.setFloating(False);window.harmony_window.setFloating(False)
+    window.open_harmony();app.processEvents();r=window.roll
+    r.pan_to(160,400);r.viewport().repaint();window.navigator.repaint()
+    allocations=r.layer_allocations;overview_renders=window.navigator.cache_renders
+    snapshot=window.project.to_dict();selection=copy.deepcopy(r.selection)
+    with patch.object(window.project,'harmony_notes',side_effect=AssertionError('Camera rebuilt harmony MIDI')),patch.object(r,'update_ranges',side_effect=AssertionError('Camera rebuilt pitch range')):
+        r.pan_to(240,420);app.processEvents();r.viewport().repaint();window.navigator.repaint()
+    assert r.horizontalScrollBar().value()==240 and r.verticalScrollBar().value()==420
+    assert r.layer_allocations==allocations and window.navigator.cache_renders==overview_renders
+    assert window.project.to_dict()==snapshot and r.selection==selection
     window.dirty=False;window.close();app.processEvents()
     report={'status':'passed','version':__version__,'frozen':bool(getattr(sys,'frozen',False)),
             'python':sys.version.split()[0],'pdf_pages':pages,'melody_notes':len(q.notes),
@@ -1719,5 +1737,6 @@ def self_test(folder):
     report['checks']+=['different-meter chord pastes crop at destination boundaries','project-end chord pastes crop or safely do nothing','lyric slurs block conflicting new manual arcs and silently hide existing ones without deleting data']
     report['checks']+=['automatic lyric slurs continue across intervening rest rows in all three score styles']
     report['checks']+=['global rhythm switch bypasses both detectors and cached inferred rebuilds without changing music','reenabling rhythm recognition restores existing inference','section jump menu retains repeated names and exact measure destinations','section navigation preserves music and time selection']
+    report['checks']+=['unchanged undo records share storage without changing restored music','middle-pan camera path bypasses MIDI and pitch-range rebuilding','camera frames reuse pixel allocations and overview music','camera navigation preserves music and selections']
     (folder/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     return 0

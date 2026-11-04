@@ -4,8 +4,51 @@ from lingfeng.music.model import Project
 
 
 class HistoryState(dict):
-    def __init__(self,project,location):
-        super().__init__(project);self.location=location
+    """A read-only project snapshot with session-only edit-location metadata.
+
+    Consecutive snapshots reuse unchanged JSON records, without retaining the
+    previous state itself. Project.from_dict deep-copies before any edit, so
+    live music and restored projects never mutate these shared records.
+    """
+    def __init__(self,project,location,previous=None):
+        super().__init__(_share_records(project,previous) if previous is not None else project)
+        self.location=location
+
+
+_MISSING=object()
+
+
+def _share_records(value,previous):
+    """Retain equal immutable-by-convention JSON subtrees and stable-ID rows."""
+    if value is previous:return previous
+    if isinstance(value,dict) and isinstance(previous,dict):
+        if len(value)==len(previous) and all(item is previous.get(key,_MISSING) for key,item in value.items()):
+            return previous
+        # Notes and most chord rows contain only scalar values. This common
+        # path avoids rebuilding a temporary dictionary for every unchanged row.
+        if value==previous and all(not isinstance(item,(dict,list,tuple)) and type(item) is type(previous[key]) for key,item in value.items()):
+            return previous
+        result={};same=len(value)==len(previous)
+        for key,item in value.items():
+            old=previous.get(key,_MISSING);shared=_share_records(item,old)
+            result[key]=shared;same=same and shared is old
+        return previous if same else result
+    if isinstance(value,(list,tuple)) and type(value) is type(previous):
+        indexed=None
+        result=[];same=len(value)==len(previous)
+        for index,item in enumerate(value):
+            old=previous[index] if index<len(previous) else _MISSING
+            candidate=old
+            if isinstance(item,dict) and isinstance(item.get('id'),str):
+                if not isinstance(old,dict) or old.get('id')!=item['id']:
+                    if indexed is None:
+                        indexed={row['id']:row for row in previous if isinstance(row,dict) and isinstance(row.get('id'),str)}
+                        if len(indexed)!=len(previous):indexed={}
+                    if indexed:candidate=indexed.get(item['id'],_MISSING)
+            shared=_share_records(item,candidate);result.append(shared)
+            same=same and shared is old
+        return previous if same else tuple(result) if isinstance(value,tuple) else result
+    return previous if type(value) is type(previous) and value==previous else value
 
 
 class HistoryMixin:
@@ -105,7 +148,7 @@ class HistoryMixin:
         if not history:return
         state=history.pop();location=getattr(state,'location',None)
         view=self.history_roll_view(location)
-        opposite.append(HistoryState(self.project.to_dict(),location))
+        opposite.append(HistoryState(self.project.to_dict(),location,opposite[-1] if opposite else state))
         playing=self.transport.playing;tick=self.transport.position() if playing else self.playhead
         self.project=Project.from_dict(state);self.dirty=True
         if playing:self.transport.revise(self.project)

@@ -4,12 +4,13 @@ import copy
 import math
 import time
 from fractions import Fraction
+from bisect import bisect_right
 from PySide6.QtCore import Qt, QRectF, QPointF, QPoint, Signal, QTimer
 from PySide6.QtGui import QPainter, QPen, QColor, QFont, QKeySequence,QPainterPath,QAction
 from PySide6.QtWidgets import QAbstractScrollArea, QWidget, QMenu, QApplication,QFrame,QInputDialog
 from lingfeng.ui.theme import color as paint_color, roll_color, label_color, colored_category
 import lingfeng.ui.theme as theme
-from lingfeng.ui.painting import cached_layer, roll_view_key
+from lingfeng.ui.painting import cached_layer, roll_view_key, time_view_key
 from lingfeng.music.model import PPQ, MODES, COLORS, BACKGROUND_COLORS, NOTE_COLORS, Note, PATTERNS, degree_text, spelling, pitch_name, merge_ranges
 from lingfeng.music.note_operations import can_join, can_split, resize_chord
 from lingfeng.music.chord_operations import roman_label, chord_details, contextual_chord_name
@@ -56,7 +57,7 @@ class ChordLane(QWidget):
         self.last_pos=None;self.press_time=0;self.marquee=None;self.press_pos=None;self.selection_before=set();self.toggle_off=False;self.audition_id=''
         self.highlight_ids=set();self.highlight_hover=''
         self.pan_state=None;self.right_press=False;self.context_handled=0
-        self.aux_ruler_scale=1
+        self.aux_ruler_scale=1;self.paint_offset=None
         self.velocity_visible=False;self.velocity_lane=ChordVelocityLane(self);self.velocity_lane.hide()
         self.velocity_action=QAction(tr('和弦轨力度窗格'),self);self.velocity_action.setCheckable(True)
         self.velocity_action.toggled.connect(self.set_velocity_visible)
@@ -77,6 +78,7 @@ class ChordLane(QWidget):
         super().resizeEvent(event);self.layout_velocity()
 
     def offset(self):
+        if self.paint_offset is not None:return self.paint_offset
         if getattr(self.editor,'main_timeline_state',False) or self.window()!=self.editor.window():return 0
         return self.editor.viewport().mapToGlobal(QPoint(0,0)).x()-self.mapToGlobal(QPoint(0,0)).x()
 
@@ -97,13 +99,16 @@ class ChordLane(QWidget):
 
     def paintEvent(self,event):
         p=QPainter(self);e=self.editor
-        preview=(self.preview.id,self.preview.start,self.preview.end) if self.preview else None
-        key=(roll_view_key(e),self.offset(),preview,str(self.marquee),frozenset(e.selected_chords),e.hovered_chord,e.selected_chord,self.velocity_visible,self.aux_ruler_scale,rhythm_recognition_enabled())
-        cached_layer(self,p,key,self.paint_content)
-        p.setClipRect(KEY_W,0,self.width()-KEY_W,self.height());p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if e.anchor_tick is not None:
-            p.setPen(QPen(paint_color('#426BAA'),1.2,Qt.PenStyle.DashLine));p.drawLine(QPointF(self.x_at(e.anchor_tick),0),QPointF(self.x_at(e.anchor_tick),self.height()))
-        x=self.x_at(e.visual_tick());p.setPen(QPen(paint_color('#D15F49'),2));p.drawLine(QPointF(x,0),QPointF(x,self.height()))
+        self.paint_offset=self.offset()
+        try:
+            preview=(self.preview.id,self.preview.start,self.preview.end) if self.preview else None
+            key=(time_view_key(e),self.paint_offset,preview,str(self.marquee),frozenset(e.selected_chords),e.hovered_chord,e.selected_chord,self.velocity_visible,self.aux_ruler_scale,rhythm_recognition_enabled())
+            cached_layer(self,p,key,self.paint_content)
+            p.setClipRect(KEY_W,0,self.width()-KEY_W,self.height());p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            if e.anchor_tick is not None:
+                p.setPen(QPen(paint_color('#426BAA'),1.2,Qt.PenStyle.DashLine));p.drawLine(QPointF(self.x_at(e.anchor_tick),0),QPointF(self.x_at(e.anchor_tick),self.height()))
+            x=self.x_at(e.visual_tick());p.setPen(QPen(paint_color('#D15F49'),2));p.drawLine(QPointF(x,0),QPointF(x,self.height()))
+        finally:self.paint_offset=None
 
     def paint_content(self,p):
         from lingfeng.ui.theme import roll_pitch_name as pitch_name, roll_degree_text as degree_text
@@ -112,13 +117,18 @@ class ChordLane(QWidget):
         p.setFont(QFont('Microsoft YaHei',9));p.setPen(paint_color('#66768B'))
         p.drawText(9,25,tr('和弦'))
         p.setClipRect(KEY_W,0,self.width()-KEY_W,self.card_height())
-        for i,start in enumerate(project.starts[:-1]):
+        left=(KEY_W-self.x_at(0))/e.zoom*PPQ;right=(self.width()-self.x_at(0))/e.zoom*PPQ
+        starts=project.starts;first=max(0,bisect_right(starts,left)-1);last=min(len(starts)-1,bisect_right(starts,right))
+        for start in starts[first:last]:
             x=self.x_at(start)
             if -200<x<self.width()+200:
                 p.setPen(QPen(paint_color('#E3E8EE'),1));p.drawLine(int(x),0,int(x),self.height())
         self.paint_aux_ruler(p)
         self.boxes=[]
-        display=[(original,self.preview_chord(original)) for original in project.chords]
+        display=[]
+        for original in project.chords:
+            chord=self.preview_chord(original)
+            if chord.end>=left and chord.start<=right:display.append((original,chord))
         # Stationary cards first; originals and incoming edits form the overlay.
         # Timeline order must not hide a left chord's preview beneath its neighbor.
         for original,chord in display:
@@ -265,7 +275,7 @@ class ChordLane(QWidget):
 
     def mouseMoveEvent(self,event):
         if self.pan_state:
-            pos,scroll=self.pan_state;self.editor.horizontalScrollBar().setValue(round(scroll+pos.x()-event.position().x()));self.editor.navigationRequested.emit();return
+            pos,scroll=self.pan_state;self.editor.pan_to(round(scroll+pos.x()-event.position().x()));return
         self.last_pos=QPointF(event.position())
         if self.right_press:
             if (event.position()-self.press_pos).manhattanLength()>=4:self.gesture_moved=True
@@ -329,6 +339,8 @@ class ChordLane(QWidget):
 
     def mouseReleaseEvent(self,event):
         if event.button()==Qt.MouseButton.MiddleButton:
+            if self.pan_state:
+                pos,scroll=self.pan_state;self.editor.pan_to(round(scroll+pos.x()-event.position().x()))
             self.pan_state=None;self.unsetCursor();return
         if event.button()==Qt.MouseButton.RightButton and self.right_press:
             moved=self.gesture_moved;self.right_press=False;self.edge_timer.stop();self.marquee=None;self.marquee_anchor=None;self.press_pos=None;self.unsetCursor();self.editor.refresh();self.update()
@@ -612,8 +624,11 @@ class TimelineNavigator(QWidget):
 
     def paintEvent(self,event):
         e=self.editor;p=QPainter(self);width=max(1,self.width()-KEY_W)
-        cached_layer(self,p,roll_view_key(e),self.paint_content)
+        # Overview music is independent of the camera. Only the viewport box
+        # and transport cursors move while browsing the piano roll.
+        cached_layer(self,p,(id(e),id(e.project),e.paint_revision),self.paint_content)
         p.setClipRect(KEY_W,0,width,self.height());p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.paint_camera(p)
         if e.anchor_tick is not None:
             x=KEY_W+e.anchor_tick/e.project.end*width;p.setPen(QPen(paint_color('#426BAA'),1.2,Qt.PenStyle.DashLine));p.drawLine(QPointF(x,0),QPointF(x,self.height()))
         x=KEY_W+e.cursor_tick/e.project.end*width;p.setPen(QPen(paint_color('#D15F49'),2));p.drawLine(QPointF(x,0),QPointF(x,self.height()))
@@ -634,14 +649,18 @@ class TimelineNavigator(QWidget):
             x=KEY_W+e.project.starts[bar]/e.project.end*width
             p.drawLine(QPointF(x,2),QPointF(x,self.height()-2))
             cap=QPainterPath();cap.moveTo(x-3,1);cap.lineTo(x+3,1);cap.lineTo(x,5);cap.closeSubpath();p.drawPath(cap)
+
+    def paint_camera(self,p):
+        e=self.editor;width=max(1,self.width()-KEY_W)
         left=e.horizontalScrollBar().value()/e.zoom*PPQ
         visible=(e.viewport().width()-KEY_W)/e.zoom*PPQ
         rect=QRectF(KEY_W+left/e.project.end*width,2,min(visible,e.project.end-left)/e.project.end*width,self.height()-4)
-        p.setPen(QPen(paint_color('#44786E'),1));p.setBrush(QColor(88,158,154,35));p.drawRect(rect)
+        p.save();p.setRenderHint(QPainter.RenderHint.Antialiasing,False)
+        p.setPen(QPen(paint_color('#44786E'),1));p.setBrush(QColor(88,158,154,35));p.drawRect(rect);p.restore()
 
     def browse_to(self,x):
         e=self.editor;tick=max(0,(x-KEY_W)/max(1,self.width()-KEY_W)*e.project.end)
-        e.horizontalScrollBar().setValue(int(tick/PPQ*e.zoom-(e.viewport().width()-KEY_W)/2));e.refresh();e.navigationRequested.emit()
+        e.horizontalScrollBar().setValue(int(tick/PPQ*e.zoom-(e.viewport().width()-KEY_W)/2));e.repaint_view();e.navigationRequested.emit()
 
     def mousePressEvent(self,event):
         if event.button()==Qt.MouseButton.LeftButton:self.browse_to(event.position().x())
@@ -705,7 +724,7 @@ class PianoRoll(QAbstractScrollArea):
         self.notes=project.notes if role=='melody' else project.harmony_notes()
         self.grid=240;self.grid_bars=0;self.duration=-1;self.duration_bars=0;self.previous_duration=None;self.previous_note_id='';self.granularity='grid';self.timeline_anchor=None;self.timeline_drag_state=None;self.last_note_selection=frozenset()
         self.loop_range=None;self.loop_anchor=None;self.timeline_gesture=TimelineGesture(self.viewport(),lambda:self)
-        self.pan_state=None;self.right_press=False;self.context_handled=0;self.gap_click=False
+        self.pan_state=None;self.right_press=False;self.context_handled=0;self.gap_click=False;self.camera_batch=False
         self.marquee_hold=QTimer(self);self.marquee_hold.setSingleShot(True);self.marquee_hold.setInterval(250);self.marquee_hold.timeout.connect(self.begin_marquee)
         self.selection=[[0,3840]];self.selected_note='';self.play_tick=None;self.anchor_tick=None
         self.drag=None;self.preview=None;self.hit_notes=[];self.compact=False;self.pitch_range=None;self.manual_pitch_range=(48,72);self.cursor_tick=0
@@ -718,12 +737,10 @@ class PianoRoll(QAbstractScrollArea):
         self.lane=ChordLane(self)
         if role=='harmony':self.lane.setParent(self.viewport())
         self.velocity_lane=VelocityLane(self);self.navigator=TimelineNavigator(self)
-        self.horizontalScrollBar().valueChanged.connect(self.refresh)
-        self.horizontalScrollBar().valueChanged.connect(self.viewChanged)
-        self.horizontalScrollBar().valueChanged.connect(self.timeViewChanged)
+        self.horizontalScrollBar().valueChanged.connect(self.time_view_changed)
         watch_scrollbar(self.horizontalScrollBar(),self.navigationRequested.emit)
         watch_scrollbar(self.verticalScrollBar(),self.navigationRequested.emit)
-        self.verticalScrollBar().valueChanged.connect(self.refresh)
+        self.verticalScrollBar().valueChanged.connect(self.repaint_view)
         self.setMinimumHeight(250)
         self.press_pos=None;self.last_pos=None;self.gesture_moved=False;self.last_delete=None
         self.edge_timer=QTimer(self);self.edge_timer.setInterval(30);self.edge_timer.timeout.connect(self.scroll_drag_edge)
@@ -750,6 +767,7 @@ class PianoRoll(QAbstractScrollArea):
             low,high=self.pitch_range;self.pitches=list(range(high,low-1,-1))
         else:self.pitches=sorted(used or {min(108,self.project.context_at(0).tonic+12)},reverse=True) if self.compact else list(range(108,20,-1))
         self.low,self.high=min(self.pitches),max(self.pitches)
+        self.pitch_rows={pitch:index for index,pitch in enumerate(self.pitches)}
         self.verticalScrollBar().setRange(0,max(0,len(self.pitches)*self.row_height-self.viewport().height()+self.ruler_height))
         self.verticalScrollBar().setPageStep(max(1,self.viewport().height()-self.ruler_height))
 
@@ -834,7 +852,29 @@ class PianoRoll(QAbstractScrollArea):
         self.paint_revision+=1
         selection=frozenset(self.selected_ids)
         if selection!=self.last_note_selection:self.last_note_selection=selection;self.notesSelectionChanged.emit()
+        self.repaint_view()
+
+    def repaint_view(self,*args):
+        """Repaint a camera change without rebuilding musical selection state."""
+        if self.camera_batch:return
         self.viewport().update();self.lane.update();self.lane.velocity_lane.update();self.velocity_lane.update();self.navigator.update()
+
+    def time_view_changed(self,*args):
+        if self.camera_batch:return
+        self.repaint_view();self.timeViewChanged.emit()
+
+    def pan_to(self,horizontal,vertical=None):
+        """Apply both pan axes together and synchronize the time view once."""
+        h=self.horizontalScrollBar();v=self.verticalScrollBar();before=(h.value(),v.value())
+        self.camera_batch=True
+        try:
+            h.setValue(horizontal)
+            if vertical is not None:v.setValue(vertical)
+        finally:self.camera_batch=False
+        if before!=(h.value(),v.value()):
+            self.repaint_view()
+            if h.value()!=before[0]:self.timeViewChanged.emit()
+        self.navigationRequested.emit()
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
@@ -862,7 +902,8 @@ class PianoRoll(QAbstractScrollArea):
         return max(0,min(self.project.end-1,int((x-KEY_W+self.horizontalScrollBar().value())/self.zoom*PPQ)))
 
     def y_at(self,pitch):
-        index=min(range(len(self.pitches)),key=lambda i:abs(self.pitches[i]-pitch))
+        index=self.pitch_rows.get(pitch)
+        if index is None:index=min(range(len(self.pitches)),key=lambda i:abs(self.pitches[i]-pitch))
         return self.ruler_height+index*self.row_height-self.verticalScrollBar().value()
 
     def pitch_at(self,y):
@@ -983,6 +1024,8 @@ class PianoRoll(QAbstractScrollArea):
         left=self.tick_at(KEY_W);right=self.tick_at(w)
         pitch_sets={}
         boundaries=sorted({left,min(self.project.end,right+PPQ),*[c.start for c in self.project.contexts if left<c.start<=right],*[c.end for c in self.project.contexts if left<c.end<=right],*[c.start for c in self.project.chords if left<c.start<=right],*[c.end for c in self.project.chords if left<c.end<=right]})
+        note_cuts=sorted({*[c.start for c in self.project.chords],*[c.end for c in self.project.chords],*[c.start for c in self.project.contexts]})
+        note_cuts=note_cuts[max(0,bisect_right(note_cuts,left)-1):bisect_right(note_cuts,right)+1]
         p.setClipRect(KEY_W,self.ruler_height,w-KEY_W,h-self.ruler_height)
         for pitch in self.pitches:
             y=self.y_at(pitch)
@@ -991,7 +1034,7 @@ class PianoRoll(QAbstractScrollArea):
                 color=roll_color(self.category(pitch,a,pitch_sets))
                 p.fillRect(QRectF(self.x_at(a),y,(b-a)/PPQ*self.zoom,self.row_height),color)
             p.setPen(QPen(paint_color('#E8EDF2'),.6));p.drawLine(QPointF(KEY_W,y+self.row_height),QPointF(w,y+self.row_height))
-        for tick in self.grid_points():
+        for tick in self.visible_grid_points(left-self.grid,right+self.grid):
             if not left-self.grid<=tick<=right+self.grid:continue
             x=self.x_at(tick);p.setPen(QPen(paint_color('#DAE2EB') if tick%PPQ==0 else paint_color('#EEF1F5'),.8 if tick%PPQ==0 else .5));p.drawLine(QPointF(x,self.ruler_height),QPointF(x,h))
         for start in self.project.starts:
@@ -1020,7 +1063,12 @@ class PianoRoll(QAbstractScrollArea):
             current=self.previews.get(old.id)
             if current and (old.start,old.duration,old.pitch)!=(current.start,current.duration,current.pitch):
                 paint_drag_ghost(p,QRectF(self.x_at(old.start)+1,self.y_at(old.pitch)+2,max(3,old.duration/PPQ*self.zoom-2),self.row_height-4))
-        display=[(original,self.previews.get(original.id,self.preview if self.preview and original.id==self.preview.id else original)) for original in self.notes if not (self.drag and original.id in getattr(self,'gesture_deleted',set()))]
+        display=[]
+        for original in self.notes:
+            if self.drag and original.id in getattr(self,'gesture_deleted',set()):continue
+            note=self.previews.get(original.id,self.preview if self.preview and original.id==self.preview.id else original)
+            if note.start>right+PPQ or note.end<left or not self.low<=note.pitch<=self.high:continue
+            display.append((original,note))
         if self.drag and self.drag[0]=='draw' and self.preview:display.append((self.preview,self.preview))
         # Render incoming edits on top of the old notes they will overwrite.
         display.sort(key=lambda pair:pair[0].id in self.previews or pair[1] is self.preview)
@@ -1035,7 +1083,10 @@ class PianoRoll(QAbstractScrollArea):
             if rect.bottom()<self.ruler_height or rect.top()>h:continue
             self.hit_notes.append((rect,original))
             self.note_joins[original.id]=(joined_left,joined_right)
-            cuts=sorted({note.start,note.end,*[c.start for c in self.project.chords if note.start<c.start<note.end],*[c.end for c in self.project.chords if note.start<c.end<note.end],*[c.start for c in self.project.contexts if note.start<c.start<note.end]})
+            # Reuse real cuts, including the nearest offscreen endpoints, so
+            # clipping retains the original subpixel fill geometry. Degree
+            # labels below still use the complete source interval.
+            cuts=sorted({note.start,note.end,*[tick for tick in note_cuts if note.start<tick<note.end]})
             path=QPainterPath();path.addRoundedRect(rect.adjusted(-3 if joined_left else 0,0,3 if joined_right else 0,0),3,3)
             p.save();p.setClipRect(rect,Qt.ClipOperation.IntersectClip);p.setClipPath(path,Qt.ClipOperation.IntersectClip)
             if original.id in self.previews:p.setOpacity(.78)
@@ -1082,6 +1133,28 @@ class PianoRoll(QAbstractScrollArea):
     def grid_points(self):
         from lingfeng.music.timing import grid_points
         return grid_points(self.project,self.grid,self.grid_bars)
+
+    def visible_grid_points(self,left,right):
+        """Generate only ruler/grid divisions intersecting the current viewport."""
+        starts=self.project.starts;end=starts[-1]
+        if right<0 or left>end:return
+        if self.grid_bars:
+            first=max(0,(bisect_right(starts,left)-1)//self.grid_bars*self.grid_bars)
+            for index in range(first,len(starts),self.grid_bars):
+                tick=starts[index]
+                if tick>right:break
+                if tick>=left:yield tick
+            if (len(starts)-1)%self.grid_bars and left<=end<=right:yield end
+            return
+        step=max(1,self.grid)
+        first=max(0,bisect_right(starts,left)-1)
+        for index in range(first,len(starts)-1):
+            a,b=starts[index:index+2]
+            if a>right:break
+            tick=a+max(0,math.ceil((left-a)/step))*step
+            while tick<b and tick<=right:
+                yield tick;tick+=step
+        if left<=end<=right:yield end
 
     def snap_time(self,tick):
         from lingfeng.music.timing import snap_time
@@ -1143,10 +1216,13 @@ class PianoRoll(QAbstractScrollArea):
             p.fillRect(rect,paint_color('#BBDDD3'));p.setPen(QPen(paint_color('#247D6E'),1.8))
             for tick in (a,b):p.drawLine(QPointF(x_at(tick),upper+1),QPointF(x_at(tick),h-1))
         starts=self.project.starts
-        for tick in self.grid_points():
+        left=(KEY_W-x_at(0))/self.zoom*PPQ;end=(w-x_at(0))/self.zoom*PPQ
+        for tick in self.visible_grid_points(left,end):
             x=x_at(tick)
             if KEY_W<=x<=w:p.setPen(QPen(paint_color('#9BACBF'),.7));p.drawLine(QPointF(x,h-10),QPointF(x,h))
-        for i,(a,b) in enumerate(zip(starts,starts[1:])):
+        first=max(0,bisect_right(starts,left)-1);last=min(len(starts)-1,bisect_right(starts,end))
+        for i in range(first,last):
+            a,b=starts[i:i+2]
             x=x_at(a);right=x_at(b)
             if right<KEY_W or x>w:continue
             label_x=max(KEY_W,x)
@@ -1330,7 +1406,7 @@ class PianoRoll(QAbstractScrollArea):
     def mouseMoveEvent(self,event):
         pos=event.position();self.last_pos=QPointF(pos);self.shift_pressed=bool(event.modifiers()&Qt.KeyboardModifier.ShiftModifier)
         if self.pan_state:
-            point,h,v=self.pan_state;self.horizontalScrollBar().setValue(round(h+point.x()-pos.x()));self.verticalScrollBar().setValue(round(v+point.y()-pos.y()));self.navigationRequested.emit();return
+            point,h,v=self.pan_state;self.pan_to(round(h+point.x()-pos.x()),round(v+point.y()-pos.y()));return
         if self.timeline_gesture.state or pos.y()<self.timeline_height and not self.drag:
             self.timeline_gesture.move(event);return
         if self.structure_gesture:self.lane.mouseMoveEvent(event);return
@@ -1398,7 +1474,10 @@ class PianoRoll(QAbstractScrollArea):
 
     def mouseReleaseEvent(self,event):
         self.marquee_hold.stop()
-        if event.button()==Qt.MouseButton.MiddleButton:self.pan_state=None;self.viewport().unsetCursor();return
+        if event.button()==Qt.MouseButton.MiddleButton:
+            if self.pan_state:
+                point,h,v=self.pan_state;pos=event.position();self.pan_to(round(h+point.x()-pos.x()),round(v+point.y()-pos.y()))
+            self.pan_state=None;self.viewport().unsetCursor();return
         if self.timeline_gesture.state:
             if event.button()==Qt.MouseButton.RightButton:self.context_handled=time.monotonic()
             self.timeline_gesture.release(event);return

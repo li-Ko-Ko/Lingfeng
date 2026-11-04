@@ -91,12 +91,12 @@ Keep changes focused on one problem. The model owns musical time and performed e
 .\.venv\Scripts\python.exe scripts/audit_text.py
 ```
 
-可先只运行相关模块，例如 0.57 的段落导航与全局节奏型开关：
+可先只运行相关模块，例如 0.57.1 的拖屏、缓存与撤销历史：
 
-For a focused check, pass module names, for example section navigation and the global rhythm switch in 0.57:
+For a focused check, pass module names, for example panning, caches and undo history in 0.57.1:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/run_regression.py test_v57_sections test_v57_rhythm test_v57_settings
+.\.venv\Scripts\python.exe scripts/run_regression.py test_v571_panning test_v571_caches test_v571_history
 ```
 
 统一回归为每个 `tests/test_*.py` 模块创建独立进程，默认使用无屏幕 Qt 平台，并将 `LINGFENG_USER_DATA`、`LINGFENG_SYNTH_CACHE`、临时目录隔离到仓库 `tmp/`。结果写入 `output/`。完整套件包含 Windows 设备、原生合成与音频检查；无声、数值稳定或停音测试不能替代所有设备上的主观听感验收。修改后先运行相关模块，再进行发行需要的完整回归。
@@ -139,19 +139,19 @@ After editing help, run `python scripts/export_help.py` with the project environ
 
 The default output is the standalone folder `dist/<version>/Lingfeng/`, including source, licenses and all four approved lightweight sound packs. No ZIP or `.sha256` is generated, and existing archives remain untouched. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the folder's source, frozen resources and sounds. An explicit folder path may be supplied as a positional argument.
 
-例如验证当前 0.57 本地构建。使用单独 PowerShell 终端，等待窗口版 EXE 的自检进程结束后读取报告：
+例如验证当前 0.57.1 构建。使用单独 PowerShell 终端，等待窗口版 EXE 的自检进程结束后读取报告：
 
-For the current 0.57 build, use a separate PowerShell terminal and wait for the windowed executable to finish before reading the report:
+For the current 0.57.1 build, use a separate PowerShell terminal and wait for the windowed executable to finish before reading the report:
 
 ```powershell
 $env:LINGFENG_USER_DATA = Join-Path $PWD 'tmp\portable-test-user'
 $env:LINGFENG_SYNTH_CACHE = Join-Path $PWD 'tmp\portable-test-index\current.json'
 $testOutput = Join-Path $PWD 'output\self-test-portable'
-$executable = Join-Path $PWD 'dist\0.57\Lingfeng\Lingfeng.exe'
+$executable = Join-Path $PWD 'dist\0.57.1\Lingfeng\Lingfeng.exe'
 $check = Start-Process -FilePath $executable -ArgumentList @('--self-test', "`"$testOutput`"") -WindowStyle Hidden -Wait -PassThru
 if ($check.ExitCode -ne 0) { throw 'Standalone self-test failed. Check result.json.' }
 Get-Content (Join-Path $testOutput 'result.json')
-.\.venv\Scripts\python.exe scripts/verify_release.py dist\0.57\Lingfeng
+.\.venv\Scripts\python.exe scripts/verify_release.py dist\0.57.1\Lingfeng
 ```
 
 只有明确要求生成新的发行归档时，才使用下面的可选命令。已有同版本 ZIP 或校验文件会报错并保留，不允许覆盖；不会隐式生成单独的音源 ZIP。

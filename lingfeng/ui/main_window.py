@@ -284,7 +284,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if score_spellings:location['score_spellings']=True
         self.commit_volume()
         if not keep_playing:self.stop(preserve_auditions=True)
-        before=HistoryState(self.project.to_dict(),location);trial=Project.from_dict(before)
+        before=HistoryState(self.project.to_dict(),location,self.undo_history[-1] if self.undo_history else None);trial=Project.from_dict(before)
         try:
             operation(trial);trial.fill_chord_gaps();trial.rescan_changed_harmony(before);trial.validate()
             self.normalize_score_style(trial)
@@ -455,7 +455,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
     def change_volume(self,key,value):
         if self.loading:return
         # Live CC7: moving a volume control does not stop the transport.
-        if self.volume_before is None:self.volume_before=HistoryState(self.project.to_dict(),self.history_location())
+        if self.volume_before is None:self.volume_before=HistoryState(self.project.to_dict(),self.history_location(),self.undo_history[-1] if self.undo_history else None)
         self.volume_timer.start()
         self.project.volumes[key]=value;self.dirty=True;self.volume_labels[key].setText(str(value))
         self.subtitle.setText(self.project.title+tr('  ·  未保存'))

@@ -6,6 +6,21 @@ Versions with generated release archives only; local work is recorded in `CHANGE
 
 ## 0.5 系列 / 0.5 family
 
+### 0.57.1 — 拖屏性能与内存优化 / Panning performance and memory use
+
+日期 / Date: 2026-11-05；基于 / Based on: 0.57
+
+- 中键拖屏区分镜头更新与音乐更新，合并横纵滚动通知，不再反复重建和弦 MIDI、音域或选区；停靠、同步浮窗与独立浮窗保持原有规则，松键应用最终位置。
+- 导航器复用全曲音乐底图，镜头框和游标动态绘制；卷帘、格点、和弦轨及时间轴按可见范围绘制，保持长音填色、标识、命中和选区。
+- 同尺寸图层复用像素缓冲，隐藏面板释放缓存；谱面缓存按物理像素预算管理，高 DPI 下允许单张当前可见裁片超预算，不额外留存旧页。
+- 撤销历史共享未修改的数据记录，保留 100 步历史及 JSON 工程格式；恢复后先深拷贝，修改工程不会污染历史。256 小节、8192 个音符片段、100 份历史的独立测试中，历史私有内存增量约 242→12 MiB；大型快照每次额外约 17.87 ms，不在拖屏路径执行。
+- 本机 256 小节大工程、三种布局各 60 次拖动的 Qt offscreen 对照中，事件及重绘耗时中位数降低约 95%–97%；制谱返回创作后的私有内存约 99.32→81.79 MiB。启动内存基本持平，数值不代表通用 FPS 或整应用同比例 RAM 降幅。
+- 验证：120 模块／1352 项回归通过，源码与独立 EXE 各 418 项自检通过，86 个冻结模块与源码一致；18 对界面和 24 对长音参考图逐像素一致，高 DPI 缓存检查通过。
+
+Separates camera movement from musical refresh, draws only visible roll/timeline content, reuses raster buffers and releases hidden caches. Unchanged undo records share storage while preserving 100 steps, JSON compatibility and independent restored music.
+
+In a local synthetic 256-bar Qt offscreen comparison, median pan-event plus repaint time fell by about 95%–97%. A separate 100-state undo test reduced history private-memory growth from about 242 to 12 MiB. Startup memory remains similar; these measurements are not universal FPS or whole-application RAM guarantees. All 1352 regressions and both 418-check source/standalone acceptance runs passed.
+
 ### 0.57 — 段落导航与全局节奏型识别 / Section navigation and global rhythm recognition
 
 日期 / Date: 2026-11-05；基于 / Based on: 0.56.6；GitHub 上一发布版 / Previous GitHub release: 0.55

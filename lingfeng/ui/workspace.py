@@ -9,7 +9,7 @@ from lingfeng.ui.controls import IconButton
 from lingfeng.ui.piano_roll import PianoRoll, ChordLane, TimelineNavigator, KEY_W
 from lingfeng.ui.theme import color
 
-from lingfeng.ui.painting import cached_layer, roll_view_key
+from lingfeng.ui.painting import cached_layer, time_view_key
 from lingfeng.ui.timeline import TimelineGesture, RULER_TIME_H
 from lingfeng.ui.navigation import watch_scrollbar
 import time
@@ -31,12 +31,13 @@ class Timeline(QWidget):
         if getattr(owner,'workspace_ready',False):owner.update_shared_views()
     def paintEvent(self,event):
         e=self.roll;p=QPainter(self)
-        cached_layer(self,p,(roll_view_key(e),self.offset()),lambda painter:e.paint_ruler(painter,self.width(),self.height(),self.x_at))
+        offset=self.offset();x_at=lambda tick:e.x_at(tick)+offset
+        cached_layer(self,p,(time_view_key(e),offset),lambda painter:e.paint_ruler(painter,self.width(),self.height(),x_at))
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setClipRect(KEY_W,0,self.width()-KEY_W,self.height())
         if e.anchor_tick is not None:
-            p.setPen(QPen(color('#426BAA'),1.2,Qt.PenStyle.DashLine));p.drawLine(QPointF(self.x_at(e.anchor_tick),0),QPointF(self.x_at(e.anchor_tick),self.height()))
-        p.setPen(QPen(color('#D15F49'),2));p.drawLine(QPointF(self.x_at(e.visual_tick()),0),QPointF(self.x_at(e.visual_tick()),self.height()))
+            p.setPen(QPen(color('#426BAA'),1.2,Qt.PenStyle.DashLine));p.drawLine(QPointF(x_at(e.anchor_tick),0),QPointF(x_at(e.anchor_tick),self.height()))
+        p.setPen(QPen(color('#D15F49'),2));p.drawLine(QPointF(x_at(e.visual_tick()),0),QPointF(x_at(e.visual_tick()),self.height()))
     def tick(self,pos):return max(0,min(self.roll.project.end-1,self.roll.snap_time(self.roll.tick_at(pos.x()-self.offset()))))
     def mousePressEvent(self,event):
         self.gesture.press(event);self.update()
@@ -165,7 +166,6 @@ class WorkspaceMixin:
         for control,roll in ((self.tool,self.roll),(self.grid,self.roll),(self.harmony_window.tool,self.harmony_window.roll),(self.harmony_window.grid,self.harmony_window.roll)):
             control.currentIndexChanged.connect(lambda *args,r=roll:self.sync_tools(r))
         self.length.currentIndexChanged.connect(lambda:self.sync_tools(self.roll));self.harmony_window.length.currentIndexChanged.connect(lambda:self.sync_tools(self.harmony_window.roll))
-        self.roll.horizontalScrollBar().valueChanged.connect(self.update_shared_views)
         self.score_tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.score_tabs.customContextMenuRequested.connect(self.score_editor_menu)
         for r in (self.roll,self.main_roll,self.harmony_window.roll):
@@ -402,7 +402,8 @@ class WorkspaceMixin:
     def sync_time_views(self,source):
         if not getattr(self,'workspace_ready',False) or self.syncing_time:return
         main=self.is_main_view(source)
-        if not main and not any(r is source and sync.isChecked() for _,r,sync,_ in self.view_panes()):return
+        if not main and not any(r is source and sync.isChecked() for _,r,sync,_ in self.view_panes()):
+            self.update_shared_views();return
         self.syncing_time=True
         try:
             targets=[self.main_roll]+[r for pane,r,sync,_ in self.view_panes() if self.is_main_view(r) or sync.isChecked()]
@@ -410,9 +411,11 @@ class WorkspaceMixin:
             for target in targets:
                 if target is source:continue
                 bar=target.horizontalScrollBar();blocked=bar.blockSignals(True)
-                try:target.zoom=zoom;target.update_ranges();bar.setValue(scroll)
+                try:
+                    if target.zoom!=zoom:target.zoom=zoom;target.update_ranges()
+                    bar.setValue(scroll)
                 finally:bar.blockSignals(blocked)
-                target.refresh()
+                target.repaint_view()
         finally:self.syncing_time=False
         self.update_shared_views()
 

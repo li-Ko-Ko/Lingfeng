@@ -28,7 +28,7 @@ class ScoreCanvas(QWidget):
         self.project=copy.deepcopy(project) if not deferred else project
         self.layout=None if deferred else ScoreLayout(self.project);self.scale=.8;self.view=None;self.suspended=deferred
         self.play_tick=None;self.anchor_tick=None;self.editing=False;self.pan=None;self.grid=240;self.grid_bars=0;self.press_pos=None;self.has_note_clipboard=False
-        self.page_cache={};self.cache_key=None;self.cache_renders=0
+        self.page_cache={};self.cache_key=None;self.cache_renders=0;self.cache_budget_bytes=24*1024*1024
         self.selection_unit='measure';self.selected_bars=set();self.selected_beats=set();self.selected_notes=set();self.selection_anchor=None;self.selection_before=set();self.marquee=None
         self.hovered_chord=''
         self.setMouseTracking(True);self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -83,6 +83,16 @@ class ScoreCanvas(QWidget):
     def page_origin(self,page):
         return (self.width()-PAPER_W*self.scale)/2,16+page*(PAPER_H*self.scale+28)
 
+    @property
+    def page_cache_bytes(self):
+        return sum(pixmap.width()*pixmap.height()*max(1,pixmap.depth()//8) for pixmap,_ in self.page_cache.values())
+
+    def reserve_page_cache(self,needed):
+        # One physical viewport may itself exceed the budget at high DPI. Keep
+        # that visible crop, but never retain additional old pages alongside it.
+        while self.page_cache and (len(self.page_cache)>=4 or self.page_cache_bytes+needed>self.cache_budget_bytes):
+            self.page_cache.pop(next(iter(self.page_cache)))
+
     def paintEvent(self,event):
         p=QPainter(self);p.fillRect(self.rect(),color('#E9EEF4'))
         if self.layout is None or self.suspended:return
@@ -103,15 +113,24 @@ class ScoreCanvas(QWidget):
                 origin=self.mapFrom(self.view.viewport(),QPoint(0,0));visible=QRectF(origin.x(),origin.y(),self.view.viewport().width(),self.view.viewport().height())
             needed=visible.intersected(page_rect).translated(-x,-y)
             if needed.isEmpty():continue
-            entry=self.page_cache.get(page)
+            entry=self.page_cache.pop(page,None)
             if entry is None or not entry[1].contains(needed):
                 for name in ('hit_notes','hit_bars','hit_chords','hit_times','hit_symbols'):
                     setattr(self.layout,name,[item for item in getattr(self.layout,name) if item[0]!=page])
-                if len(self.page_cache)>=4:self.page_cache.pop(next(iter(self.page_cache)))
                 crop=needed.adjusted(-48,-48,48,48).intersected(QRectF(0,0,page_rect.width(),page_rect.height()))
-                pixmap=QPixmap(math.ceil(crop.width()*ratio),math.ceil(crop.height()*ratio));pixmap.setDevicePixelRatio(ratio);pixmap.fill(Qt.GlobalColor.transparent)
-                cached=QPainter(pixmap);cached.translate(-crop.x(),-crop.y());cached.scale(self.scale,self.scale);self.layout.draw(cached,page,dark=is_dark());cached.end();self.page_cache[page]=(pixmap,crop);self.cache_renders+=1
-            pixmap,crop=self.page_cache[page]
+                width,height=math.ceil(crop.width()*ratio),math.ceil(crop.height()*ratio)
+                self.reserve_page_cache(width*height*4)
+                pixmap=entry[0] if entry and entry[0].width()==width and entry[0].height()==height and entry[0].devicePixelRatioF()==ratio else None
+                entry=None
+                if pixmap is None:pixmap=QPixmap(width,height);pixmap.setDevicePixelRatio(ratio)
+                pixmap.fill(Qt.GlobalColor.transparent)
+                cached=QPainter(pixmap)
+                try:
+                    cached.translate(-crop.x(),-crop.y());cached.scale(self.scale,self.scale);self.layout.draw(cached,page,dark=is_dark())
+                finally:cached.end()
+                entry=(pixmap,crop);self.cache_renders+=1
+            self.page_cache[page]=entry
+            pixmap,crop=entry
             p.drawPixmap(QPointF(x+crop.x(),y+crop.y()),pixmap);p.save();p.translate(x,y);p.scale(self.scale,self.scale)
             tick=self.playback_clock() if self.play_tick is not None and getattr(self,'playback_clock',None) else self.play_tick
             self.layout.draw_playhead(p,page,self.anchor_tick,True);self.layout.draw_playhead(p,page,tick)
@@ -278,6 +297,7 @@ class ScoreCanvas(QWidget):
         self.pan=None;self.press_pos=None;self.marquee=None;self.unsetCursor();self.update();self.selectionChanged.emit()
 
     def hideEvent(self,event):
+        self.page_cache.clear();self.cache_key=None
         self.pan=None;self.press_pos=None;self.marquee=None;self.unsetCursor();super().hideEvent(event)
 
     def wheelEvent(self,event):
