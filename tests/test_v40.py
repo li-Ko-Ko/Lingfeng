@@ -15,6 +15,7 @@ from lingfeng.ui.keybindings import load_bindings, validate
 from lingfeng.music.progressions import resolve, apply
 from lingfeng.audio.midi import export_midi
 from lingfeng.music.meter import moved_chord, rescan_chord
+from tests.menu_helpers import walk_actions
 
 APP=QApplication.instance() or QApplication([])
 
@@ -46,6 +47,7 @@ class Add2Tests(unittest.TestCase):
 
     def test_old_generated_add9_loads_dense_but_explicit_voicing_is_kept(self):
         p=project();p.chords=[Chord(0,3840,quality='add2')];data=p.to_dict();data['chords'][0]['quality']='add9'
+        for key in ('recognition_disabled','marked'):data['chords'][0].pop(key,None)
         c=Project.from_dict(data).chords[0];self.assertIsNone(c.notes);self.assertEqual(c.pitches,[36,48,50,52,55])
         data['chords'][0]['notes']=[vars(Note(0,3840,p)) for p in (36,48,52,55,62)]
         c=Project.from_dict(data).chords[0];self.assertEqual([n.pitch for n in c.notes],[36,48,52,55,62])
@@ -148,7 +150,7 @@ class OctaveTests(unittest.TestCase):
     def test_menu_moves_both_rolls_and_undo_preserves_time_velocity(self):
         for role in ('melody','harmony'):
             r,_=self.select(role);before=[(n.start,n.duration,n.pitch,n.velocity) for n in r.notes]
-            menu=QMenu();r.selection_menu(menu,0);action=next(a for a in menu.actions() if a.data()=='octave_up')
+            menu=QMenu();r.selection_menu(menu,0);action=next(a for a in walk_actions(menu) if a.data()=='octave_up')
             self.assertEqual(action.shortcut().toString(),'Ctrl+Up');action.trigger()
             self.assertEqual([(n.start,n.duration,n.pitch,n.velocity) for n in r.notes],[(t,d,p+12,v) for t,d,p,v in before])
             self.w.undo();self.assertEqual([(n.start,n.duration,n.pitch,n.velocity) for n in r.notes],before);menu.deleteLater()
@@ -160,18 +162,18 @@ class OctaveTests(unittest.TestCase):
                 self.assertEqual([n.pitch for n in r.notes],[72,76],(role,floating))
                 QTest.keyClick(r,Qt.Key.Key_Down,Qt.KeyboardModifier.ControlModifier)
                 self.assertEqual([n.pitch for n in r.notes],[60,64])
-    def test_custom_binding_shows_in_floating_menu_and_old_conflicts_survive(self):
+    def test_fixed_octave_binding_shows_in_floating_menu_and_old_conflicts_are_migrated(self):
         bindings=load_bindings({'up':'Ctrl+Up'});validate(bindings)
-        self.assertEqual(bindings['up'],'Ctrl+Up');self.assertEqual(bindings['octave_up'],'')
+        self.assertEqual(bindings['up'],'Up');self.assertEqual(bindings['octave_up'],'Ctrl+Up')
         r,pane=self.select('harmony');pane.setFloating(True);self.w.keybindings['octave_up']='Alt+Up';self.w.keybindings['scale_up_alt']=''
         menu=QMenu();r.selection_menu(menu,0)
-        self.assertEqual(next(a for a in menu.actions() if a.data()=='octave_up').shortcut().toString(),'Alt+Up');menu.deleteLater()
-        pane.show();pane.activateWindow();r.setFocus();APP.processEvents();QTest.keyClick(r,Qt.Key.Key_Up,Qt.KeyboardModifier.AltModifier)
+        self.assertEqual(next(a for a in walk_actions(menu) if a.data()=='octave_up').shortcut().toString(),'Ctrl+Up');menu.deleteLater()
+        pane.show();pane.activateWindow();r.setFocus();APP.processEvents();QTest.keyClick(r,Qt.Key.Key_Up,Qt.KeyboardModifier.ControlModifier)
         self.assertEqual([n.pitch for n in r.notes],[72,76])
     def test_out_of_range_is_atomic_and_menu_is_disabled(self):
         r,_=self.select('melody');self.w.project.notes[1].pitch=108;self.w.refresh();before=self.w.project.to_dict()
         menu=QMenu();r.selection_menu(menu,0)
-        self.assertFalse(next(a for a in menu.actions() if a.data()=='octave_up').isEnabled());menu.deleteLater()
+        self.assertFalse(next(a for a in walk_actions(menu) if a.data()=='octave_up').isEnabled());menu.deleteLater()
         with patch('lingfeng.ui.main_window.QMessageBox.warning') as warning:self.w.note_command(r,'chromatic:12');warning.assert_called_once()
         self.assertEqual(self.w.project.to_dict(),before)
     def test_text_input_and_chord_selection_do_not_transpose_notes(self):

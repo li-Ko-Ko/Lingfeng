@@ -64,12 +64,18 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         preferences=load_preferences(user_data_dir());self._preferences=preferences
         from lingfeng.audio.velocity import set_options
         set_options(preferences.get('chord_velocity_options'))
+        from lingfeng.platform.chord_preferences import load_preferences as load_chord_preferences
+        load_chord_preferences(preferences)
+        from lingfeng.platform.rhythm_preferences import load_preferences as load_rhythm_preferences
+        load_rhythm_preferences(preferences)
+        from lingfeng.platform.context_menu_preferences import load_preferences as load_context_menu_preferences
+        load_context_menu_preferences(preferences)
         from lingfeng.music.chord_operations import set_quality_order
         from lingfeng.ui.keybindings import load_bindings, EditorKeys
         self.keybindings=load_bindings(preferences.get('keybindings',{}));self.editor_keys=EditorKeys(self);QApplication.instance().installEventFilter(self.editor_keys)
         set_quality_order(preferences.get('chord_order',[]))
         from lingfeng.ui.dialogs import chord_edit_defaults
-        self.chord_edit_options=chord_edit_defaults(preferences.get('chord_edit_options',{}))
+        self.chord_edit_options=chord_edit_defaults(preferences.get('chord_edit_options',{}),legacy='quick_chord_qualities' not in preferences)
         self.last_project_dir=preferences.get('last_project_dir',str(documents_dir()))
         from lingfeng.music.progressions import load_library
         self.progression_presets=load_library(preferences.get('progression_presets',[]),preferences.get('progression_catalog_version',0))
@@ -115,7 +121,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.score_style=QComboBox()
         for text,value in [(tr('立体简谱'),'spatial'),(tr('立体简谱 · 紧凑'),'compact'),(tr('传统简谱'),'traditional')]:self.score_style.addItem(text,value)
         self.score_style.currentIndexChanged.connect(lambda:self.set_notation('style',self.score_style.currentData()));st.addWidget(self.score_style)
-        self.score_selection=QComboBox();self.score_selection.addItem(tr('小节选择'),'measure');self.score_selection.addItem(tr('拍选择'),'beat');self.score_selection.currentIndexChanged.connect(lambda:self.score_view.canvas.set_selection_unit(self.score_selection.currentData()));st.addWidget(self.score_selection)
+        self.score_selection=QComboBox();self.score_selection.addItem(tr('小节选择'),'measure');self.score_selection.addItem(tr('拍选择'),'beat');self.score_selection.addItem(tr('音符选择'),'note');self.score_selection.currentIndexChanged.connect(lambda:self.score_view.canvas.set_selection_unit(self.score_selection.currentData()));st.addWidget(self.score_selection)
         def score_field(label,field,extra=None):
             group=QWidget();line=QHBoxLayout(group);line.setContentsMargins(0,0,0,0);line.setSpacing(6)
             text=QLabel(tr(label));text.setBuddy(field);line.addWidget(text);line.addWidget(field)
@@ -200,40 +206,52 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         edit.addSeparator();action(edit,tr('导入 MIDI 到旋律…'),lambda:self.import_midi('melody'));action(edit,tr('导入 MIDI 到和弦…'),lambda:self.import_midi('chords'));edit.addSeparator()
         action(edit,tr('作品信息…'),self.project_info)
         self.lyrics_action=action(edit,tr('歌词编辑器…'),self.batch_lyrics);self.lyrics_action.setVisible(self.workspace=='score')
-        settings=self.menuBar().addMenu(tr('设置'));action(settings,tr('音源与音色…'),self.sound_settings)
-        action(settings,tr('MIDI 键盘输入…'),self.midi_input_settings)
+        settings=self.menuBar().addMenu(tr('设置'))
+        audio=settings.addMenu(tr('音源与输入'))
+        action(audio,tr('音源与音色…'),self.sound_settings)
+        action(audio,tr('MIDI 键盘输入…'),self.midi_input_settings)
+        action(settings,tr('音符与力度…'),self.velocity_preferences)
+        chords=settings.addMenu(tr('和弦'))
+        action(chords,tr('和弦性质…'),self.chord_preferences)
+        action(chords,tr('管理和弦进行…'),self.progression_settings)
+        from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
+        self.rhythm_recognition_action=chords.addAction(tr('节奏型识别'))
+        self.rhythm_recognition_action.setCheckable(True);self.rhythm_recognition_action.setChecked(rhythm_recognition_enabled())
+        self.rhythm_recognition_action.setToolTip(tr('关闭后停止所有自动节奏型识别，和弦轨隐藏节奏型；编辑保留实际 MIDI。重新开启后沿用各和弦的独立识别设置。'))
+        self.rhythm_recognition_action.toggled.connect(self.change_rhythm_recognition)
         settings.addSeparator()
-        action(settings,tr('和弦菜单偏好…'),self.chord_preferences)
-        action(settings,tr('力度选项…'),self.velocity_preferences)
-        action(settings,tr('快捷键设置…'),self.keybinding_settings)
-        settings.addSeparator()
-        themes=settings.addMenu(tr('外观'));group=QActionGroup(self);group.setExclusive(True);self.theme_actions={}
+        roll_display=settings.addMenu(tr('卷帘显示'))
+        interface=settings.addMenu(tr('界面与操作'))
+        themes=interface.addMenu(tr('外观'));group=QActionGroup(self);group.setExclusive(True);self.theme_actions={}
         for label,code in [(tr('浅色'),'light'),(tr('深色'),'dark')]:
             item=action(themes,label,lambda checked=False,c=code:self.set_theme(c,True));item.setCheckable(True);group.addAction(item);self.theme_actions[code]=item
         import lingfeng.ui.theme as theme
-        self.note_degrees_action=settings.addAction(tr('显示音符音级数字'));self.note_degrees_action.setCheckable(True);self.note_degrees_action.setChecked(theme.SHOW_NOTE_DEGREES)
+        action(themes,tr('自定义色彩方案'),self.color_settings)
+        self.note_degrees_action=roll_display.addAction(tr('显示音符音级数字'));self.note_degrees_action.setCheckable(True);self.note_degrees_action.setChecked(theme.SHOW_NOTE_DEGREES)
         self.note_degrees_action.setToolTip(tr('全局显示或隐藏旋律、和弦卷帘音符上的 1–7 及变化音记号；不改变谱面或 MIDI。'))
         self.note_degrees_action.toggled.connect(self.change_note_degrees)
-        self.information_action=settings.addAction(tr('显示底部信息提示'));self.information_action.setCheckable(True);self.information_action.setChecked(self.show_information);self.information_action.toggled.connect(self.change_information)
-        ruler=settings.addMenu(tr('和弦轨辅助时间尺'));group=QActionGroup(self);group.setExclusive(True);self.chord_ruler_actions={}
+        self.information_action=interface.addAction(tr('显示底部信息提示'));self.information_action.setCheckable(True);self.information_action.setChecked(self.show_information);self.information_action.toggled.connect(self.change_information)
+        ruler=roll_display.addMenu(tr('和弦轨辅助时间尺'));group=QActionGroup(self);group.setExclusive(True);self.chord_ruler_actions={}
         for title,value in [('关闭',0),('1/4 拍',.25),('1/2 拍',.5),('1 拍',1),('2 拍',2),('1 小节','bar')]:
             item=ruler.addAction(tr(title));item.setCheckable(True);item.setChecked(value==self.chord_ruler_scale);group.addAction(item);self.chord_ruler_actions[value]=item
             item.triggered.connect(lambda checked=False,v=value:self.change_chord_ruler(v))
         ruler.setToolTipsVisible(True)
         for item in ruler.actions():item.setToolTip(tr('仅显示上下对称刻度；吸附仍使用当前窗口的主时间轴格点。'))
-        coloring=settings.addMenu(tr('卷帘染色'));self.coloring_actions={}
+        coloring=roll_display.addMenu(tr('卷帘染色'));self.coloring_actions={}
         for role,title,match in [('melody','旋律卷帘','按和弦音染色'),('harmony','和弦卷帘','按旋律音染色')]:
             sub=coloring.addMenu(tr(title))
             for key,label in [('match',match),('scale','按调内音染色')]:
                 item=sub.addAction(tr(label));item.setCheckable(True);item.setChecked(theme.ROLL_COLORING[role][key]);self.coloring_actions[role,key]=item
                 item.toggled.connect(lambda value,r=role,k=key:self.change_coloring(r,k,value))
-        coloring.addSeparator();action(coloring,tr('自定义色彩方案'),self.color_settings)
-        accidentals=settings.addMenu(tr('卷帘升降号偏好'));accidental_group=QActionGroup(self);accidental_group.setExclusive(True)
+        accidentals=roll_display.addMenu(tr('卷帘升降号偏好'));accidental_group=QActionGroup(self);accidental_group.setExclusive(True)
         for title,value in [('升号 #','sharp'),('降号 b','flat')]:
             item=accidentals.addAction(tr(title));item.setCheckable(True);item.setChecked(theme.ACCIDENTAL_PREFERENCE==value);accidental_group.addAction(item)
             item.triggered.connect(lambda checked=False,v=value:self.change_accidentals(v))
-        action(settings,tr('管理和弦进行…'),self.progression_settings)
-        languages=settings.addMenu(tr('语言 / Language'));language_group=QActionGroup(self);language_group.setExclusive(True)
+        interface.addSeparator()
+        action(interface,tr('右键菜单…'),self.context_menu_preferences)
+        action(interface,tr('快捷键设置…'),self.keybinding_settings)
+        interface.addSeparator()
+        languages=interface.addMenu(tr('语言 / Language'));language_group=QActionGroup(self);language_group.setExclusive(True)
         for label,code in [(tr('简体中文'),'zh'),('English','en')]:
             item=action(languages,label,lambda checked=False,c=code:self.change_language(c));item.setCheckable(True);item.setChecked(code==self.language);language_group.addAction(item)
         help_menu=self.menuBar().addMenu(tr('帮助'));action(help_menu,tr('操作说明'),self.help)
@@ -269,6 +287,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         before=HistoryState(self.project.to_dict(),location);trial=Project.from_dict(before)
         try:
             operation(trial);trial.fill_chord_gaps();trial.rescan_changed_harmony(before);trial.validate()
+            self.normalize_score_style(trial)
         except (ValueError,TypeError,KeyError) as exc:
             QMessageBox.warning(self,label,tr(str(exc)));return False
         session=getattr(self,'chord_move_session',None)
@@ -292,6 +311,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.transport_active=True;self.show_cursor(tick);self.update_transport_buttons()
 
     def refresh(self,score_spellings=False):
+        if self.normalize_score_style():self.dirty=True
         self.loading=True
         self.subtitle.setText(self.project.title+(tr('  ·  未保存') if self.dirty else tr('  ·  本地项目')))
         self.setWindowTitle(f"{self.project.title}{' *' if self.dirty else ''} — {'Lingfeng' if self.language=='en' else '伶风'}")
@@ -304,6 +324,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.roll.set_project(self.project)
         if self.workspace=='score':self.score_view.canvas.sync_presentation(self.project,score_spellings)
         self.score_style.setCurrentIndex(self.score_style.findData(self.project.notation['style']));self.perline.setCurrentIndex(self.perline.findData(self.project.notation['per_line']))
+        self.update_score_style_options()
         self.rowgap.setValue(self.project.notation['row_gap']);self.system_gap.setValue(self.project.notation.get('system_gap',12));self.circle.setChecked(self.project.notation['circles']);self.chromatic.setChecked(self.project.notation['color']);self.showlyrics.setChecked(self.project.notation['lyrics']);self.scale_lines.setChecked(self.project.notation.get('show_scale_lines',False));self.note_font.setValue(self.project.notation.get('font_size',15))
         self.compose_button.setChecked(self.workspace=='compose');self.score_button.setChecked(self.workspace=='score')
         self.rowgap.setEnabled(self.project.notation['style']!='traditional');self.rowgap.setToolTip(tr('控制立体与紧凑简谱的音高行距离；传统简谱不按音高分行。'))
@@ -312,7 +333,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if self.loop_range and self.loop_range[1]>self.project.end:
             self.loop_range=(self.loop_range[0],self.project.end) if self.loop_range[0]<self.project.end else None
             self.sync_loop_range();self.change_loop(self.loop.isChecked())
-        if getattr(self,'workspace_ready',False):self.logic_panel.refresh();self.lyric_panel.refresh();self.sync_views(self.roll);self.update_shared_views();self.update_transport_buttons()
+        if getattr(self,'workspace_ready',False):self.logic_panel.refresh();self.lyric_panel.refresh();self.annotation_panel.refresh();self.sync_views(self.roll);self.update_shared_views();self.update_transport_buttons()
 
     def switch_workspace(self,workspace,refresh_score=True):
         if workspace=='score' and not self.score_entry_allowed():return False
@@ -327,7 +348,9 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             self.melody_window.setFloating(False);self.harmony_window.setFloating(False)
         self.workspace=workspace;self.score_view.canvas.suspended=workspace!='score'
         self.stack.setCurrentWidget(self.compose if workspace=='compose' else self.score_page)
-        if workspace=='score' and refresh_score:self.score_view.canvas.rebuild(self.project)
+        if workspace=='score':
+            if refresh_score:self.score_view.canvas.rebuild(self.project)
+            else:self.score_view.canvas.sync_presentation(self.project)
         if workspace=='score':self.sync_score_font();self.show_cursor(self.playhead)
         self.lyrics_action.setVisible(workspace=='score')
         self.compose_button.setChecked(workspace=='compose');self.score_button.setChecked(workspace=='score')
@@ -342,27 +365,26 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         else:self.status_message(tr('Smart：空白拖动框选 · Draw：单击写入或删除，拖动编辑 · 右键复制变换'))
         return True
 
-    def score_entry_allowed(self,project=None,conflicts=None):
+    def normalize_score_style(self,project=None):
+        """Keep polyphonic music usable while retiring an incompatible style."""
         project=self.project if project is None else project
-        conflicts=overlap_conflicts(project.notes) if conflicts is None else conflicts
-        if not conflicts:return True
-        self.compose_button.setChecked(self.workspace=='compose');self.score_button.setChecked(self.workspace=='score')
-        details=[]
-        for conflict in conflicts:
-            bar=project.measure_at(min(conflict.start,project.end-1));beat=PPQ*4//project.measures[bar].denominator
-            number,remainder=divmod(conflict.start-project.starts[bar],beat)
-            where=tr('第 {0} 小节 · 第 {1} 拍 + {2} tick · tick {3}–{4}',bar+1,number+1,remainder,conflict.start,conflict.end)
-            notes='\n'.join(tr('{0}（MIDI {1}，ID {2}，tick {3}–{4}）',pitch_name(n.pitch),n.pitch,n.note_id,n.start,n.end) for n in conflict.notes)
-            details.append(where+'\n'+notes)
-        focus=QApplication.focusWidget()
-        box=QMessageBox(QMessageBox.Icon.Warning,tr('无法进入制谱'),
-            tr('旋律存在 {0} 处音符重叠。制谱目前仅支持严格单声部，请先在创作中修正。',len(conflicts)),
-            QMessageBox.StandardButton.Ok,self)
-        box.setInformativeText('\n\n'.join(details[:3]))
-        if len(details)>3:box.setDetailedText('\n\n'.join(details))
-        box.exec()
-        if focus is not None and focus.isVisible():focus.setFocus()
+        if project.notation['style']=='traditional' and overlap_conflicts(project.notes):
+            project.notation['style']='spatial'
+            return True
         return False
+
+    def update_score_style_options(self):
+        traditional=self.score_style.model().item(self.score_style.findData('traditional'))
+        traditional.setEnabled(not bool(overlap_conflicts(self.project.notes)))
+        traditional.setToolTip(tr('传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。') if not traditional.isEnabled() else '')
+
+    def score_entry_allowed(self,project=None,conflicts=None):
+        # Preserve the entry hook; polyphony only restricts traditional notation.
+        project=self.project if project is None else project
+        if self.normalize_score_style(project) and project is self.project:
+            self.dirty=True;self.refresh()
+        if project is self.project:self.update_score_style_options()
+        return True
 
     def change_score_zoom(self):
         if not hasattr(self,'score_view'):return
@@ -401,6 +423,11 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
 
     def score_font_project(self,project):
         if self.workspace!='score' or self.score_view.canvas.layout is None:return project
+        if (project.notation['style']=='traditional' and not overlap_conflicts(project.notes)
+                and overlap_conflicts(self.score_view.canvas.project.notes)):
+            # Selecting traditional notation replaces this incompatible snapshot;
+            # font advice must use the same repaired music as the new layout.
+            return project
         snapshot=copy.deepcopy(self.score_view.canvas.project)
         if snapshot.starts==project.starts:
             snapshot.notation=copy.deepcopy(project.notation)
@@ -473,19 +500,19 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         linked=self.rolls_linked();self.syncing_views=True
         try:
             target=self.harmony_window.roll if source is self.roll else self.roll
-            old_compact=target.compact;target_center=target.pitch_at(target.ruler_height+max(1,target.viewport().height()-target.ruler_height)/2)
+            old_range=(target.compact,target.pitch_range);target_center=target.pitch_at(target.ruler_height+max(1,target.viewport().height()-target.ruler_height)/2)
             pitches={n.pitch for n in self.project.notes+self.project.harmony_notes()} if linked else None
             for roll in (self.roll,self.harmony_window.roll):roll.shared_pitches=pitches
             if linked:
-                target.compact=source.compact
+                target.compact=source.compact;target.pitch_range=source.pitch_range;target.manual_pitch_range=source.manual_pitch_range
                 if target.row_height!=source.row_height:target.set_row_height(source.row_height)
                 for controls in (self.view_controls,self.harmony_window.view_controls):
-                    controls.range.blockSignals(True);controls.range.setCurrentIndex(int(source.compact));controls.range.blockSignals(False)
+                    controls.sync_range()
                     controls.height.blockSignals(True);controls.height.setValue(source.row_height);controls.height.blockSignals(False)
             source.update_ranges();target.update_ranges()
-            if linked and target.compact!=old_compact:
+            if linked and (target.compact,target.pitch_range)!=old_range:
                 pitches=sorted({n.pitch for n in target.notes})
-                target.center_pitch(pitches[len(pitches)//2] if pitches else target_center)
+                target.center_pitch(sum(target.pitch_range)/2 if target.pitch_range else pitches[len(pitches)//2] if pitches else target_center)
             target.refresh();source.refresh()
         finally:self.syncing_views=False
         self.update_shared_views()
@@ -585,7 +612,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             return
         if chords:
             if command in ('up','down') and roll.selected_chords:
-                if all(c.recognized for c in self.project.chords if c.id in roll.selected_chords):self.chord_command('root_step:'+str(1 if command=='up' else -1),set(roll.selected_chords),roll)
+                if all(c.recognized and not c.recognition_disabled for c in self.project.chords if c.id in roll.selected_chords):self.chord_command('root_step:'+str(1 if command=='up' else -1),set(roll.selected_chords),roll)
                 else:self.status_message(tr('更换根音要求所选和弦属性均可识别。'))
             elif command in ('scale_up','scale_down') and roll.selected_chords:
                 from lingfeng.music.chord_operations import can_move_diatonic
@@ -632,6 +659,11 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
                 added=copy.deepcopy(notes)
                 for n in added:n.pitch+=int(command.split(':')[1])
                 if any(not 21<=n.pitch<=108 for n in added):raise ValueError(tr('变换后的音符超出 88 键范围。'))
+            elif command.startswith('velocity:'):
+                value=int(command.split(':',1)[1])
+                if not 1<=value<=127:raise ValueError(tr('音高或力度无效。'))
+                added=copy.deepcopy(notes)
+                for n in added:n.velocity=value
             elif command in ('up','down'):added=shift_in_scale(notes,self.project,1 if command=='up' else -1)
             elif command=='join':added=join_notes(notes)
             elif command=='split':added=split_notes(notes,roll.grid)
@@ -752,6 +784,10 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
 
     def set_notation(self,key,value):
         if not self.loading:
+            if key=='style' and value=='traditional' and overlap_conflicts(self.project.notes):
+                self.refresh()
+                self.status_message(tr('传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。'))
+                return
             def op(p):
                 p.notation[key]=value
                 p.notation['font_layout_version']=45
@@ -825,7 +861,14 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             for event in self.project.chords:
                 if event.start<b and event.end>a:
                     from lingfeng.music.meter import signature
-                    chord_meters.append(signature(self.project,event.start));c=event.clip(max(event.start,a),min(event.end,b));c.start-=anchor;chords.append(c)
+                    left,right=max(event.start,a),min(event.end,b)
+                    identities={(max(n.start,left)-left,n.pitch):n.event_id or n.id
+                                for n in event.render_notes() if n.start<right and n.end>left}
+                    chord_meters.append(signature(self.project,event.start));c=event.clip(left,right)
+                    # Range clips retain shared MIDI sustains; paste gives the
+                    # whole copied group a fresh, independent identity mapping.
+                    for n in c.notes:n.event_id=identities[(n.start,n.pitch)]
+                    c.start-=anchor;chords.append(c)
         self.clipboard_meters=chord_meters
         self.clipboard=(notes,chords,limit-anchor);self.status_message(tr('已复制 {0} 个音符与 {1} 个和弦；在目标选区按 Ctrl+V', len(notes), len(chords)))
 
@@ -850,21 +893,18 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if self.note_clipboard and self.clipboard_kind in ('notes',None):
             roll=self.active_roll();self.note_command(roll,'paste',roll.position_tick());return
         if not self.clipboard:return
-        notes,chords,length=self.clipboard;start=self.roll.selection[0][0]
-        if start+length>self.project.end:QMessageBox.warning(self,tr('粘贴'),tr('项目长度不够，请先增加小节。'));return
+        notes,chords,length=self.clipboard
+        if not self.roll.selection:return
+        start=self.roll.selection[0][0]
+        if not 0<=start<self.project.end:return
         from lingfeng.music.chord_operations import ChordClipboard
-        for c,meter in zip(chords,getattr(self,'clipboard_meters',[(4,4)]*len(chords))):
-            if not ChordClipboard([c],(meter,)).can_paste(self.project,start+c.start):self.status_message(tr('粘贴范围必须完整位于匹配的拍号区间内。'));return
         def op(p):
             from lingfeng.engraving.lyrics import detach
             detach(p)
             for old in notes:
-                n=copy.deepcopy(old);n.id=uid();n.start+=start;n.lyric='';p.add_note(n,overwrite=True)
-            for old in chords:
-                c=copy.deepcopy(old);c.id=uid();c.start+=start
-                if c.notes is not None:
-                    for n in c.notes:n.id=uid()
-                p.put_chord(c)
+                n=copy.deepcopy(old);n.id=uid();n.start+=start;n.duration=min(n.duration,p.end-n.start);n.lyric=''
+                if n.duration>0:p.add_note(n,overwrite=True)
+            ChordClipboard(chords).paste(p,start,packed=False)
         self.mutate(tr('已粘贴选区'),op)
 
     def undo(self):
@@ -877,10 +917,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         from lingfeng.audio.velocity import options as velocity_options
         from lingfeng.ui.theme import CUSTOM_PALETTES, ROLL_COLORING, SHOW_NOTE_DEGREES, ACCIDENTAL_PREFERENCE
         from lingfeng.music.chord_operations import QUALITY_ORDER
+        from lingfeng.platform.chord_preferences import settings_dict
+        from lingfeng.platform.context_menu_preferences import settings_dict as menu_settings_dict
+        from lingfeng.platform.rhythm_preferences import settings_dict as rhythm_settings_dict
         from lingfeng.music.progression_catalog import CATALOG_VERSION
         try:
             from lingfeng.platform.preferences import save_preferences
-            self._preferences=save_preferences(user_data_dir(),{'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'chord_velocity_options':velocity_options(),'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE},getattr(self,'_preferences',{}))
+            self._preferences=save_preferences(user_data_dir(),{'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'chord_velocity_options':velocity_options(),'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE,**settings_dict(),**menu_settings_dict(),**rhythm_settings_dict()},getattr(self,'_preferences',{}))
         except OSError as exc:self.status_message(tr('偏好设置未保存：{0}',exc))
 
     def change_language(self,language,persist=True):
@@ -888,7 +931,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         workspace=self.workspace;editing=self.edit_toggle.isChecked();theme='dark' if is_dark() else 'light'
         session=dict(mutes={k:b.isChecked() for k,b in self.mute_buttons.items()},loop=self.loop.isChecked(),follow=self.follow_playhead.isChecked(),dock_height=self.dock_height.currentData())
         session.update(visibility={k:a.isChecked() for k,a in self.visibility_actions.items()},melody_float=self.melody_window.isFloating(),score_float=self.score_tools.isFloating(),tab=self.score_tabs.currentIndex(),logic=self.logic_panel.export_state(),track_sizes=self.tracks.sizes())
-        session['timeline_views']=[dict(zoom=r.zoom,scroll=r.horizontalScrollBar().value(),grid=r.grid,grid_bars=r.grid_bars,height=r.row_height,compact=r.compact) for r in (self.main_roll,self.roll,self.harmony_window.roll)]
+        session['timeline_views']=[dict(zoom=r.zoom,scroll=r.horizontalScrollBar().value(),grid=r.grid,grid_bars=r.grid_bars,height=r.row_height,compact=r.compact,pitch_range=r.pitch_range,manual_pitch_range=r.manual_pitch_range) for r in (self.main_roll,self.roll,self.harmony_window.roll)]
         session['timeline_sync']=(self.melody_sync.isChecked(),self.harmony_window.sync.isChecked());session['view_follow']=(self.melody_transport.follow.isChecked(),self.harmony_window.transport_controls.follow.isChecked());session['compose_floats']=self.compose_float_state
         session['float_open']=(self.melody_window.floating_visible,self.harmony_window.floating_visible)
         session['compose_view_state']=getattr(self,'compose_view_state',None);session['compose_float_open']=getattr(self,'compose_float_open',None)
@@ -897,7 +940,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         session['floating_melody_chords']=self.floating_melody_chords
         session['chord_velocity']=[lane.velocity_visible for lane in (self.chord_lane,self.roll.lane,self.harmony_window.roll.lane)]
         harmony=self.harmony_window.roll;session['harmony_tools']=(self.harmony_window.grid.currentIndex(),self.harmony_window.grid.triplet,self.harmony_window.length.currentIndex(),self.harmony_window.length.triplet,self.harmony_window.dotted.isChecked(),harmony.previous_duration,harmony.previous_note_id);session['harmony_pitch']=harmony.pitch_at(harmony.ruler_height+max(1,harmony.viewport().height()-harmony.ruler_height)/2)
-        canvas=self.score_view.canvas;session['score_selection']=(canvas.selection_unit,set(canvas.selected_bars),set(canvas.selected_beats),canvas.selection_anchor)
+        canvas=self.score_view.canvas;session['score_selection']=(canvas.selection_unit,set(canvas.selected_bars),set(canvas.selected_beats),canvas.selection_anchor,set(canvas.selected_notes))
         session['score_snapshot']=(canvas.project,canvas.layout)
         session['score_view']=(self.score_view.zoom_mode,canvas.scale,self.score_view.horizontalScrollBar().value(),self.score_view.verticalScrollBar().value())
         roll=self.roll;view=dict(compact=roll.compact,height=roll.row_height,zoom=roll.zoom,panels=dict(roll.panels),selected=set(roll.selected_ids),selection=copy.deepcopy(roll.selection),tool=roll.tool,grid=self.grid.currentIndex(),triplet=self.grid.triplet,length=self.length.currentIndex(),dotted=self.dotted.isChecked(),length_triplet=self.length.triplet,previous=roll.previous_duration,previous_id=roll.previous_note_id,scroll=roll.horizontalScrollBar().value(),pitch=roll.pitch_at(roll.ruler_height+max(1,roll.viewport().height()-roll.ruler_height)/2))
@@ -932,7 +975,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         for key,value in view['panels'].items():self.view_controls.panel_actions[key].setChecked(value)
         self.roll.selected_ids=view['selected'];self.roll.selection=view['selection'];self.roll.has_note_clipboard=self.note_clipboard is not None
         self.score_view.canvas.has_note_clipboard=self.note_clipboard is not None
-        unit,bars,beats,anchor=session['score_selection'];self.score_selection.setCurrentIndex(self.score_selection.findData(unit));self.score_view.canvas.selected_bars=bars;self.score_view.canvas.selected_beats=beats;self.score_view.canvas.selection_anchor=anchor
+        unit,bars,beats,anchor,notes=session['score_selection'];self.score_selection.setCurrentIndex(self.score_selection.findData(unit));self.score_view.canvas.selected_bars=bars;self.score_view.canvas.selected_beats=beats;self.score_view.canvas.selected_notes=notes;self.score_view.canvas.selection_anchor=anchor
         for key,value in session['visibility'].items():self.visibility_actions[key].setChecked(value)
         self.melody_window.setFloating(session['melody_float']);self.score_tools.setFloating(session['score_float']);self.score_tabs.setCurrentIndex(session['tab']);self.logic_panel.restore_state(session['logic'])
         if workspace=='score':
@@ -947,7 +990,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             self.compose_float_state=session['compose_floats']
             if session['compose_view_state'] is not None:self.compose_view_state=session['compose_view_state']
             if session['compose_float_open'] is not None:self.compose_float_open=session['compose_float_open']
-        self.score_panel_state={key:session['score_panels'].get(key,dict(visible=True,floating=False)) for key in self.score_pages};self.mount_panels()
+        self.score_panel_state={key:session['score_panels'].get(key,dict(visible=False,floating=False)) for key in self.score_pages};self.mount_panels()
         for key,geometry in session['score_geometry'].items():
             if key in self.score_floats:self.score_floats[key].restoreGeometry(geometry)
         if session['score_active'] in self.score_pages:self.score_tabs.setCurrentWidget(self.score_pages[session['score_active']])
@@ -959,11 +1002,11 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.syncing_views=True;self.syncing_time=True
         try:
             for r,state in zip((self.main_roll,self.roll,self.harmony_window.roll),session['timeline_views']):
-                r.zoom=state['zoom'];r.grid=state['grid'];r.grid_bars=state['grid_bars'];r.compact=state['compact'];r.set_row_height(state['height']);r.update_ranges();r.horizontalScrollBar().setValue(state['scroll'])
+                r.zoom=state['zoom'];r.grid=state['grid'];r.grid_bars=state['grid_bars'];r.compact=state['compact'];r.pitch_range=state['pitch_range'];r.manual_pitch_range=state['manual_pitch_range'];r.set_row_height(state['height']);r.update_ranges();r.horizontalScrollBar().setValue(state['scroll'])
                 if r is not self.main_roll:
                     controls=self.view_controls if r is self.roll else self.harmony_window.view_controls
                     controls.height.blockSignals(True);controls.height.setValue(state['height']);controls.height.blockSignals(False)
-                    controls.range.blockSignals(True);controls.range.setCurrentIndex(int(state['compact']));controls.range.blockSignals(False)
+                    controls.sync_range()
         finally:self.syncing_views=False;self.syncing_time=False
         if workspace=='compose':QTimer.singleShot(0,self,lambda:self.tracks.setSizes(session['track_sizes']))
         self.show_cursor(self.playhead);QTimer.singleShot(0,self,lambda:self.roll.center_pitch(view['pitch']));QTimer.singleShot(0,self,lambda:self.harmony_window.roll.center_pitch(session['harmony_pitch']))
@@ -992,6 +1035,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
     def change_note_degrees(self,visible):
         set_note_degrees(visible)
         for r in (self.roll,self.harmony_window.roll):r.refresh()
+        self.save_preferences()
+
+    def change_rhythm_recognition(self,enabled):
+        from lingfeng.platform.rhythm_preferences import set_enabled
+        set_enabled(enabled)
+        for roll in (self.roll,self.main_roll,self.harmony_window.roll):roll.refresh()
+        self.chord_lane.update();self.harmony_window.refresh_summary()
         self.save_preferences()
 
     def update_transport_buttons(self):
@@ -1188,8 +1238,6 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         return self.save() if result==QMessageBox.StandardButton.Save else result==QMessageBox.StandardButton.Discard
 
     def replace_project(self,p,path=None):
-        conflicts=overlap_conflicts(p.notes) if self.workspace=='score' else ()
-        if conflicts:self.switch_workspace('compose')
         self.score_view.canvas.clear_layout()
         if not p.chords:p.fill_chord_gaps()
         for roll in (self.roll,self.harmony_window.roll):roll.previous_duration=None;roll.previous_note_id=''
@@ -1202,7 +1250,6 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             if p.notation.get('font_layout_version')!=45:self.prepare_score_font()
             self.prepare_recommended_score_font()
             self.score_view.canvas.rebuild(self.project)
-        elif conflicts:self.score_entry_allowed(p,conflicts)
 
     def new(self):
         if self.maybe_save():self.replace_project(Project(title=tr('未命名作品')))
@@ -1266,17 +1313,27 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         HelpDialog(self).exec()
 
     def chord_preferences(self):
-        from lingfeng.ui.dialogs import ChordPreferenceDialog
-        from lingfeng.music.chord_operations import set_quality_order
-        dialog=ChordPreferenceDialog(self)
-        if dialog.exec()==QDialog.DialogCode.Accepted:set_quality_order(dialog.value());self.save_preferences()
+        from lingfeng.ui.chord_settings_dialog import ChordSettingsDialog
+        from lingfeng.platform.chord_preferences import set_preferences, settings_dict
+        dialog=ChordSettingsDialog(self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            set_preferences({**settings_dict(),**dialog.value()});self.save_preferences()
+
+    def context_menu_preferences(self):
+        from lingfeng.ui.context_menu_settings_dialog import ContextMenuSettingsDialog
+        from lingfeng.platform.context_menu_preferences import set_preferences
+        dialog=ContextMenuSettingsDialog(self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            set_preferences(dialog.value());self.save_preferences()
 
     def velocity_preferences(self):
         from lingfeng.audio.velocity import options, set_options
-        from lingfeng.ui.velocity_dialog import VelocityOptionsDialog
-        dialog=VelocityOptionsDialog(options(),self.project.audio['chords'],self)
+        from lingfeng.platform.chord_preferences import set_preferences, settings_dict
+        from lingfeng.ui.velocity_dialog import DynamicsSettingsDialog
+        dialog=DynamicsSettingsDialog(options(),self.project.audio['chords'],self)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            set_options(dialog.value());self.save_preferences()
+            values=dialog.value()
+            set_preferences({**settings_dict(),**values});set_options(values['chord_velocity_options']);self.save_preferences()
 
     def progression_settings(self,query='',source=None,ids=None):
         from lingfeng.ui.progression_dialogs import ProgressionManagerDialog
@@ -1318,7 +1375,8 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if dialog.exec()==QDialog.DialogCode.Accepted:set_roll_palettes(dialog.values);self.save_preferences()
 
     def score_command(self,command,payload):
-        if command.startswith(('compress:','symbol:')) or command in ('expand','clear_symbols','remove_structure'):return
+        if command.startswith('compress:') or command=='expand':return
+        if command=='remove_structure' and payload.get('key',(None,))[0]!='symbols':return
         if not self.score_structure_current():return
         bars=payload['bars'];ranges=payload['ranges']
         if command=='delete_bars':self.delete_measures(bars);return
@@ -1334,6 +1392,9 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             elif command.startswith('symbol:'):
                 if len(ranges)!=1:raise ValueError(tr('请选择连续的小节或拍。'))
                 add_annotation(p,command.split(':')[1],*ranges[0])
+            elif command=='slur':
+                from lingfeng.engraving.presentation import add_slur
+                add_slur(p,payload.get('note_ids',[]))
             elif command=='clear_symbols':p.notation['symbols']=[item for item in p.notation.get('symbols',[]) if not any(item['start']<b and a<item['end'] for a,b in ranges)]
             elif command=='remove_structure':
                 key,index=payload['key']

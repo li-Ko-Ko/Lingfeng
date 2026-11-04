@@ -18,6 +18,7 @@ from lingfeng.audio.midi_input import WinMidiInput, commit_notes
 from lingfeng.engraving.notation import ScoreLayout
 from lingfeng.audio.midi import export_midi
 from lingfeng.platform.i18n import set_language
+from tests.menu_helpers import find_action
 
 APP=QApplication.instance() or QApplication([])
 
@@ -34,12 +35,12 @@ class MusicTests(unittest.TestCase):
             with self.assertRaises(ValueError):split_notes([Note(0,duration,60)])
 
     def test_structural_expansion_replaces_covered_neighbor_with_custom_silence(self):
-        p=Project();p.chords=[Chord(0,3840,notes=[Note(0,3840,60,91),Note(0,3840,64,85)]),Chord(3840,3840,notes=[Note(0,3840,67,73)])]
+        p=Project();p.chords=[Chord(0,3840,notes=[Note(0,3840,60,91),Note(0,3840,61,85)]),Chord(3840,3840,notes=[Note(0,3840,67,73)])]
         before=p.harmony_notes();cid=p.chords[0].id
         repartition_chord(p,cid,0,4320)
-        self.assertEqual({n.pitch for n in p.chords[0].notes},{60,64})
-        # Incomplete MIDI is rescanned after a region edit; C/E alone does not
-        # establish the formerly declared complete C triad.
+        self.assertEqual({n.pitch for n in p.chords[0].notes},{60,61})
+        # Unsupported MIDI is rescanned after a region edit. C/Db is still
+        # unknown; C/E now has the supported omitted-fifth quality no5.
         self.assertFalse(p.chords[0].recognized)
         after=p.harmony_notes()
         for t in list(range(0,3840,40))+list(range(4320,7680,40)):
@@ -180,9 +181,9 @@ class InputTests(unittest.TestCase):
 
     def test_quantize_only_in_selected_note_context_menu(self):
         r=self.w.roll;self.assertFalse(hasattr(self.w,'quantize_button'))
-        menu=QMenu();r.selection_menu(menu,0);self.assertFalse(next(a for a in menu.actions() if a.text()=='按当前格点量化').isEnabled())
+        menu=QMenu();r.selection_menu(menu,0);self.assertFalse(find_action(menu,'按当前格点量化').isEnabled())
         n=Note(277,480,60);self.w.project.notes=[n];self.w.refresh();r.selected_ids={n.id}
-        menu=QMenu();r.selection_menu(menu,0);next(a for a in menu.actions() if a.text()=='按当前格点量化').trigger();self.assertEqual(self.w.project.notes[0].start,240)
+        menu=QMenu();r.selection_menu(menu,0);find_action(menu,'按当前格点量化').trigger();self.assertEqual(self.w.project.notes[0].start,240)
 
 
 if __name__=='__main__':unittest.main()

@@ -10,6 +10,7 @@ from lingfeng.music.model import Project, Chord, Note, MODES, QUALITIES, PATTERN
 from lingfeng.music.recognition import recognize, chord_inversion
 from lingfeng.music.chord_operations import diatonic_chord, can_move_diatonic, change_chords
 from lingfeng.ui.keybindings import normalized, load_bindings
+from tests.menu_helpers import find_action
 
 APP=QApplication.instance() or QApplication([])
 
@@ -86,20 +87,20 @@ class WorkspaceTests(unittest.TestCase):
         QTest.qWait(30)
     def tearDown(self):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.hook.stop();self.warning.stop();self.assertFalse(self.errors)
-    def test_w_s_semitones_alt_w_s_diatonic_menu_and_text_focus(self):
+    def test_arrows_semitones_alt_arrows_diatonic_menu_and_text_focus(self):
         w=self.w;r=w.roll;r.selected_ids={w.project.notes[0].id};r.setFocus();w.activateWindow();APP.processEvents()
-        QTest.keyClick(r,Qt.Key.Key_W);self.assertEqual(w.project.notes[0].pitch,61)
-        QTest.keyClick(r,Qt.Key.Key_S);self.assertEqual(w.project.notes[0].pitch,60)
-        QTest.keyClick(r,Qt.Key.Key_W,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.notes[0].pitch,62)
-        menu=QMenu();r.selection_menu(menu,0);next(a for a in menu.actions() if a.text()=='降低半音').trigger();self.assertEqual(w.project.notes[0].pitch,61)
-        next(a for a in menu.actions() if a.text().split('\t')[0]=='调内下移一级').trigger();self.assertEqual(w.project.notes[0].pitch,60)
+        QTest.keyClick(r,Qt.Key.Key_Up);self.assertEqual(w.project.notes[0].pitch,61)
+        QTest.keyClick(r,Qt.Key.Key_Down);self.assertEqual(w.project.notes[0].pitch,60)
+        QTest.keyClick(r,Qt.Key.Key_Up,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.notes[0].pitch,62)
+        menu=QMenu();r.selection_menu(menu,0);find_action(menu,'降低半音').trigger();self.assertEqual(w.project.notes[0].pitch,61)
+        find_action(menu,'调内下移一级').trigger();self.assertEqual(w.project.notes[0].pitch,60)
         field=QLineEdit(w);field.show();field.setFocus();APP.processEvents();QTest.keyClicks(field,'ws');self.assertEqual(field.text(),'ws');self.assertEqual(w.project.notes[0].pitch,60)
-        self.assertEqual(load_bindings({'up':'I'})['scale_up'],'Alt+W')
-        migrated=load_bindings({'up':'Alt+W','left':'J'});self.assertEqual(migrated['up'],'Alt+W');self.assertEqual(migrated['left'],'J');self.assertEqual(migrated['scale_up'],'')
+        self.assertEqual(load_bindings({'up':'I'})['scale_up'],'Alt+Up')
+        migrated=load_bindings({'up':'Alt+W','left':'J'});self.assertEqual(migrated['up'],'Up');self.assertEqual(migrated['left'],'Left');self.assertEqual(migrated['scale_up'],'Alt+Up')
     def test_chord_keys_menu_and_live_undo(self):
         w=self.w;c=w.project.chords[0];lane=w.chord_lane;r=lane.editor;lane.selection_event({c.id});r.edit_target='chords';w.activateWindow();lane.setFocus();APP.processEvents()
         w.toggle_play();worker=w.transport.thread;clock=w.transport.start_time
-        QTest.keyClick(lane,Qt.Key.Key_W);self.assertEqual((w.project.chords[0].name,chord_inversion(w.project.chords[0])),('C#',0))
+        QTest.keyClick(lane,Qt.Key.Key_Up);self.assertEqual((w.project.chords[0].name,chord_inversion(w.project.chords[0])),('C#',0))
         self.assertIs(w.transport.thread,worker);self.assertEqual(w.transport.start_time,clock)
         w.undo();self.assertEqual(w.project.chords[0].name,'C/E');w.redo();self.assertEqual(w.project.chords[0].name,'C#');w.stop()
         menu=lane.context_menu(QPoint(round(lane.x_at(960)),25));self.assertTrue(menu.move_menu.actions()[0].isEnabled())

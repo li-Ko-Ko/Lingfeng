@@ -73,6 +73,7 @@ def label_color(background):
     return QColor('#17202C' if background.lightnessF()>.57 else '#FFFFFF')
 
 DARK_COLORS={
+    '#fff5e4':'#382F23','#c39245':'#D6A953','#8c5d24':'#E2C18B',
     '#c9d5e3':'#405168','#9aaec6':'#6B839E','#d2dce8':'#384B62',
     '#ffffff':'#17202C','#fafbfd':'#1B2533','#f9fbfd':'#1B2533','#fcfdfe':'#18212E',
     '#f8fafc':'#202C3B','#edf2f7':'#18222F','#edf1f6':'#263242','#e5edf6':'#30415A',
@@ -103,6 +104,7 @@ def stylesheet(dark=False):
     check=(resource_root()/'assets'/'check.svg').as_posix()
     return f'''
     QWidget {{font-family:"Microsoft YaHei";font-size:12px;color:{text};}}
+    QMenu[editorContextMenu="true"]::item {{padding:4px 24px 4px 20px;}}
     QMainWindow,QWidget#shell,QDialog {{background:{bg};}}
     QFrame#header {{background:{surface};border-bottom:1px solid {border};}}
     QFrame#editorCard,QFrame#harmonyDock {{background:{surface};border:1px solid {border};border-radius:8px;}}

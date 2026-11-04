@@ -45,20 +45,20 @@ class InterfaceTests(unittest.TestCase):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.save.stop()
     def focus(self,widget):widget.window().activateWindow();widget.setFocus();APP.processEvents()
 
-    def test_arrows_browse_main_chord_lane_without_editing_or_seeking(self):
+    def test_camera_command_browses_main_chord_lane_without_editing_or_seeking(self):
         w=self.w;lane=w.chord_lane;r=lane.editor;lane.selection_event({w.project.chords[0].id});r.edit_target='chords';self.focus(lane)
         before=w.project.to_dict();head=w.playhead;scroll=r.horizontalScrollBar().value()
-        QTest.keyClick(lane,Qt.Key.Key_Right);self.assertGreater(r.horizontalScrollBar().value(),scroll)
+        w.editor_key_command('view_right');self.assertGreater(r.horizontalScrollBar().value(),scroll)
         self.assertEqual(r.horizontalScrollBar().value(),w.shared_scroll.value());self.assertFalse(w.follow_playhead.isChecked())
-        QTest.keyClick(lane,Qt.Key.Key_Left);self.assertEqual(r.horizontalScrollBar().value(),scroll)
+        w.editor_key_command('view_left');self.assertEqual(r.horizontalScrollBar().value(),scroll)
         self.assertEqual(w.project.to_dict(),before);self.assertEqual(w.playhead,head)
 
-    def test_arrows_browse_independent_window_and_ad_still_follows_moved_chords(self):
+    def test_camera_command_browses_independent_window_and_arrows_follow_moved_chords(self):
         w=self.w;w.open_harmony();w.harmony_window.setFloating(True);w.harmony_window.sync.setChecked(False);APP.processEvents()
         r=w.harmony_window.roll;r.zoom=600;r.update_ranges();r.timeViewChanged.emit();r.lane.selection_event({w.project.chords[0].id});r.edit_target='chords';self.focus(r.lane)
         main=w.main_roll.horizontalScrollBar().value();start=w.project.chords[0].start
-        QTest.keyClick(r.lane,Qt.Key.Key_Right);self.assertGreater(r.horizontalScrollBar().value(),0);self.assertEqual(w.main_roll.horizontalScrollBar().value(),main);self.assertEqual(w.project.chords[0].start,start)
-        for _ in range(10):QTest.keyClick(r.lane,Qt.Key.Key_D)
+        w.editor_key_command('view_right');self.assertGreater(r.horizontalScrollBar().value(),0);self.assertEqual(w.main_roll.horizontalScrollBar().value(),main);self.assertEqual(w.project.chords[0].start,start)
+        for _ in range(10):QTest.keyClick(r.lane,Qt.Key.Key_Right)
         self.assertGreater(r.horizontalScrollBar().value(),100);self.assertEqual(w.main_roll.horizontalScrollBar().value(),main)
         self.assertFalse(w.harmony_window.transport_controls.follow.isChecked())
 

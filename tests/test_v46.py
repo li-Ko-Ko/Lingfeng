@@ -136,6 +136,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(w.score_view.zoom_mode,'manual');self.assertAlmostEqual(w.score_view.canvas.scale,1.7)
     def test_double_bar_header_in_both_docked_rolls_locates_score_without_editing(self):
         w=self.w;w.switch_workspace('score');w.edit_toggle.setChecked(True);w.toggle_editor();w.score_view.set_zoom(1.5)
+        for key in ('melody','harmony'):w.show_score_panel(key)
         before=w.project.to_dict()
         for tab,roll in enumerate((w.roll,w.harmony_window.roll)):
             w.score_tabs.setCurrentIndex(tab);QTest.qWait(20);roll.ensure_tick(w.project.starts[20]);APP.processEvents()

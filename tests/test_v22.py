@@ -19,7 +19,10 @@ from tests.music_reference import bar_events
 APP=QApplication.instance() or QApplication([])
 sig=lambda ns:sorted((n.start,n.duration,n.pitch,n.velocity) for n in ns)
 labels=lambda menu:[a.text() for a in menu.actions()]
-find=lambda menu,text:next(a for a in menu.actions() if a.text()==text)
+def menu_actions(menu):
+    return [action for action in menu.actions()]+[child for action in menu.actions() if action.menu() for child in menu_actions(action.menu())]
+
+find=lambda menu,text:next(a for a in menu_actions(menu) if a.text()==text)
 
 class MusicTests(unittest.TestCase):
     def test_custom_lock_roundtrip_move_resize_and_unlock_are_lossless(self):
@@ -87,13 +90,15 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(find(single,'编辑和弦…').isEnabled());self.assertFalse(find(single,'合并相邻和弦').isEnabled())
         lane.selection_event({a.id,b.id});multi=lane.context_menu(point)
         self.assertEqual(labels(single),labels(multi));self.assertFalse(find(multi,'编辑和弦…').isEnabled());self.assertFalse(multi.root_menu.isEnabled())
-        self.assertTrue(find(multi,'合并相邻和弦').isEnabled());self.assertTrue(find(multi,'试听实际和弦').isEnabled())
+        self.assertTrue(find(multi,'合并相邻和弦').isEnabled());self.assertTrue(find(multi,'试听和弦').isEnabled())
         multi.custom_rhythm_action.trigger();self.assertTrue(all(c.custom_rhythm for c in w.project.chords if c.notes!=[]))
-        w.project.chords=[c for c in w.project.chords if c.notes!=[]];w.refresh();lane.selection_event(set());blank=lane.context_menu(QPoint(round(lane.x_at(9000)),25));self.assertEqual(labels(single),labels(blank));self.assertFalse(find(blank,'复制所选和弦').isEnabled())
+        w.project.chords=[c for c in w.project.chords if c.notes!=[]];w.refresh();lane.selection_event(set());blank=lane.context_menu(QPoint(round(lane.x_at(9000)),25))
+        expected=[label.replace('在此和弦开头覆盖粘贴','在此粘贴和弦') for label in labels(single)]
+        self.assertEqual(expected,labels(blank));self.assertFalse(find(blank,'复制所选和弦').isEnabled())
     def test_note_menu_same_list_properties_single_only_and_no_time_commands(self):
         r=self.w.roll;r.selected_ids={self.w.project.notes[0].id};r.refresh();one=QMenu();r.selection_menu(one,0)
         r.selected_ids={n.id for n in self.w.project.notes};r.refresh();many=QMenu();r.selection_menu(many,0)
-        self.assertEqual(labels(one),labels(many));self.assertTrue(find(one,'音符属性…').isEnabled());self.assertFalse(find(many,'音符属性…').isEnabled())
+        self.assertEqual(labels(one),labels(many));self.assertTrue(find(one,'编辑音符…').isEnabled());self.assertFalse(find(many,'编辑音符…').isEnabled())
         self.assertFalse(find(one,'合并相邻音符').isEnabled());self.assertTrue(find(many,'合并相邻音符').isEnabled())
         blank=r.note_menu(QPoint(round(r.x_at(960)),r.ruler_height+10));self.assertFalse(any('小节' in x for x in labels(blank)))
     def test_timeline_menu_has_only_bar_actions_and_disables_nonbroadcast_commands(self):
@@ -110,7 +115,7 @@ class InterfaceTests(unittest.TestCase):
             self.assertTrue(w.harmony_window.isVisible());self.assertEqual(r.selected_chords,{cid});self.assertLessEqual(r.x_at(24000),r.viewport().width())
             self.assertGreaterEqual(r.x_at(24000),66);self.assertEqual(w.playhead,head)
         w.harmony_window.setFloating(False);w.switch_workspace('score');w.score_tabs.setCurrentIndex(2);w.set_score_panel_visible('harmony',False);w.open_harmony(cid);QTest.qWait(30)
-        self.assertEqual(w.score_tabs.currentIndex(),1);self.assertTrue(w.score_panel_state['harmony']['visible']);self.assertEqual(w.playhead,head)
+        self.assertIs(w.score_tabs.currentWidget(),w.score_harmony_page);self.assertTrue(w.score_panel_state['harmony']['visible']);self.assertEqual(w.playhead,head)
         before=w.score_tabs.currentIndex();w.open_harmony(cid);self.assertEqual(w.score_tabs.currentIndex(),before)
     def test_language_rebuild_with_inspected_chord_does_not_reset_note_selection_or_view(self):
         w=self.w;w.open_harmony(w.project.chords[0].id);QTest.qWait(10)
@@ -125,14 +130,14 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(heard,[w.project.chords[0].pitches]*2);self.assertAlmostEqual(holds[0],4*60/w.project.bpm)
             lane.selection_event({w.project.chords[0].id});lane.setFocus();APP.processEvents();QTest.keyClick(lane,Qt.Key.Key_Tab)
             self.assertEqual(heard[-1],w.project.chords[1].pitches)
-            lane.selection_event({c.id for c in w.project.chords});menu=lane.context_menu(point);find(menu,'试听实际和弦').trigger()
+            lane.selection_event({c.id for c in w.project.chords});menu=lane.context_menu(point);find(menu,'试听和弦').trigger()
             self.assertEqual([c.id for c in actual[0][0]],[c.id for c in w.project.chords])
     def test_score_bar_menu_keeps_fixed_commands_and_disables_single_target_operations(self):
         w=self.w;w.switch_workspace('score');QTest.qWait(30);canvas=w.score_view.canvas;pg,rect,bar=canvas.layout.hit_bars[0]
         x,y=canvas.page_origin(pg);point=QPointF(x+(rect.left()+2)*canvas.scale,y+(rect.bottom()-4)*canvas.scale)
         canvas.selected_bars={0};one=canvas.context_menu(point);canvas.selected_bars={0,1};many=canvas.context_menu(point)
         self.assertEqual(labels(one),labels(many));self.assertFalse(find(one,'强制合并为一行').isEnabled());self.assertTrue(find(many,'强制合并为一行').isEnabled())
-        self.assertFalse(find(many,'在本小节后换行').isEnabled());self.assertFalse(find(many,'在和弦钢琴卷帘中编辑').isEnabled())
+        self.assertFalse(find(many,'在本小节后换行').isEnabled());self.assertFalse(find(many,'在和弦卷帘中编辑').isEnabled())
 
 class ScoreTests(unittest.TestCase):
     def test_key_and_meter_are_above_chords_and_melody_in_all_styles(self):

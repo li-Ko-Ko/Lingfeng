@@ -29,7 +29,8 @@ def wait_until(predicate,timeout=4):
     deadline=time.monotonic()+timeout
     while not predicate():
         if time.monotonic()>deadline:raise AssertionError('Qt condition timed out')
-        APP.processEvents();QTest.qWait(5)
+        # Let Python installer/import work run between GUI event batches.
+        APP.processEvents();time.sleep(.005)
     APP.processEvents()
 
 

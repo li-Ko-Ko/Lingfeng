@@ -14,6 +14,7 @@ from lingfeng.ui.keybindings import normalized, validate, KeyBindingsDialog
 from lingfeng.engraving.notation import ScoreLayout
 from tests.test_v14 import Synth
 from tests.music_reference import bar_events
+from tests.menu_helpers import find_action
 
 APP=QApplication.instance() or QApplication([])
 
@@ -81,7 +82,9 @@ class ChordOperationsTests(unittest.TestCase):
         self.assertEqual([(c.start,c.duration) for c in copied],[(2400,960),(3360,1440)])
         self.assertEqual(copied[1].notes[0].start,240);self.assertNotEqual(copied[1].notes[0].id,b.notes[0].id)
         self.assertEqual(a.start,960);self.assertEqual(b.start,5760);p.validate()
-        with self.assertRaises(ValueError):clip.paste(p,p.end-100)
+        tail=clip.paste(p,p.end-100);self.assertEqual(len(tail),1)
+        last=next(c for c in p.chords if c.id in tail)
+        self.assertEqual((last.start,last.end),(p.end-100,p.end));self.assertEqual(last.notes[0].duration,100);p.validate()
 
     def test_moving_multiple_chords_keeps_selection_intact_and_crops_unselected(self):
         p=Project();p.chords=[Chord(0,960),Chord(960,960),Chord(1920,3840,55)];ids={c.id for c in p.chords[:2]}
@@ -122,30 +125,31 @@ class InterfaceTests(unittest.TestCase):
     def test_insert_and_paste_menus_use_anchor_not_moving_playhead(self):
         w=self.w;r=w.roll;r.anchor_tick=1920;r.cursor_tick=4800;r.play_tick=6000;w.note_command(r,'copy:direct')
         r.selected_ids={w.project.notes[0].id};w.note_command(r,'copy:direct')
-        menu=r.note_menu(QPoint(round(r.x_at(7680)),r.ruler_height+20));next(a for a in menu.actions() if a.text()=='在定位线处粘贴音符').trigger()
+        menu=r.note_menu(QPoint(round(r.x_at(7680)),r.ruler_height+20));find_action(menu,'在定位线处粘贴音符').trigger()
         self.assertEqual(r.position_tick(),1920)
-        menu=r.lane.context_menu(QPoint(round(r.x_at(5000)),25));sub=next(a.menu() for a in menu.actions() if a.text()=='在定位线处插入空白和弦')
+        menu=r.lane.context_menu(QPoint(round(r.x_at(5000)),25));sub=find_action(menu,'在定位线处插入空白和弦').menu()
         self.assertEqual(len(sub.actions()),8);sub.actions()[2].trigger();c=w.project.chord_at(1920);self.assertEqual((c.start,c.duration,c.notes),(1920,1920,[]))
-    def test_wasd_and_tools_no_change_to_playhead(self):
+    def test_arrows_and_tools_no_change_to_playhead(self):
         w=self.w;r=w.roll;r.selected_ids={w.project.notes[0].id};r.edit_target='notes';w.activateWindow();r.setFocus();APP.processEvents();head=w.playhead
-        QTest.keyClick(r,Qt.Key.Key_W);self.assertEqual(w.project.notes[0].pitch,61)
-        QTest.keyClick(r,Qt.Key.Key_S);self.assertEqual(w.project.notes[0].pitch,60)
-        QTest.keyClick(r,Qt.Key.Key_D);self.assertEqual(w.project.notes[0].start,960+r.grid)
-        QTest.keyClick(r,Qt.Key.Key_A);self.assertEqual(w.project.notes[0].start,960)
+        QTest.keyClick(r,Qt.Key.Key_Up);self.assertEqual(w.project.notes[0].pitch,61)
+        QTest.keyClick(r,Qt.Key.Key_Down);self.assertEqual(w.project.notes[0].pitch,60)
+        QTest.keyClick(r,Qt.Key.Key_Right);self.assertEqual(w.project.notes[0].start,960+r.grid)
+        QTest.keyClick(r,Qt.Key.Key_Left);self.assertEqual(w.project.notes[0].start,960)
         QTest.keyClick(r,Qt.Key.Key_Q);self.assertEqual(r.tool,'draw');QTest.keyClick(r,Qt.Key.Key_Q);self.assertEqual(r.tool,'smart');self.assertEqual(w.playhead,head)
     def test_chord_diatonic_and_horizontal_keys_ctrl_clipboard_is_packed(self):
         w=self.w;w.visibility_actions['chords'].setChecked(True);r=w.roll;lane=w.chord_lane;w.chord_selection({w.project.chords[0].id,w.project.chords[2].id},r);r.edit_target='chords';w.activateWindow();lane.setFocus();APP.processEvents()
-        before=events(w.project.harmony_notes());QTest.keyClick(lane,Qt.Key.Key_W);self.assertNotEqual(events(w.project.harmony_notes()),before);self.assertEqual([c.name for c in w.project.chords if c.id in r.selected_chords],['C#','G#'])
-        QTest.keyClick(lane,Qt.Key.Key_D);self.assertEqual([c.start for c in w.project.chords if c.id in r.selected_chords],[r.grid,7680+r.grid])
+        before=events(w.project.harmony_notes());QTest.keyClick(lane,Qt.Key.Key_Up);self.assertNotEqual(events(w.project.harmony_notes()),before);self.assertEqual([c.name for c in w.project.chords if c.id in r.selected_chords],['C#','G#'])
+        QTest.keyClick(lane,Qt.Key.Key_Right);self.assertEqual([c.start for c in w.project.chords if c.id in r.selected_chords],[r.grid,7680+r.grid])
         w.copy_selection();w.seek(16000);w.paste_selection();self.assertEqual([(c.start,c.end) for c in w.project.chords if c.start>=16000 and c.notes!=[]],[(16000,19840),(19840,23680)])
-    def test_custom_bindings_text_entry_and_validation(self):
-        w=self.w;r=w.roll;r.selected_ids={w.project.notes[0].id};w.keybindings['up']='I';w.activateWindow();r.setFocus();APP.processEvents()
-        QTest.keyClick(r,Qt.Key.Key_W);self.assertEqual(w.project.notes[0].pitch,60);QTest.keyClick(r,Qt.Key.Key_I);self.assertEqual(w.project.notes[0].pitch,61)
+    def test_fixed_movement_custom_tools_text_entry_and_validation(self):
+        w=self.w;r=w.roll;r.selected_ids={w.project.notes[0].id};w.keybindings['up']='I';w.keybindings['toggle_tool']='F2';w.activateWindow();r.setFocus();APP.processEvents()
+        QTest.keyClick(r,Qt.Key.Key_I);self.assertEqual(w.project.notes[0].pitch,60);QTest.keyClick(r,Qt.Key.Key_Up);self.assertEqual(w.project.notes[0].pitch,61)
+        QTest.keyClick(r,Qt.Key.Key_F2);self.assertEqual(r.tool,'draw')
         field=QLineEdit(w);field.show();field.setFocus();APP.processEvents();QTest.keyClicks(field,'wasdiqe');self.assertEqual(field.text(),'wasdiqe');self.assertEqual(w.project.notes[0].pitch,61)
-        dialog=KeyBindingsDialog(w.keybindings,w);dialog.fields['up'].setKeySequence(QKeySequence('D'))
+        dialog=KeyBindingsDialog(w.keybindings,w);self.assertFalse(dialog.fields['up'].isEnabled());dialog.fields['toggle_tool'].setKeySequence(QKeySequence('E'))
         with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):dialog.accept()
-        self.assertEqual(dialog.value()['right'],'');self.assertEqual(dialog.value()['up'],'D');dialog.deleteLater()
-        with self.assertRaises(ValueError):validate(normalized({'up':'Ctrl+S'}))
+        self.assertEqual(dialog.value()['switch_input'],'');self.assertEqual(dialog.value()['toggle_tool'],'E');self.assertEqual(dialog.value()['up'],'Up');dialog.deleteLater()
+        self.assertEqual(normalized({'up':'Ctrl+S'})['up'],'Up')
         with self.assertRaises(ValueError):validate({'up':'W','down':'W'})
 
 class ScoreHeaderTests(unittest.TestCase):

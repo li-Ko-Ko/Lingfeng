@@ -1,4 +1,4 @@
-"""One modal display policy and four-field chord-edit memory."""
+"""One modal display policy and chord-edit memory (velocity moved to defaults)."""
 import copy,json,os,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -63,7 +63,8 @@ class ModalTests(unittest.TestCase):
         legacy=dict(root=8,bass=11,quality='mM7',pattern='quarters',gate=65,velocity=83,octave=-1,regenerate=False)
         d=ChordDialog(c,p,defaults=legacy)
         try:
-            self.assertEqual(d.options(),dict(quality='mM7',pattern='quarters',gate=65,velocity=83))
+            self.assertEqual(d.options(),dict(quality='mM7',pattern='quarters',gate=65))
+            self.assertEqual(d.velocity.value(),72)
             self.assertEqual((d.root.currentData(),d.bass.currentData()),(2,2))
             self.assertEqual(d.octave.value(),2);self.assertTrue(d.regenerate.isChecked());self.assertIsNone(d.value().bass)
             self.assertEqual(d.bass.count(),12);self.assertEqual(d.bass.findData(None),-1)
@@ -83,14 +84,14 @@ class ModalTests(unittest.TestCase):
             self.assertEqual(d.root.itemText(0),'1 · F');self.assertEqual(labels(d.root),EXPECTED['Lydian'][0].split())
             self.assertEqual((d.root.currentData(),d.bass.currentData()),(11,6))
         finally:d.close();d.deleteLater()
-    def test_only_four_fields_survive_preferences_migration(self):
+    def test_only_three_fields_survive_preferences_migration(self):
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder);legacy=dict(root=8,bass=11,quality='m7',pattern='up',gate=60,velocity=75,octave=2,regenerate=False)
             (path/'preferences.json').write_text(json.dumps(dict(chord_edit_options=legacy)),'utf-8')
             with patch('lingfeng.ui.main_window.user_data_dir',return_value=path):
                 w=MainWindow(project());w.timer.stop();w.autosave.stop()
                 try:
-                    expected=dict(quality='m7',pattern='up',gate=60,velocity=75)
+                    expected=dict(quality='m7',pattern='up',gate=60)
                     self.assertEqual(w.chord_edit_options,expected);w.save_preferences()
                     self.assertEqual(json.loads((path/'preferences.json').read_text('utf-8'))['chord_edit_options'],expected)
                 finally:w.dirty=False;w.close();w.deleteLater()

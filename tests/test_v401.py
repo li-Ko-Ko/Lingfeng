@@ -30,34 +30,35 @@ class BindingTests(unittest.TestCase):
         catalog=json.loads((Path(__file__).resolve().parents[1]/'lingfeng/platform/en.json').read_text('utf-8'))
         self.assertTrue(all(label in catalog for label,_ in COMMANDS.values()))
     def test_confirm_conflict_clears_previous_action_only(self):
-        d=self.dialog();d.fields['up'].setKeySequence(QKeySequence('D'))
+        d=self.dialog();d.fields['toggle_tool'].setKeySequence(QKeySequence('E'))
         with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
-            d.fields['up'].editingFinished.emit()
-        self.assertIn('向右移动',prompt.call_args.args[2]);self.assertIn('清除',prompt.call_args.args[2])
-        self.assertEqual(d.value()['up'],'D');self.assertEqual(d.value()['right'],'');self.assertEqual(d.value()['down'],'S')
+            d.fields['toggle_tool'].editingFinished.emit()
+        self.assertIn('切换旋律',prompt.call_args.args[2]);self.assertIn('清除',prompt.call_args.args[2])
+        self.assertEqual(d.value()['toggle_tool'],'E');self.assertEqual(d.value()['switch_input'],'');self.assertEqual(d.value()['down'],'Down')
         d.accept();self.assertEqual(d.result(),QDialog.DialogCode.Accepted);validate(d.value())
     def test_declining_conflict_restores_previous_choice(self):
-        d=self.dialog();before=d.value();d.fields['up'].setKeySequence(QKeySequence('Ctrl+S'))
-        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.No):self.assertFalse(d.resolve_change('up'))
+        d=self.dialog();before=d.value();d.fields['toggle_tool'].setKeySequence(QKeySequence('Ctrl+S'))
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.No):self.assertFalse(d.resolve_change('toggle_tool'))
         self.assertEqual(d.value(),before)
     def test_conflict_with_save_is_reassignable_and_cancellable_as_a_draft(self):
-        original=normalized({});d=self.dialog(original);d.fields['octave_down'].setKeySequence(QKeySequence('Ctrl+S'))
+        original=normalized({});d=self.dialog(original);d.fields['toggle_tool'].setKeySequence(QKeySequence('Ctrl+S'))
         with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes) as prompt:
-            self.assertTrue(d.resolve_change('octave_down'))
+            self.assertTrue(d.resolve_change('toggle_tool'))
         self.assertIn('保存',prompt.call_args.args[2]);self.assertEqual(d.value()['save'],'')
         d.reject();self.assertEqual(original,normalized({}))
     def test_alternate_conflict_reset_and_canonical_validation(self):
-        d=self.dialog();d.fields['up'].setKeySequence(QKeySequence('Alt+Up'))
-        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
-        self.assertEqual(d.value()['scale_up_alt'],'');self.assertEqual(d.value()['scale_up'],'Alt+W')
+        d=self.dialog();d.fields['split'].setKeySequence(QKeySequence('Backspace'))
+        with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('split')
+        self.assertEqual(d.value()['delete_alt'],'');self.assertEqual(d.value()['split'],'Backspace')
         d.reset();self.assertEqual(d.value(),normalized({}));validate(d.value())
         with self.assertRaises(ValueError):validate({'save':'ctrl+s','up':'Ctrl+S'})
     def test_reserved_native_key_rejected_without_altering_binding(self):
         d=self.dialog();d.fields['save'].setKeySequence(QKeySequence('Esc'))
         self.assertFalse(d.resolve_change('save'));self.assertEqual(d.value()['save'],'Ctrl+S');self.assertTrue(d.error.text())
     def test_saved_customization_wins_over_new_default_and_stays_cleared(self):
-        mapping=load_bindings({'octave_down':'Ctrl+S','up':'Alt+Up','copy_selection':''})
+        mapping=load_bindings({'toggle_tool':'Ctrl+S','up':'Alt+Up','copy_selection':''})
         self.assertEqual(mapping['save'],'');self.assertEqual(mapping['scale_up_alt'],'');self.assertEqual(mapping['copy_selection'],'')
+        self.assertEqual(mapping['up'],'Up');self.assertEqual(mapping['scale_up'],'Alt+Up')
         self.assertEqual(mapping,load_bindings(mapping));validate(mapping)
 
 class InterfaceTests(unittest.TestCase):
@@ -86,7 +87,7 @@ class InterfaceTests(unittest.TestCase):
     def test_confirmed_setting_updates_file_menu_and_runtime_without_restart(self):
         w=self.w
         def accept(d):
-            d.fields['octave_down'].setKeySequence(QKeySequence('Ctrl+S'))
+            d.fields['toggle_tool'].setKeySequence(QKeySequence('Ctrl+S'))
             with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.accept()
             return d.result()
         with patch.object(KeyBindingsDialog,'exec',accept):w.keybinding_settings()
@@ -94,7 +95,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(save.shortcut().isEmpty());self.assertEqual(w.keybindings['save'],'')
         with patch.object(w,'save') as save_method:
             QTest.keyClick(self.r,Qt.Key.Key_S,Qt.KeyboardModifier.ControlModifier);save_method.assert_not_called()
-        self.assertEqual(w.project.notes[0].pitch,48)
+        self.assertEqual(w.project.notes[0].pitch,60);self.assertEqual(self.r.tool,'draw')
         stored=json.loads((self.folder/'preferences.json').read_text('utf-8'))['keybindings']
         self.assertEqual(load_bindings(stored),w.keybindings)
     def test_global_file_key_and_redo_alias_work_in_floating_window_once(self):
@@ -107,17 +108,17 @@ class InterfaceTests(unittest.TestCase):
             QTest.keyClick(r,Qt.Key.Key_Z,Qt.KeyboardModifier.ControlModifier|Qt.KeyboardModifier.ShiftModifier);redo.assert_called_once()
     def test_disabled_keys_do_not_fall_through_to_old_widget_handlers(self):
         w=self.w;before=w.project.to_dict()
-        for key in ('delete','delete_alt','scale_up_alt','select_all'):w.keybindings[key]=''
+        for key in ('delete','delete_alt','select_all'):w.keybindings[key]=''
         w.update_shortcuts();selected=set(self.r.selected_ids)
         for key,mods in [(Qt.Key.Key_Delete,Qt.KeyboardModifier.NoModifier),(Qt.Key.Key_Backspace,Qt.KeyboardModifier.NoModifier),
-                         (Qt.Key.Key_Up,Qt.KeyboardModifier.AltModifier),(Qt.Key.Key_A,Qt.KeyboardModifier.ControlModifier)]:QTest.keyClick(self.r,key,mods)
+                         (Qt.Key.Key_W,Qt.KeyboardModifier.AltModifier),(Qt.Key.Key_A,Qt.KeyboardModifier.ControlModifier)]:QTest.keyClick(self.r,key,mods)
         self.assertEqual(w.project.to_dict(),before);self.assertEqual(self.r.selected_ids,selected)
     def test_floating_menu_and_language_rebuild_preserve_custom_keys(self):
         w=self.w;w.keybindings['copy_selection']='Ctrl+Alt+C';w.update_shortcuts()
         w.harmony_window.setFloating(True);w.harmony_window.show();w.change_language('en',False)
         r=w.harmony_window.roll;self.focus(r);menu=QMenu();r.selection_menu(menu,0)
         copy=next(a for a in actions(menu) if a.property('shortcutCommand')=='copy_selection')
-        self.assertEqual(copy.shortcut().toString(),'Ctrl+Alt+C');self.assertEqual(copy.text(),'Copy original');menu.deleteLater()
+        self.assertEqual(copy.shortcut().toString(),'Ctrl+Alt+C');self.assertEqual(copy.text(),'Copy selected notes');menu.deleteLater()
     def test_text_controls_keep_native_shortcuts_and_do_not_edit_music(self):
         edit=QLineEdit(self.w);edit.setText('example');edit.show();edit.setFocus();APP.processEvents();before=self.w.project.to_dict()
         QTest.keyClick(edit,Qt.Key.Key_A,Qt.KeyboardModifier.ControlModifier);self.assertEqual(edit.selectedText(),'example')
@@ -125,8 +126,8 @@ class InterfaceTests(unittest.TestCase):
     def test_cancel_settings_does_not_apply_cleared_conflict(self):
         w=self.w;before=dict(w.keybindings)
         def reject(d):
-            d.fields['up'].setKeySequence(QKeySequence('Ctrl+C'))
-            with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('up')
+            d.fields['toggle_tool'].setKeySequence(QKeySequence('Ctrl+C'))
+            with patch('lingfeng.ui.keybindings.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):d.resolve_change('toggle_tool')
             return QDialog.DialogCode.Rejected
         with patch.object(KeyBindingsDialog,'exec',reject):w.keybinding_settings()
         self.assertEqual(w.keybindings,before)

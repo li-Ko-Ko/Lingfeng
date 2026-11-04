@@ -384,13 +384,13 @@ def melisma_links(project,lyric_events=None):
     items=events(project) if lyric_events is None else lyric_events
     notes={}
     for note in project.notes:notes.setdefault(note.start,[]).append(note)
-    ticks=sorted(notes);by_verse={(e['tick'],e.get('verse',0)):e for e in items};links={}
+    ticks=sorted(notes);by_lane={(e['tick'],e.get('verse',0),e.get('voice',0)):e for e in items};links={}
     for event in items:
         if not event.get('melisma') or event['tick'] not in notes:continue
         i=bisect.bisect_left(ticks,event['tick'])
         if i==0:continue
         a,b=ticks[i-1:i+1]
-        previous=by_verse.get((a,event.get('verse',0)),{})
+        previous=by_lane.get((a,event.get('verse',0),event.get('voice',0)),{})
         left=next((n for n in notes[a] if n.pitch==previous.get('pitch')),notes[a][0])
         right=next((n for n in notes[b] if n.pitch==event.get('pitch')),notes[b][0])
         links[(left.id,right.id)]=(a,b,left.id,right.id)

@@ -6,6 +6,7 @@ from PySide6.QtCore import QPoint,QEvent
 from PySide6.QtWidgets import QApplication,QDialog
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.platform.i18n import set_language
+from tests.menu_helpers import find_action
 from lingfeng.music.model import Project, Chord, Context, QUALITIES, PPQ
 from lingfeng.music.progressions import capture, selection_root_query, resolve, tokens, make_preset, matches_roots, apply; from lingfeng.ui.progression_dialogs import ProgressionManagerDialog, ProgressionEntryDialog, ProgressionDialog
 APP=QApplication.instance() or QApplication([])
@@ -32,6 +33,7 @@ class RecipeTests(unittest.TestCase):
             with self.assertRaises(ValueError):selection_root_query(p,{c.id})
         with self.assertRaises(ValueError):selection_root_query(p,set())
     def test_all_quality_inversions_roundtrip_in_different_keys_and_modes(self):
+        from lingfeng.platform.chord_preferences import DEFAULT_QUICK_QUALITIES
         p=Project()
         for tonic,mode in [(48,'Ionian'),(53,'Aeolian')]:
             p.contexts=[Context(0,p.end,tonic,mode)]
@@ -39,7 +41,9 @@ class RecipeTests(unittest.TestCase):
                 for interval in intervals:
                     c=Chord(0,3840,tonic+7,quality,(tonic+7+interval)%12,flat=True);p.chords=[c]
                     sequence=capture(p,{c.id});parsed=resolve(sequence,tonic)
-                    self.assertEqual((parsed.root%12,parsed.quality,parsed.bass),(c.root%12,c.quality,c.bass))
+                    self.assertEqual((parsed.root%12,parsed.bass),(c.root%12,c.bass))
+                    self.assertEqual(QUALITIES[parsed.quality],QUALITIES[c.quality],quality)
+                    if quality in DEFAULT_QUICK_QUALITIES:self.assertEqual(parsed.quality,c.quality)
                     self.assertIn('/',sequence);self.assertEqual(selection_root_query(p,{c.id}),'V')
     def test_saved_inversions_generate_their_bass_and_only_roots_filter(self):
         p=project();seq=capture(p,{p.chords[i].id for i in (0,2,4)})
@@ -58,7 +62,7 @@ class InterfaceTests(unittest.TestCase):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.sendPostedEvents(None,QEvent.Type.DeferredDelete);APP.processEvents();self.saving.stop()
     def menu(self,lane,ids,tick=100):
         lane.selection_event(ids);menu=lane.context_menu(QPoint(round(lane.x_at(tick)),25));self.dialogs.append(menu);return menu
-    def find(self,menu):return next(a for a in menu.actions() if a.text()=='检索和弦进行…')
+    def find(self,menu):return find_action(menu,'检索和弦进行…')
     def test_manager_prefills_roots_without_removing_recipe_inversions(self):
         values=[make_preset('I/3 V7/7 IVmaj7/6 iii/7','match'),make_preset('I IV #III','raised')]
         d=ProgressionManagerDialog(values,query='I IV III');self.dialogs.append(d)

@@ -168,6 +168,74 @@ def add_annotation(p,kind,start,end):
     items.append(dict(kind=kind,start=start,end=end));p.notation['symbols']=items
 
 
+ANNOTATION_LABELS={'barline':'小节线','double_bar':'双小节线','final_bar':'终止线',
+                   'segno':'Segno','coda':'Coda','fine':'Fine','fade':'渐弱结束',
+                   'rit':'渐慢','adlib':'自由演奏','slur':'连音弧'}
+
+
+def slur_notes(p,item):
+    """Resolve live melody anchors; deleted notes leave an inactive annotation."""
+    ids=set(item.get('note_ids',[]))
+    return sorted((n for n in p.notes if n.id in ids),key=lambda n:(n.start,n.pitch,n.id))
+
+
+def melody_voices(notes):
+    """Stable source voice slots, disregarding only short staggered MIDI tails.
+
+    Without explicit voice metadata, simultaneous notes occupy separate slots;
+    subsequent nonoverlapping attacks reuse them in upper-to-lower order.
+    This matches the score's traditional legato-tail tolerance, without Qt.
+    """
+    voices={};lanes=[]
+    for note in sorted(notes,key=lambda n:(n.start,-n.pitch,n.id)):
+        lane=len(lanes)
+        for index,prior in enumerate(lanes):
+            overlap=prior.end-note.start
+            tail=(prior.start<note.start and 0<overlap<=PPQ//8 and
+                  overlap*4<=min(prior.duration,note.duration))
+            if prior.end<=note.start or tail:lane=index;break
+        if lane==len(lanes):lanes.append(note)
+        else:lanes[lane]=note
+        voices[note.id]=lane
+    return voices
+
+
+def slur_conflicts(p,item,lyric_links=None,voices=None):
+    """Lyrics own any positively overlapping slur span in the same voice.
+
+    Compare attack spans, not note tails. Consecutive arcs may share an endpoint
+    and independent polyphonic voices may share time without a conflict.
+    """
+    notes=slur_notes(p,item)
+    if len(notes)<2:return False
+    a,b=notes[0].start,notes[-1].start
+    if a==b:return False
+    if lyric_links is None:
+        from lingfeng.engraving.lyrics import melisma_links
+        lyric_links=melisma_links(p)
+    voices=melody_voices(p.notes) if voices is None else voices
+    selected={voices[n.id] for n in notes}
+    return any(a<right and left<b and selected.intersection(voices.get(ident) for ident in (left_id,right_id))
+               for left,right,left_id,right_id in lyric_links)
+
+
+def can_add_slur(p,note_ids):
+    notes=slur_notes(p,dict(note_ids=note_ids))
+    return len(notes)>=2 and notes[0].start<notes[-1].start and not slur_conflicts(p,dict(note_ids=[n.id for n in notes]))
+
+
+def add_slur(p,note_ids):
+    notes=slur_notes(p,dict(note_ids=note_ids))
+    if len(notes)<2 or notes[0].start==notes[-1].start:
+        raise ValueError('请选择至少两个不同起点的旋律音符。')
+    ids=[n.id for n in notes]
+    if slur_conflicts(p,dict(note_ids=ids)):
+        raise ValueError('歌词连音优先：所选连音弧与歌词 /- 连音冲突。')
+    items=[item for item in p.notation.get('symbols',[]) if not (item['kind']=='slur' and item.get('note_ids')==ids)]
+    items.append(dict(kind='slur',start=notes[0].start,end=notes[-1].end,note_ids=ids))
+    p.notation['symbols']=items
+
+
 def shift_presentation(p,index,tick,duration):
     for row in p.notation.get('forced_rows',[]):
         row[0]+=row[0]>=index;row[1]+=row[1]>index
@@ -189,7 +257,11 @@ def validate_presentation(p):
     fonts=p.notation.get('forced_row_fonts',[])
     if any(not isinstance(r,list) or len(r)!=3 or not all(type(v) is int for v in r) or not 0<=r[0]<r[1]<=n or not 1<=r[2]<=16 for r in fonts):raise ValueError('局部分行设置无效。')
     for item in p.notation.get('symbols',[]):
-        if item.get('kind') not in ('barline','double_bar','final_bar','segno','coda','fine','fade','rit','adlib') or not all(type(item.get(k)) is int for k in ('start','end')) or not 0<=item['start']<item['end']<=p.end:raise ValueError('谱面符号设置无效。')
+        if item.get('kind') not in ANNOTATION_LABELS or not all(type(item.get(k)) is int for k in ('start','end')) or not 0<=item['start']<item['end']<=p.end:raise ValueError('谱面符号设置无效。')
+        if item['kind']=='slur':
+            ids=item.get('note_ids')
+            if (not isinstance(ids,list) or len(ids)<2 or not all(isinstance(ident,str) and ident for ident in ids)
+                    or len(ids)!=len(set(ids))):raise ValueError('连音弧音符设置无效。')
     for item in p.notation.get('compressions',[]):
         if item.get('kind') not in ('repeat','dc','ds','dc_nr','ds_nr','coda') or not all(type(item.get(k)) is int for k in ('start','first_end','hidden_start','hidden_end','end')):raise ValueError('反复排版设置无效。')
         a,b,c,d,z=(item[k] for k in ('start','first_end','hidden_start','hidden_end','end'))

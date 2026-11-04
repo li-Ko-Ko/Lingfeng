@@ -61,7 +61,7 @@ def _included(relative,suffixes):
     if is_private_source_path(relative):return False
     if folder=='docs':return relative.as_posix() in (*PUBLIC_DOCS,*PUBLIC_SCREENSHOTS)
     if folder=='scripts':return relative.as_posix() in PUBLIC_SCRIPTS
-    if folder=='tests':return len(parts)==2 and (relative.name in ('__init__.py','music_reference.py') or relative.name.startswith('test_') and relative.suffix=='.py')
+    if folder=='tests':return len(parts)==2 and (relative.name in ('__init__.py','music_reference.py','menu_helpers.py') or relative.name.startswith('test_') and relative.suffix=='.py')
     if folder=='assets':return relative.as_posix() in ('assets/lingfeng.ico','assets/check.svg')
     if folder=='native':return relative.as_posix()=='native/stk_pack.cpp'
     if folder=='lingfeng' and relative.suffix=='.json':return relative.as_posix()=='lingfeng/platform/en.json'

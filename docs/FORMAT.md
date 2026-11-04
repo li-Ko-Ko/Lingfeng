@@ -23,7 +23,7 @@
 `notation` 保留 `style`、`per_line`、`circles`、`color`、`lyrics`、`row_gap`、`system_gap`，新增可选字段：
 
 - `forced_rows`：`[[first_bar, end_bar_exclusive], …]`，从 0 开始的局部强制谱行，互不重叠。每行独立统一缩放、计算音域。
-- `symbols`：`[{kind, start, end}, …]`，tick 选区中的谱面演奏提示。kind 为 `barline`、`double_bar`、`final_bar`、`segno`、`coda`、`fine`、`fade`、`rit`、`adlib`。
+- `symbols`：`[{kind, start, end}, …]`，tick 选区中的谱面演奏提示。kind 为 `barline`、`double_bar`、`final_bar`、`segno`、`coda`、`fine`、`fade`、`rit`、`adlib`；`slur` 另保存旋律锚点 `note_ids`，详见 0.56.1 节。
 - `compressions`：`[{kind, start, first_end, hidden_start, hidden_end, end}, …]`，索引为从 0 开始的小节边界，结束边界不含本身。kind 为 `repeat`、`dc`、`ds`、`dc_nr`、`ds_nr`、`coda`。
 
 普通反复要求 `[start, first_end)` 与 `[hidden_start, hidden_end)` 相等且相邻。尾声为 A–B–A–C，第一 A 为 `[start, first_end)`，第二 A 为 `[hidden_start, hidden_end)`，C 到 `end`。仅合法匹配的第二 A 隐藏。音乐变化后失效的压缩保留记录但展开显示。
@@ -31,6 +31,12 @@
 比较两轨实际事件、力度、等音偏好、拍号、段落名、调性与和弦标记；跨比较边界的持续音不可压缩。屏幕与 PDF 共用可见小节序列；MIDI 导出不读取这些排版字段。插入小节或改变拍号时，索引与符号 tick 随时间轴更新。
 
 ## 会话与本机偏好
+
+0.57 新增本机布尔偏好 `rhythm_recognition`，缺省为 true。关闭后所有自动节奏型分析返回无识别结果，和弦轨不显示节奏型；根音／性质变换与区间编辑按实际 MIDI 处理，不借识别结果重建节奏。显式选择节奏型、重新生成和弦或应用和弦进行仍可按指定方案生成。开关不改写工程的 `pattern`、`custom_rhythm` 或 `recognition_disabled`，重新开启后按原有独立设置分析。节奏型合成与 MIDI 播放不依赖此识别偏好。
+
+小节右键的“段落标识”继续写入 `measures[].section`；“跳转小节”按小节顺序列出现有标识与小节号，仅定位和浏览，不改工程。导航器用无文字边界线显示这些小节起点，原时间轴仍显示标识文字。
+
+Since 0.57, the local boolean preference `rhythm_recognition` defaults to true. Turning it off bypasses every automatic rhythm analysis and hides pattern labels in chord lanes. Root/quality and region edits use performed MIDI rather than inferred patterns. Explicit pattern application, chord regeneration and progression generation remain available. The switch preserves project pattern and per-chord recognition flags; playback and synthesis do not depend on recognition. Bar context menus list marked sections in time order for navigation; navigators show their boundaries without text.
 
 框选、剪贴板、停靠、滚动位置与静音属于会话状态。直接复制保留实际音高；其他变换使用调内级数，含调外源音时拒绝。粘贴结果仍存储普通 MIDI 音高。
 
@@ -108,7 +114,7 @@ schema 仍为 6。新增 `mM7`（0、3、7、11 半音），`add2`（0、2、4�
 本机偏好新增 `chord_edit_options`：root、quality、bass、pattern、gate（5–100 整数百分比）、velocity、octave、regenerate。不包含起点、时长、事件 ID 或实际音符；只在成功确认编辑后更新，取消或失败保留上次值。新对话框按当前和弦起点的拍号校验节奏型，不支持的生成型回退 block。此偏好不属于撤销历史或工程音乐数据。
 
 
-## 0.40 密集 add2 与拍号相关的根五交替
+## 0.40 密集 add2 与拍号相关的底五交替
 
 schema 仍为 6。新增节奏型代码 alternating_quarters、alternating_eighths、alternating_offbeat，分子为偶数、分母为 2/4/8/16 时可用。低音单位为 PPQ*4/denominator，上方前两型使用 PPQ 与 PPQ/2，反拍在每个低音单位的后半拍起音并占半拍。每小节重新从根音开始，实际生成后保存为局部显式 MIDI。
 
@@ -230,9 +236,9 @@ incoming 路径使用 y 单调向下的三次曲线，控制点都在端点高�
 
 ## 0.54 单声部入口与全谱数字单位
 
-本地 0.54 的制谱入口仅接受严格单声部旋律，按原始 `notes` 的半开区间 `[start, end)` 检查。任意正时长重叠均报告，包括同刻起音、1 tick 或连奏短尾；相邻音符边界相接合法。检查不裁剪源音符、不按容差忽略重叠。`music.onsets` 的 `group_onsets`、`overlap_conflicts`、`is_monophonic` 保留完整 note_id/start/end/pitch 和同刻音组，供后续多声部扩展使用，不新增工程字段。
+本地 0.54 当时的制谱入口仅接受严格单声部旋律（0.56.3 起仅传统简谱保留此限制），按原始 `notes` 的半开区间 `[start, end)` 检查。任意正时长重叠均报告，包括同刻起音、1 tick 或连奏短尾；相邻音符边界相接合法。检查不裁剪源音符、不按容差忽略重叠。`music.onsets` 的 `group_onsets`、`overlap_conflicts`、`is_monophonic` 保留完整 note_id/start/end/pitch 和同刻音组，供后续多声部扩展使用，不新增工程字段。
 
-三种谱式均使用跨拍拆分和延音线，附点保持在当地拍界内，整拍长音保留延音横线。传统简谱每个可见片段或延音横线各占一个数字格，同刻源复音仅用于兼容渲染；交互入口会先拦截复音。数字格宽 `C` 由选定字号和实际数字字宽决定，在所有谱行相同。每行符号数为 `N`、拍数为 `B`，单位预算为 `N + 2B`；拍间 2 单位，小节线每侧和行边各 1 单位。最重谱行决定推荐字号并填满可用宽度，其它行维持 `C`，按 `G = (available - N*C)/(2B)` 分配线侧空白，拍间恒为 `2G`。手动超大字号保持自然格宽，间隙至少为 `C`，可能超出页面。推荐以数字为准，圈音、升降号等标记不额外撑宽格子。
+三种谱式均使用跨拍拆分和延音线，附点保持在当地拍界内，整拍长音保留延音横线。传统简谱每个可见片段或延音横线各占一个数字格，同刻源复音仅用于传统简谱的兼容渲染；0.56.3 起，复音不阻止进入立体／紧凑制谱，仅禁用传统简谱选项。数字格宽 `C` 由选定字号和实际数字字宽决定，在所有谱行相同。每行符号数为 `N`、拍数为 `B`，单位预算为 `N + 2B`；拍间 2 单位，小节线每侧和行边各 1 单位。最重谱行决定推荐字号并填满可用宽度，其它行维持 `C`，按 `G = (available - N*C)/(2B)` 分配线侧空白，拍间恒为 `2G`。手动超大字号保持自然格宽，间隙至少为 `C`，可能超出页面。推荐以数字为准，圈音、升降号等标记不额外撑宽格子。
 
 传统强制合行也参与全谱预算，不再单独缩小该行的数字；旧 `forced_row_fonts` 元数据保留。立体／紧凑仍按“小节内最密拍起点数 × 实际拍数”分配小节宽度，小节内部各拍等宽，强制合行维持原比例。结构逻辑编辑页与对应命令暂时不开放，既有 `symbols`、`compressions` 和结构后端接口保留读取、保存及渲染兼容。
 
@@ -263,3 +269,83 @@ A4 纸面尺寸不变。排版保留原始字符格、手动字号、每行小�
 工程仍为 schema 6，偏好 schema 1，音源 ABI 1。右键力度修改现有 `Chord.velocity` 及非空实际音符的 `Note.velocity`，不增加工程字段；生成型和弦继续按既有力度参数产生音符，静音空区间保持为空。一次批量修改为一个撤销步骤。偏好新增 `chord_velocity_options` 整数数组，保存 1–127 的去重升序值；缺失或无有效值时使用 `[32,48,64,80,96,112,127]`，损坏类型不传入菜单。
 
 Project schema 6, preference schema 1 and sound ABI 1 remain unchanged. Batch edits update existing chord/note velocities in one undo step. The additive `chord_velocity_options` preference stores unique, sorted MIDI values from 1–127; missing or invalid lists use the common defaults. Detection results enter this list only after explicit confirmation and never rewrite project sound selections.
+
+## 0.56 识别开关、显示标记及创建偏好 / Recognition and creation preferences
+
+工程保持 schema 6。`Chord.recognition_disabled` 与 `Chord.marked` 是默认 `false` 的增量布尔字段。禁用和弦识别先实体化原音符，再跳过和弦与节奏型识别；`custom_rhythm` 仍独立保存，单独启用不影响和弦识别。手工标记使用现有 `root`、`quality`、`bass`，并设置两个新字段及 `recognized=true`，影响名称与罗马符号；0.56.3 起也为旋律卷帘的和弦匹配染色与弦内音高亮提供音级，不生成或替换 MIDI 音符。恢复识别先移除标记，再从实际 MIDI 重新推断；原独立节奏型禁用偏好仍有效。标记支持撤销、复制、分割与保存。MIDI 导出的演奏事件不变，和弦文字元事件可反映新标识。
+
+偏好新增 `default_velocities: {melody:92, harmony:72}`，仅接受 1–127 整数。旋律卷帘新建音符读取 melody；0.56.2 起，和弦卷帘按新音符起点所在和弦块读取 `Chord.velocity`，没有和弦块时回退 harmony。编辑和弦每次读取 harmony 默认值，忽略旧 `chord_edit_options.velocity`。保留音符的编辑不重写实际音符力度。`quick_chord_qualities` 保存勾选的性质代码及顺序，允许空数组；旧 `chord_order` 迁移为原常用性质的顺序。完整性质与数字关系始终可在设置预览，与快捷列表选择无关。
+
+Project schema 6 and preferences schema 1 remain compatible through additive fields. A manual mark materializes existing notes before changing symbol fields; performed note events retain their IDs, pitches, timing and velocities. Disabling chord recognition also blocks pattern recognition, while `custom_rhythm` independently blocks only patterns. Resuming recognition removes the manual mark and derives a fresh symbol from actual MIDI. Default velocities and selected, ordered quick qualities are user preferences; the complete quality reference remains available in Settings.
+
+PyChord 1.4.2 的 104 个原生性质／同义名称，加上保留的紧密 `add2`，共 105 项。`add9` 新建时使用 1 3 5 9 并正常往返；旧工程的和弦条目同时缺少两个新识别字段时，仍按旧版含义迁移 `add9` 为 `add2`，实际音符保持。省五性质的底五交替在缺少五音时重复原低音，不增加和弦外的自然五音；同时存在 b9、#9 的性质保留两个声部。
+
+## 0.56.1 低音力度、显示范围及谱面标识 / Bass dynamics and score annotations
+
+工程 schema 仍为 6，偏好 schema 仍为 1。0.56.1 曾引入可选的 `Chord.bass_velocity`（`null` 或 1–127 整数），为生成型和弦的低音声部设置单独力度；底五交替的低音根音与五音共用此值。该独立参数与操作已于 0.56.2 取消，旧字段读取迁移规则见下节。显式 `notes` 始终是实际演奏数据。低音仍属于和弦轨内的 MIDI 声部，没有增加轨道。
+
+0.56.1 曾在 `default_velocities` 中增加 `bass:72`，0.56.2 起忽略此旧偏好，仅保留 melody／harmony。和弦编辑每次从 harmony 默认值初始化统一力度；保留实际音符时不回写默认值。两个卷帘的音符菜单、逐音力度轴与和弦整体力度轴的数值输入仍使用相应已保存全局默认值，独立于当前事件及前次输入。跨和弦区间合并相邻／重叠的同音高音符使用现有连续事件与 `event_id` 投影机制，保留区间边界；跨界播放和 MIDI 导出不重触发。
+
+自定义卷帘范围保存为会话内的闭区间 MIDI 音高二元组，限制 `21 <= low <= high <= 108`。全键、已用与手动范围是显示模式，不进入 `.lfs` 或用户偏好，不删除范围外音符或改动 MIDI。停靠卷帘共享范围；浮窗独立，时间轴同步不覆盖其音高范围。切换语言保存并恢复该视图状态。
+
+`notation.symbols` 增加 `kind: slur`，条目为 `{kind, start, end, note_ids}`。`note_ids` 保存至少两个唯一的旋律音符 ID；创建时要求首末音符的起点不同，按演奏时间排序。`start/end` 是创建时首音起点及末音结束点；渲染以仍存在的 ID 查找当前音符，缺失足够锚点时不绘制。整组从首音至末音为一条乐句弧，跨行、跨页派生为连续片段，支持中间整行的贯穿段。它与歌词 `melisma` 逐对连音及源音符延音线相互独立，只影响谱面和 PDF，不合并或改写 MIDI。增删支持工程保存与同一撤销历史。
+
+制谱的旋律、和弦、歌词和标识四个面板初始均隐藏，各自显隐、停靠、浮动属于会话状态；视图菜单分别打开，语言和工作区切换保留。标识面板复用既有 barline、double_bar、final_bar、segno、coda、fine、fade、rit、adlib 与新 slur 项；反复压缩和跳转编辑仍不开放。
+
+Version 0.56.1 introduced an optional bass-velocity field and bass default, retired by 0.56.2 through the migration described below. Project and preference schemas remain compatible. Custom key ranges, panel visibility and menu grouping are view state. Phrase slurs persist as note-ID-anchored score symbols; MIDI event pitches, timing and playback order are unaffected by display settings or annotations.
+
+## 0.56.2 统一力度、设置模块与菜单布局 / Common velocity, settings modules and context menus
+
+工程 schema 仍为 6。新和弦只使用 `Chord.velocity`，生成与重新生成对全部声部应用同一力度；不再提供独立低音力度 API 或 UI。`Project.from_dict` 读取旧 `bass_velocity` 时，已有显式 `notes` 原样保留；旧生成型和弦先按原低音规则物化为显式音符，再移除旧字段，因此加载与另存不会改变原 MIDI 演奏。后续明确重新生成时才统一采用 `Chord.velocity`。`to_dict` 不再输出 `bass_velocity`。逐音编辑仍可保存不同的 `Note.velocity`。
+
+偏好 `default_velocities` 只保存 `melody` 与 `harmony`，旧 `bass` 值忽略。旋律卷帘新建音符使用 melody；和弦卷帘的绘制、双击等创建入口按音符起点选择所在和弦块的 `velocity`，包含空白和弦块；没有所在和弦块时使用 harmony。每个块使用半开区间 `[start, end)`，边界处采用后一块。和弦编辑对话框继续每次使用全局 harmony 默认值，取消重新生成保留实际音符。
+
+设置按音源与输入、音符与力度、和弦、卷帘显示、界面与操作组织。音符与力度在同一对话框组合两个默认力度、`chord_velocity_options` 列表及按按钮检测当前和弦音源；确认后一起保存，取消不修改。快速性质与完整目录由和弦性质窗口独立管理。模块布局不改写工程音乐，手动音源检测仍不在启动或打开设置时触发。
+
+Project schema 6 remains compatible. Loading a legacy generated chord with `bass_velocity` first materializes the original performance as explicit notes; existing explicit notes retain their saved velocities. New serialization omits the retired field, and later regeneration applies one common chord velocity. The only saved creation defaults are melody and harmony. Chord-roll creation uses the region at the note onset, falling back to the harmony default outside regions; the chord editor still starts from the global harmony default. Modular settings combine defaults and velocity presets in one transaction and keep sound inspection opt-in.
+
+偏好 schema 仍为 1。`context_menu_layout` 分别保存 `chord` 与 `note` 的功能块数组，每项为 `{id, grouped}`；数组顺序决定菜单顺序，稳定的 `id` 与中英文显示名分离。`grouped` 只对允许分组的功能块生效，复制、粘贴、分割与合并等固定直显功能不会因偏好而隐藏。未知、重复或无效条目忽略，缺失的现有功能块按默认顺序补齐；菜单设置取消不改偏好，确认后保存。
+
+三种伴奏节奏型的中文名称统一为“底五交替”，原有 `alternating_quarters`、`alternating_eighths`、`alternating_offbeat` 代码与演奏规则保持。对话框统一使用“编辑音符”“编辑和弦”“和弦标记”，罗马数字预览与以根音为 1 的数字关系分别标注；力度使用 MIDI 1–127，音高范围选项明确显示 MIDI 编号。以上显示名称与菜单布局均不改变工程 schema、音符或 MIDI。
+
+Preference schema 1 stores ordered chord and note block IDs with optional submenu grouping in `context_menu_layout`. Localized titles are independent of those IDs. Fixed direct commands remain visible, malformed entries are ignored, and missing blocks are restored. The alternating-bass display rename retains its three existing pattern codes and performance rules; text and menu preferences do not change project data or MIDI.
+
+## 0.56.3 多声部制谱与手动标记高亮 / Polyphonic scores and manual-mark highlighting
+
+工程 schema 6、偏好 schema 1 不变。旋律多声部允许进入立体（`spatial`）与紧凑（`compact`）制谱；只有传统（`traditional`）要求严格单声部。检测继续使用原始 `notes` 半开区间 `[start, end)`，任何正时长重叠（包括同刻起音、1 tick 与连奏短尾）均使传统选项不可用；边界恰好相接合法。读取 `traditional` 加复音的工程、恢复制谱布局或编辑／历史操作产生不兼容时，自动回退 `spatial`，保留制谱工作区与全部音乐。修复为单声部后传统恢复可选，不会裁剪或删除音符。
+
+制谱仍使用进入时同步的音乐快照，普通音乐编辑按既有规则在重新进入制谱时同步。例外是最新音乐已修复为单声部而旧快照仍复音：切换传统时先同步修复后的音乐，再生成传统谱面。立体／紧凑 PDF 可包含多声部；传统加复音在导出界面禁用，直接 PDF API 抛出错误，并在创建／覆盖目标文件之前拒绝，不修改原文件。
+
+`Chord.marked=true` 的旋律卷帘和弦匹配染色及弦内音高亮，由标记的 `root`、`quality`、`bass` 推导音高类，包含指定低音与没有实际音符的标记区间，跨八度应用。普通未标记和弦仍按所在区间实际演奏音高类显示；解除手动标记后恢复该规则。标记修改、撤销／重做、保存重开与停靠／悬浮旋律卷帘采用相同依据。此显示投影不改 `Note`、事件 ID、音高、起止或力度；0.56.3 时谱面圈音仍依据实际和弦 MIDI，0.56.4 起扩展为手动标记优先规则（见下节）；和弦卷帘的旋律匹配继续依据实际旋律音符。
+
+Project schema 6 and preference schema 1 remain unchanged. Spatial and Compact scores allow polyphonic melodies; only Traditional requires strict monophony. Any positive-duration overlap disables Traditional, while exactly adjacent boundaries are legal. Loading, restoring, editing or history operations that make Traditional incompatible fall back to Spatial without leaving Score or changing notes. Traditional becomes available again once the live melody is monophonic. If the displayed snapshot still has polyphony but the live melody has been corrected, choosing Traditional first synchronizes the corrected music; ordinary snapshot updates retain their existing re-entry behavior. Spatial/Compact PDFs allow polyphony. Traditional PDF export with overlaps is disabled in the UI and rejected by the direct API before changing any destination file.
+
+Manual chord marks derive melody-roll chord-match coloring and chord-tone row highlights from their root, quality and explicit bass, including empty marked regions and other octaves. Unmarked chords continue to use actual performed pitch classes. This display projection preserves all MIDI events and note properties. Score circles retained the actual-MIDI rule in 0.56.3; version 0.56.4 extends them to manual marks as described below. Melody matching within the chord piano roll continues to use actual MIDI.
+
+## 0.56.4 拍中点优先分解与标记圈音 / Offbeat-first decomposition and marked chord circles
+
+工程 schema 6、偏好 schema 1 不变。三种谱式的有音高旋律音符先保留原有整拍延音横线特例，再按当地拍号的拍界强制拆分并连接同一源音符。对拍内片段，能由单个普通、单附点或三连音音值表示时保持单个符号，沿用 ±2 tick 的既有容差，不因跨过拍中点而额外拆分。
+
+仅当拍内有音高片段确实需要多个符值、且跨过当前拍中点（offbeat）时，优先在该中点拆分并加延音线，再对左右两侧沿用原符值分解；未跨中点保持原贪心回退。中点按本小节起点与当地拍号分母确定的拍长计算，并非固定 480 tick。以 PPQ=960、4/4、起点 3000、时长 840 为例，原先的 720+120 分解改为 360+480，在 tick 3360 的拍中点连线，片段总时长仍为 840。该例使用实际时间值，不从图形宽度推断 tick。新增中点优先规则不应用于休止符；独立的 32 分音符对显示借位、原三连音组与跨拍连线继续保持。源音符 ID、音高、起止、力度、播放及导出 MIDI 不变，显示片段不写入工程。
+
+谱面弦内音圈统一读取 `Chord.highlight_pcs`，与旋律卷帘匹配显示共用依据。手动标记（`marked=true`）使用 `root`、`quality`、`bass` 推导音高类，包含指定低音、其它八度及没有实际音符的标记区间；未标记和弦仍读取实际 `render_notes` 的音高类。显示的旋律音符符合该音级且启用圈音时才绘制圆圈；标记不会生成演奏音符。屏幕、PDF 与圈音墨迹／字号计算使用同一判定；谱面仍使用当前音乐快照。悬停中的实际和弦音符详情、和弦卷帘的旋律匹配及 MIDI 继续依据真实演奏。
+
+Project schema 6 and preference schema 1 remain unchanged. Pitched notes retain the existing whole-beat extension-dash exception and mandatory splits and ties at local beat boundaries. An in-beat fragment that fits one plain, single-dotted or triplet value remains one symbol, including the existing ±2-tick tolerance. Only a fragment requiring decomposition that crosses the beat midpoint splits and ties there first; each side then uses the prior value decomposition. Without a midpoint crossing, the greedy fallback remains. Midpoints follow the local meter and bar origin, not a fixed 480-tick grid. At PPQ=960 in 4/4, onset 3000 and duration 840 changes from 720+120 to 360+480, tied at tick 3360, preserving the exact duration. Rests do not use the new midpoint-first rule. Source notes and MIDI are unchanged; the existing isolated-32nd spacing and source-triplet rules remain.
+
+Score chord-tone circles now share `Chord.highlight_pcs` with melody-roll matching. Manual marks derive pitch classes from root, quality and explicit bass, including empty marked regions and other octaves; unmarked chords use actual performed pitches. The circle toggle, screen/PDF rendering and circle-ink font calculations share this rule within the current score snapshot. Performed-note hover details, chord-roll melody matching and MIDI retain actual performance data.
+
+## 0.56.5 持续低音与复制事件 / Sustained bass and copied events
+
+新增节奏代码 `sustained_bass_beats`（持续低音 + 每拍和弦）：按当地小节生成整小节低音，上方和弦声部按拍号分母逐拍触发并持续整拍；忽略 gate，裁切到和弦区间，跨小节重新触发。沿用 schema 6、显式 notes 与既有 pattern 提示，不更改旧工程的音符。
+
+和弦粘贴保留实际音高、配器、相对起止和逐音力度，不按识别到的节奏型重建默认配器。为每次副本分配独立音符 ID 和共享事件 ID；同一副本内跨区间的持续音仍共享新 event_id，与源音符和其它副本互不连接。右键和弦的覆盖粘贴从被点击和弦的起点开始，定位线粘贴保留。方向键及 Alt 调内／Ctrl 八度组合固定，旧快捷键设置自动迁移；镜头移动绑定暂时留空。
+
+The `sustained_bass_beats` pattern holds the bass for each local bar and the upper voices for every denominator beat, ignoring gate and cropping to chord regions. Pastes retain performed pitches, voicing, timing and per-note velocities without template regeneration. Each paste receives independent note and shared-event identities, preserving internal cross-region sustains without joining the source or other copies. Chord context pastes overwrite from the clicked chord start; position-marker paste remains available. Movement arrows and scale/octave modifier combinations are fixed; older preferences migrate and camera bindings remain blank. Schema 6 is unchanged.
+
+## 0.56.6 粘贴裁切与自动连音 / Cropped pastes and automatic lyric slurs
+
+非空和弦剪贴板允许在任意目标拍号粘贴；来源 `meters` 仅保留会话兼容，不再限制目标。整批粘贴裁切到目标起点所在连续拍号区间的末尾与工程末尾中的较早者，当前块的显式音符截短，超出片段和后续块舍弃。曲尾起点安全不操作；不自动增加小节。范围剪贴板仍保留相对起点／间隙，旋律只按工程末尾裁切。副本事件 ID 独立映射及内部延音共享规则沿用 0.56.5。
+
+歌词连音直接由 `melisma: true` 事件及当前谱面音乐派生，与手动标识分开管理，不写入 `notation.symbols`。歌词连音优先：冲突的手动连音弧不可新建，已有冲突项只在显示中静默隐藏，不删除工程数据；移除冲突歌词后恢复。修改或删除歌词、撤销／重做后自动更新。旧跳过事件及其它类型标识保持；自动弧跨行／跨页包含中间续接段。撤销保存的视图锚点属于会话状态，以音乐时间及音高行恢复，不写入工程。
+
+Chord pastes no longer enforce source meter metadata. The batch stops at the destination’s continuous meter-region or project boundary, cropping performed note durations without regeneration or added bars. Range clips retain relative starts; melody content crops only at the project end. Automatic lyric slurs derive from melisma events and remain separate from persisted manual symbols. Lyric slurs take priority: new conflicting manual arcs are blocked, while existing conflicts are hidden without deleting their data and return when the conflict is removed. Automatic arcs continue across intervening rows and pages. Undo view anchors are session state only. Schema 6 is unchanged.

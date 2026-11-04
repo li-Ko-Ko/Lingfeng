@@ -153,7 +153,11 @@ class VoicePlacementTests(unittest.TestCase):
             observed.extend((nid,kind) for nid,kind,_ in current.tie_paths)
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder)/'beat-ties.pdf'
-            with patch.object(ScoreLayout,'draw',capture):export_pdf(p,path)
+            rejected=Path(folder)/'traditional-polyphonic.pdf'
+            with self.assertRaisesRegex(ValueError,'传统简谱仅支持单声部旋律'):export_pdf(p,rejected)
+            self.assertFalse(rejected.exists())
+            printable=copy.deepcopy(p);printable.notation['style']='spatial'
+            with patch.object(ScoreLayout,'draw',capture):export_pdf(printable,path)
             self.assertTrue(path.read_bytes().startswith(b'%PDF'))
         self.assertEqual(observed,[(nid,kind) for nid,kind,_ in ties])
         self.assertEqual(p.to_dict(),before);self.assertEqual(event_list(p),events);self.assertEqual(export_midi(p,None),midi)

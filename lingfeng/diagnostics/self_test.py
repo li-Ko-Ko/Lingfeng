@@ -11,26 +11,19 @@ def self_test(folder):
     from PySide6.QtWidgets import QApplication,QMessageBox
     from PySide6.QtCore import QTimer
     from lingfeng.ui.main_window import MainWindow, STYLE
-    from lingfeng.music.model import Project, Chord, Note, Context, PPQ, FONT_SIZE_MAX, demo_project
+    from lingfeng.music.model import Project, Chord, Note, Context, PPQ, FONT_SIZE_MAX, PATTERNS, demo_project
     from lingfeng.audio.midi import export_midi, export_daw_bundle
     from lingfeng.engraving.notation import export_pdf, ScoreLayout
     from lingfeng import __version__
     from lingfeng.music.recognition import recognize
     from lingfeng.platform.i18n import tr
+    def menu_actions(menu):
+        for action in menu.actions():
+            yield action
+            if action.menu():yield from menu_actions(action.menu())
     folder=Path(folder).resolve();folder.mkdir(parents=True,exist_ok=True)
     app=QApplication.instance() or QApplication([]);app.setStyle('Fusion');app.setStyleSheet(STYLE)
     app.setApplicationName('Lingfeng')
-    # Fail unexpected monophony diagnostics without leaving an acceptance run
-    # blocked inside a modal event loop. The explicit gate check below opts in.
-    gate_state={'expected':False,'seen':[],'unexpected':[]}
-    def dismiss_gate():
-        for box in app.topLevelWidgets():
-            if isinstance(box,QMessageBox) and box.isVisible() and box.windowTitle()==tr('无法进入制谱'):
-                record=(box.text(),box.informativeText(),box.detailedText())
-                gate_state['seen' if gate_state['expected'] else 'unexpected'].append(record)
-                if gate_state['expected']:box.grab().save(str(folder/'v54-monophony-diagnostic.png'))
-                box.accept()
-    gate_timer=QTimer(app);gate_timer.setInterval(30);gate_timer.timeout.connect(dismiss_gate);gate_timer.start()
     p=demo_project();p.volumes={'melody':84,'chords':68}
     p.audio['melody']['program']=5
     c=p.chords[2];c.start+=480;c.duration-=480;c.pattern='up'
@@ -40,13 +33,6 @@ def self_test(folder):
     pages=export_pdf(q,folder/'test.pdf')
     assert recognize([52,55,60])[0].name=='C/E'
     window=MainWindow(q);window.save_preferences=lambda:None
-    original_gate=window.score_entry_allowed
-    def acceptance_gate(*args,**kwargs):
-        allowed=original_gate(*args,**kwargs)
-        if not allowed and not gate_state['expected']:
-            raise AssertionError('Unexpected overlapping melody in an acceptance fixture: '+str(gate_state['unexpected'][-1:]))
-        return allowed
-    window.score_entry_allowed=acceptance_gate
     assert window.roll.row_height==window.harmony_window.roll.row_height==20
     assert Project().audio['melody']['program']==1
     assert window.length.currentData()==window.harmony_window.length.currentData()==-1
@@ -64,6 +50,7 @@ def self_test(folder):
     assert not hasattr(window,'context_panel')
     window.grab().save(str(folder/'dark.png'));window.harmony_window.grab().save(str(folder/'dark-harmony.png'))
     window.switch_workspace('score');app.processEvents();window.grab().save(str(folder/'score.png'))
+    assert window.score_tabs.count()==0 and not any(state['visible'] for state in window.score_panel_state.values())
     window.perline.setCurrentIndex(window.perline.findData(8));app.processEvents()
     assert all(len(s.bars)==8 for s in window.score_view.canvas.layout.systems)
     window.show_score_panel('melody');window.view_controls.range.setCurrentIndex(1)
@@ -124,7 +111,7 @@ def self_test(folder):
     window.melody_window.setFloating(False);window.harmony_window.setFloating(False)
     window.switch_workspace('score');window.open_score_roll('chords',0);app.processEvents()
     assert window.score_tabs.currentWidget() is window.score_harmony_page
-    assert window.score_tabs.count()==3
+    assert window.score_tabs.count()==2
     window.tool.setCurrentIndex(window.tool.findData('draw'));assert window.harmony_window.roll.tool=='draw'
     from lingfeng.music.chord_operations import chord_details
     assert 'Actual bass' in chord_details(window.project,window.project.chords[0])
@@ -182,7 +169,8 @@ def self_test(folder):
     assert all(rect.isValid() for _,rect,_ in layout.hit_notes)
     from lingfeng.music.chord_operations import change_chords, quality_items
     c=window.project.chords[0];root=c.root;change_chords(window.project,{c.id},'inversion:1');assert c.root==root
-    change_chords(window.project,{c.id},'root:2');assert c.root%12==2 and len(quality_items())==21
+    from lingfeng.music.model import QUALITIES
+    change_chords(window.project,{c.id},'root:2');assert c.root%12==2 and len(quality_items())==len(QUALITIES)
     window.lyric_panel.new_section();window.lyric_panel.start.setValue(7);window.lyric_panel.text.setPlainText('星/16光/16');assert window.lyric_panel.check();window.lyric_panel.commit();assert not matching_issues(window.project)
     for mute in window.mute_buttons.values():mute.setChecked(True)
     window.playhead=0;window.toggle_play();window.seek(960);assert window.transport.playing and window.roll.anchor_tick==960
@@ -268,7 +256,7 @@ def self_test(folder):
     window.replace_project(probe);window.chord_selection(set());window.chord_selection({probe.chords[0].id},window.harmony_window.roll)
     assert not window.roll.selected_chords and window.harmony_window.roll.selected_chords
     window.harmony_window.roll.anchor_tick=960;window.harmony_window.roll.cursor_tick=4800;assert window.harmony_window.roll.position_tick()==960
-    validate(normalized({}));assert normalized({})['up']=='W' and normalized({})['switch_input']=='E' and normalized({})['toggle_tool']=='Q'
+    validate(normalized({}));assert normalized({})['up']=='Up' and normalized({})['view_left']=='' and normalized({})['view_right']=='' and normalized({})['switch_input']=='E' and normalized({})['toggle_tool']=='Q'
     from lingfeng.music.rhythm import analyze as analyze_rhythm
     from lingfeng.music.note_operations import resize_chord
     probe=Project();probe.notes=[Note(0,960,60),Note(960,1920,60),Note(0,3840,64)]
@@ -341,7 +329,8 @@ def self_test(folder):
     single=[a.text() for a in menu.actions()];lane.selection_event({x.id for x in probe.chords});menu=lane.context_menu(QPoint(round(lane.x_at(480)),25))
     assert [a.text() for a in menu.actions()]==single and not menu.root_menu.isEnabled()
     r.selected_ids={probe.notes[0].id};r.refresh();assert not r.selected_chords
-    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==7
+    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==8
+    assert timeline.section_action.text()==tr('段落标识') and timeline.section_jump_action.text()==tr('跳转小节')
     window.switch_workspace('score');window.show_score_panel('logic');head=window.playhead
     window.open_score_roll('chords',3840);app.processEvents();assert window.score_tabs.currentWidget() is window.score_harmony_page and window.playhead==head
     window.audition_chord(probe.chords[1].id);assert window.transport.audition_notes[3]==probe.chords[1].pitches
@@ -453,12 +442,12 @@ def self_test(folder):
     original=window.project.end;window.project.insert_measures(1,3);assert window.project.end==original+11520;window.refresh()
     r=window.roll;r.center_pitch(60);r.selected_ids={n.id for n in r.notes};window.note_command(r,'chromatic:-24')
     assert r.y_at(36)+r.row_height<=r.viewport().height()
-    # Meter metadata travels with copied chords, and cropped selections recover.
+    # Chord pastes accept different meters; moved selections still crop/recover.
     from lingfeng.music.chord_operations import ChordMoveSession
     from lingfeng.music.bar_operations import delete_bars
     from lingfeng.music.rhythm import label as pattern_label
     probe=Project();probe.set_markers([1],50,'Dorian',3,4);probe.chords=[Chord(3840,960)]
-    clip=ChordClipboard.capture(probe.chords,probe);assert not clip.can_paste(probe,0)
+    clip=ChordClipboard.capture(probe.chords,probe);assert clip.can_paste(probe,0)
     selection=ChordMoveSession.capture(probe,{probe.chords[0].id});selection.apply(probe,-1920);selection.delta=-1920;assert not probe.chords
     selection.apply(probe,1920);assert probe.chords[0].start==3840 and probe.chords[0].duration==960
     probe.chords[0].custom_rhythm=True;assert pattern_label(probe.chords[0],probe)==tr('自定义（锁定）')
@@ -478,13 +467,15 @@ def self_test(folder):
     probe=Project();probe.chords=[Chord(0,960),Chord(1920,960,50,'m')];window.replace_project(probe);app.processEvents()
     lane=window.chord_lane;r=lane.editor;window.activateWindow();lane.setFocus();lane.selection_event({c.id for c in probe.chords});app.processEvents()
     before=window.project.to_dict();head=window.playhead;scroll=r.horizontalScrollBar().value()
-    editor_key(Qt.Key.Key_Right);assert r.horizontalScrollBar().value()>scroll and window.project.to_dict()==before and window.playhead==head
-    editor_key(Qt.Key.Key_Left);assert r.horizontalScrollBar().value()==scroll
+    positions=[c.start for c in probe.chords]
+    editor_key(Qt.Key.Key_Right);assert [c.start for c in window.project.chords if c.id in r.selected_chords]==[t+r.grid for t in positions] and window.playhead==head
+    editor_key(Qt.Key.Key_Left);assert [c.start for c in window.project.chords if c.id in r.selected_chords]==positions and r.horizontalScrollBar().value()==scroll
     window.grid.setCurrentIndex(4);duration=window.length.currentData()
     editor_key(Qt.Key.Key_3,Qt.KeyboardModifier.ShiftModifier);assert window.grid.triplet and window.harmony_window.grid.triplet and window.length.currentData()==duration
     editor_key(Qt.Key.Key_3,Qt.KeyboardModifier.ShiftModifier);assert not window.grid.triplet
-    ids={c.id for c in window.project.chords};assert can_apply_pattern(window.project,window.project.chords,'up')
-    change_chords(window.project,ids,'pattern:up');assert all(analyze(c,window.project).pattern=='up' for c in window.project.chords)
+    selected=[c for c in window.project.chords if c.id in r.selected_chords]
+    ids={c.id for c in selected};assert can_apply_pattern(window.project,selected,'up')
+    change_chords(window.project,ids,'pattern:up');assert all(analyze(c,window.project).pattern=='up' for c in selected)
     window.project.chords=[];window.refresh();app.processEvents();lane=window.chord_lane;before=lane.grab().toImage()
     mouse(QEvent.Type.MouseButtonPress,QPoint(180,20),Qt.MouseButton.LeftButton,Qt.MouseButton.LeftButton)
     mouse(QEvent.Type.MouseMove,QPoint(lane.width()-2,40),Qt.MouseButton.NoButton,Qt.MouseButton.LeftButton);assert lane.marquee is not None
@@ -688,7 +679,7 @@ def self_test(folder):
     assert manager.table.rowCount()==1 and manager.table.item(0,1).text()=='I/3 – IVmaj7/6';manager.deleteLater()
     window.replace_project(probe);window.harmony_window.setFloating(True);r=window.harmony_window.roll
     r.lane.selection_event(selected);menu=r.lane.context_menu(QPoint(round(r.lane.x_at(100)),25))
-    action=next(a for a in menu.actions() if a.text()==tr('检索和弦进行…'));assert action.isEnabled()
+    action=next(a for a in menu_actions(menu) if a.text()==tr('检索和弦进行…'));assert action.isEnabled()
     observed=[];original_exec=ProgressionManagerDialog.exec
     def inspect_search(dialog):
         observed.append((dialog.search.text(),dialog.parentWidget()));return QDialog.DialogCode.Rejected
@@ -705,12 +696,15 @@ def self_test(folder):
         assert c.pcs==pcs and any(x.quality==quality and x.root==0 for x in recognize(c.pitches))
         assert resolve(capture_progression(probe,{c.id}),0).quality==quality
     legacy=probe.to_dict();legacy['chords'][0]['quality']='add9'
+    for key in ('recognition_disabled','marked'):legacy['chords'][0].pop(key,None)
     migrated=Project.from_dict(legacy).chords[0]
     assert migrated.quality=='add2' and migrated.notes is None and migrated.pitches==[36,48,50,52,55]
     probe.contexts=[Context(0,probe.end,53)]
     defaults=dict(quality='mM7',pattern='quarters',gate=70,velocity=82)
     dialog=ChordDialog(Chord(3840,1920),probe,defaults=defaults)
-    assert dialog.root.itemText(0)=='1 · F' and dialog.options()==defaults
+    assert dialog.root.itemText(0)=='1 · F' and dialog.options()=={k:v for k,v in defaults.items() if k!='velocity'}
+    from lingfeng.platform.chord_preferences import default_velocity
+    assert dialog.velocity.value()==default_velocity('harmony')
     assert (dialog.value().start,dialog.value().duration)==(3840,1920)
     dialog.close();dialog.deleteLater()
     from lingfeng.music.rhythm import ALTERNATING, regenerate, supports
@@ -728,7 +722,7 @@ def self_test(folder):
     probe=Project();probe.notes=[Note(0,960,60,83),Note(960,480,64,71)];window.replace_project(probe)
     r=window.roll;r.edit_target='notes';r.selected_ids={n.id for n in r.notes}
     from PySide6.QtWidgets import QMenu
-    menu=QMenu();r.selection_menu(menu,0);next(a for a in menu.actions() if a.data()=='octave_up').trigger()
+    menu=QMenu();r.selection_menu(menu,0);next(a for a in menu_actions(menu) if a.data()=='octave_up').trigger()
     assert [(n.pitch,n.velocity,n.start,n.duration) for n in window.project.notes]==[(72,83,0,960),(76,71,960,480)]
     window.undo();assert [n.pitch for n in window.project.notes]==[60,64];menu.deleteLater()
     # 0.40.1: a single registry drives menus, settings and conflict transfers.
@@ -738,21 +732,21 @@ def self_test(folder):
     bindings=normalized({});validate(bindings)
     dialog=KeyBindingsDialog(bindings,window)
     assert set(dialog.fields)==set(COMMANDS) and set(STANDARD.values())<=set(dialog.fields)
-    dialog.fields['up'].setKeySequence(QKeySequence('Ctrl+S'))
+    dialog.fields['split'].setKeySequence(QKeySequence('Ctrl+S'))
     original_question=QMessageBox.question
     try:
         QMessageBox.question=lambda *args:QMessageBox.StandardButton.No
-        assert not dialog.resolve_change('up') and dialog.value()==bindings
-        dialog.fields['up'].setKeySequence(QKeySequence('Ctrl+S'))
+        assert not dialog.resolve_change('split') and dialog.value()==bindings
+        dialog.fields['split'].setKeySequence(QKeySequence('Ctrl+S'))
         QMessageBox.question=lambda *args:QMessageBox.StandardButton.Yes
-        assert dialog.resolve_change('up') and dialog.value()['save']=='' and dialog.value()['up']=='Ctrl+S'
+        assert dialog.resolve_change('split') and dialog.value()['save']=='' and dialog.value()['split']=='Ctrl+S'
     finally:QMessageBox.question=original_question
     reassigned=dialog.value();validate(reassigned);assert load_bindings(reassigned)==reassigned
     dialog.close();dialog.deleteLater();window.keybindings=reassigned;window.update_shortcuts()
     assert next(a for a in window.findChildren(QAction) if a.property('shortcutCommand')=='save').shortcut().isEmpty()
     menu=QMenu();r.selection_menu(menu,0)
-    assert next(a for a in menu.actions() if a.property('shortcutCommand')=='up').shortcut().toString()=='Ctrl+S'
-    delete=next(a for a in menu.actions() if a.property('shortcutCommand')=='delete')
+    assert next(a for a in menu_actions(menu) if a.property('shortcutCommand')=='split').shortcut().toString()=='Ctrl+S'
+    delete=next(a for a in menu_actions(menu) if a.property('shortcutCommand')=='delete')
     assert [s.toString() for s in delete.shortcuts()]==['Del','Backspace'] and 'Backspace' in delete.text()
     menu.deleteLater();window.keybindings=bindings
     window.replace_project(Project());window.length.setCurrentIndex(window.length.findData(-1));window.grid.setCurrentIndex(window.grid.findData(240));window.grid.set_triplet(False)
@@ -827,7 +821,8 @@ def self_test(folder):
         for combo in (edit.root,edit.bass,capture.tonic,apply_dialog.tonic,manager.tonic):
             assert [combo.itemText(i).split(' · ')[0] for i in range(12)]==wanted.split()
         assert edit.root.currentIndex()==edit.bass.currentIndex()==0 and edit.bass.findData(None)==-1
-        assert edit.options()==dict(quality='m7',pattern='quarters',gate=70,velocity=82)
+        assert edit.options()==dict(quality='m7',pattern='quarters',gate=70)
+        assert edit.velocity.value()==default_velocity('harmony')
         assert edit.regenerate.isChecked() and edit.octave.value()==0
         edit.root.setCurrentIndex(edit.root.findData(5));assert edit.bass.currentData()==5
         edit.bass.setCurrentIndex(edit.bass.findData(9));assert edit.root.currentData()==5 and edit.value().bass==9
@@ -1307,7 +1302,12 @@ def self_test(folder):
         painter=QPainter(image);engraved.draw(painter,page);painter.end()
         image.save(str(folder/f'v532-beat-ties-{page}.png'));tie_ids.update(nid for nid,_,_ in engraved.tie_paths)
     assert {crossing.id,dotted_crossing.id}<=tie_ids and sustain.id not in tie_ids
-    export_pdf(beat_song,folder/'v532-beat-ties.pdf');export_midi(beat_song,folder/'v532-after.mid')
+    try:export_pdf(beat_song,folder/'v532-traditional-polyphonic-rejected.pdf')
+    except ValueError as exc:assert str(exc)=='传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。'
+    else:raise AssertionError('Traditional polyphonic PDF export must be rejected')
+    assert not (folder/'v532-traditional-polyphonic-rejected.pdf').exists()
+    printable=copy.deepcopy(beat_song);printable.notation['style']='spatial'
+    export_pdf(printable,folder/'v532-beat-ties.pdf');export_midi(beat_song,folder/'v532-after.mid')
     assert (folder/'v532-before.mid').read_bytes()==(folder/'v532-after.mid').read_bytes()
     assert beat_song.to_dict()==original and midi_events(beat_song)==original_events
     for style in ('spatial','compact'):
@@ -1409,20 +1409,237 @@ def self_test(folder):
         else:raise AssertionError('Audio loading cancellation was ignored')
     assert cancelled==[True] and cancel_ui==[True]
     app.processEvents()
-    # Strict entry diagnoses even a one-tick overlap, without changing notes.
+    # Polyphonic melodies can be scored; only traditional notation is unavailable.
     from lingfeng.music.onsets import group_onsets,overlap_conflicts
     window.switch_workspace('compose');blocking=Project();blocking.notes=[Note(0,961,60),Note(960,960,64)]
-    window.replace_project(blocking);before=copy.deepcopy(window.project.to_dict());events_before=midi_events(window.project)
-    gate_state['expected']=True
-    try:assert not window.switch_workspace('score')
-    finally:gate_state['expected']=False
-    assert window.workspace=='compose' and len(gate_state['seen'])==1
-    assert window.project.to_dict()==before and midi_events(window.project)==events_before
-    assert '960' in gate_state['seen'][0][1] and '961' in gate_state['seen'][0][1]
+    window.replace_project(blocking);notes_before=copy.deepcopy(window.project.notes);events_before=midi_events(window.project)
+    assert window.switch_workspace('score') and window.workspace=='score'
+    traditional=window.score_style.findData('traditional')
+    assert not window.score_style.model().item(traditional).isEnabled()
+    before=copy.deepcopy(window.project.to_dict());history=len(window.undo_history)
+    window.set_notation('style','traditional')
+    assert window.project.to_dict()==before and len(window.undo_history)==history
+    for style in ('spatial','compact'):
+        window.set_notation('style',style)
+        assert export_pdf(window.score_view.canvas.project,folder/f'v563-polyphonic-{style}.pdf')>0
+        app.processEvents();window.grab().save(str(folder/f'v563-polyphonic-{style}.png'))
+    assert window.project.notes==notes_before and midi_events(window.project)==events_before
     assert len(group_onsets(blocking.notes))==2 and overlap_conflicts(blocking.notes)[0].end==961
     window.mutate('acceptance correct overlap',lambda p:setattr(p.notes[0],'duration',960))
-    assert window.switch_workspace('score') and set(window.score_pages)=={'melody','harmony','lyrics'}
-    gate_timer.stop();assert not gate_state['unexpected'],gate_state['unexpected']
+    assert window.score_style.model().item(traditional).isEnabled()
+    window.set_notation('style','traditional')
+    assert window.project.notation['style']=='traditional' and window.score_view.canvas.project.notes[0].duration==960
+    window.set_notation('style','spatial')
+    assert window.switch_workspace('score') and set(window.score_pages)=={'melody','harmony','lyrics','annotations'}
+    # 0.56: creation preferences and display-only symbols in the installed app.
+    from lingfeng.platform import chord_preferences
+    from lingfeng.music.recognition import set_marker, set_recognition_disabled
+    from lingfeng.music.rhythm import analyze
+    from lingfeng.ui.dialogs import ChordMarkerDialog
+    from lingfeng.ui.chord_settings_dialog import ChordSettingsDialog
+    saved_preferences=chord_preferences.settings_dict()
+    chord_preferences.set_preferences(dict(default_velocities=dict(melody=43,harmony=99),quick_chord_qualities=['m7','','7']))
+    probe=Project();probe.chords=[Chord(0,1920)];marked=probe.chords[0]
+    actual=midi_events(probe);set_marker(marked,50,'m7',5)
+    assert marked.marked and marked.recognition_disabled and marked.name=='Dm7/F'
+    assert marked.highlight_pcs=={0,2,5,9}
+    assert probe.category(64,0)=='scale' and probe.category(62,0)=='both'
+    assert not is_chord_tone(probe,64,0) and is_chord_tone(probe,62,0) and is_chord_tone(probe,65,0)
+    for style in ('spatial','compact','traditional'):
+        circle_probe=copy.deepcopy(probe)
+        circle_probe.notes=[Note(0,240,64),Note(240,240,62),Note(480,240,65)]
+        circle_probe.notation.update(style=style,circles=True,lyrics=False)
+        events=midi_events(circle_probe);circle_layout=ScoreLayout(circle_probe)
+        pieces=[f for system in circle_layout.systems for parts in system.fragments.values() for f in parts if f.note]
+        assert [is_chord_tone(circle_probe,f.pitch,f.start) for f in pieces]==[False,True,True]
+        assert circle_layout.glyph_extents(pieces[0])==(7,7) and circle_layout.glyph_extents(pieces[1])==(11,11)
+        assert export_pdf(circle_probe,folder/f'v564-marked-circles-{style}.pdf')>0 and midi_events(circle_probe)==events
+    marked_roll=PianoRoll(probe);marked_roll.selected_chords={marked.id}
+    assert marked_roll.category(64,0)=='scale' and marked_roll.category(62,0)=='both'
+    assert marked_roll.project.chords[0].highlight_pcs=={0,2,5,9}
+    assert analyze(marked,probe) is None and midi_events(probe)==actual
+    assert Project.from_dict(probe.to_dict()).to_dict()==probe.to_dict()
+    marker_dialog=ChordMarkerDialog(marked,probe)
+    marker_dialog.show();app.processEvents();marker_dialog.grab().save(str(folder/'v56-mark-chord.png'))
+    marker_dialog.close();marker_dialog.deleteLater()
+    set_recognition_disabled(marked,False,probe)
+    assert not marked.marked and not marked.recognition_disabled and marked.name=='C'
+    assert probe.category(64,0)=='both' and marked_roll.category(64,0)=='both'
+    assert is_chord_tone(probe,64,0) and not is_chord_tone(probe,62,0)
+    marked_roll.close();marked_roll.deleteLater()
+    assert midi_events(probe)==actual
+    edit=ChordDialog(marked,probe,defaults=dict(velocity=12))
+    assert edit.velocity.value()==99 and 'velocity' not in edit.options()
+    assert [edit.quality.itemData(i) for i in range(edit.quality.count())]==['m7','','7']
+    edit.velocity.setValue(21);confirmed=edit.options();edit.close();edit.deleteLater()
+    edit=ChordDialog(marked,probe,defaults=confirmed);assert edit.velocity.value()==99
+    edit.close();edit.deleteLater()
+    settings=ChordSettingsDialog();assert settings.preview.rowCount()==len(QUALITIES)
+    settings.show();app.processEvents();settings.grab().save(str(folder/'v56-chord-settings.png'))
+    settings.tabs.setCurrentIndex(1);app.processEvents();settings.grab().save(str(folder/'v56-chord-reference.png'))
+    settings.close();settings.deleteLater();chord_preferences.set_preferences(saved_preferences)
+    # Note dynamics, unified chord velocities, note ranges and score annotations.
+    from lingfeng.music.chord_operations import set_chord_velocity
+    from lingfeng.music.note_operations import join_notes
+    chord_preferences.set_preferences(dict(default_velocities=dict(melody=49,harmony=83)))
+    probe=Project();probe.notes=[Note(0,480,60,11),Note(960,480,64,22),Note(1920,480,67,33)]
+    probe.chords=[Chord(0,3840,pattern='quarters')];window.replace_project(probe)
+    c=window.project.chords[0];original_events=midi_events(window.project)
+    set_chord_velocity(c,37)
+    assert {n.velocity for n in c.render_notes()}=={37}
+    assert [(t,on,ch,p) for t,on,ch,p,v in midi_events(window.project)]==[(t,on,ch,p) for t,on,ch,p,v in original_events]
+    assert Project.from_dict(window.project.to_dict()).chords[0].velocity==37
+    assert 'bass_velocity' not in window.project.to_dict()['chords'][0]
+    assert window.harmony_window.roll.creation_velocity(120)==37
+    assert window.harmony_window.roll.creation_velocity(c.end)==83
+    r=window.roll;r.selected_ids={n.id for n in r.notes};menu=r.note_menu(QPoint(round(r.x_at(120)),r.ruler_height+10),preserve=True)
+    menu.velocity_menu.default_action.trigger();assert {n.velocity for n in window.project.notes}=={49}
+    menu.close();menu.deleteLater();window.undo();assert [n.velocity for n in window.project.notes]==[11,22,33]
+    joined=join_notes([Note(0,960,60,83),Note(960,960,60,71)])
+    assert len(joined)==1 and joined[0].start==0 and joined[0].end==1920
+    actual=midi_events(window.project);r.set_pitch_range(48,72)
+    assert r.pitches==list(range(72,47,-1)) and midi_events(window.project)==actual
+    r.set_compact(False)
+    for key in window.score_pages:window.set_score_panel_visible(key,False)
+    window.switch_workspace('compose');window.switch_workspace('score');assert window.score_tabs.count()==0
+    window.show_score_panel('annotations');canvas=window.score_view.canvas
+    canvas.set_selection_unit('note');canvas.selected_notes={n.id for n in window.project.notes}
+    window.annotation_panel.kind.setCurrentIndex(window.annotation_panel.kind.findData('slur'));window.annotation_panel.refresh()
+    window.annotation_panel.add_button.click();assert len(window.project.notation['symbols'])==1
+    assert window.project.notation['symbols'][0]['kind']=='slur' and midi_events(window.project)==actual
+    canvas.grab();assert canvas.layout.manual_slur_paths
+    window.grab().save(str(folder/'v561-annotations.png'))
+    state=copy.deepcopy(window.score_panel_state);window.switch_workspace('compose');window.switch_workspace('score')
+    assert window.score_panel_state==state and window.score_tabs.count()==1
+    window.undo();assert not window.project.notation.get('symbols');window.redo();assert len(window.project.notation['symbols'])==1
+    chord_preferences.set_preferences(saved_preferences)
+    # 0.56.2: the real QAction toggle resumes marked chords, and common commands
+    # remain directly reachable under every saved menu order/grouping.
+    from lingfeng.platform import context_menu_preferences
+    from lingfeng.ui.context_menu_settings_dialog import ContextMenuSettingsDialog
+    saved_menus=context_menu_preferences.settings_dict();context_menu_preferences.load_preferences({})
+    probe=Project();probe.chords=[Chord(0,3840),Chord(3840,3840,55)]
+    window.replace_project(probe);window.switch_workspace('compose')
+    cid=window.project.chords[0].id;actual=midi_events(window.project)
+    window.mutate('acceptance manual mark',lambda p:set_marker(p.chords[0],54,'m7',2),source=window.roll)
+    r=window.roll;menu=r.lane.context_menu(QPoint(round(r.lane.x_at(120)),18));assert menu.recognition_action.isChecked()
+    menu.recognition_action.trigger();assert not window.project.chords[0].marked and not window.project.chords[0].recognition_disabled
+    assert window.project.chords[0].name=='C' and midi_events(window.project)==actual
+    window.undo();assert window.project.chords[0].marked;window.redo();assert not window.project.chords[0].marked
+    menu.close();menu.deleteLater()
+    menu=r.lane.context_menu(QPoint(round(r.lane.x_at(120)),18))
+    direct={a.text().split('\t',1)[0] for a in menu.actions()}
+    assert {tr(label) for label in ('复制所选和弦','在此和弦开头覆盖粘贴','在定位线处粘贴和弦','二等分和弦','合并相邻和弦')}<=direct
+    menu.close();menu.deleteLater()
+    preferences=ContextMenuSettingsDialog();assert len(preferences.value()['context_menu_layout']['chord'])==11
+    preferences.show();app.processEvents();preferences.grab().save(str(folder/'v562-menu-settings.png'))
+    preferences.close();preferences.deleteLater()
+    window.mutate('acceptance manual appearance',lambda p:set_marker(p.chords[1],50,'m7',5),source=r)
+    app.processEvents();window.chord_lane.grab().save(str(folder/'v562-marked-chords.png'))
+    assert window.project.chords[1].marked and midi_events(window.project)==actual
+    assert all('底五交替' in PATTERNS[code] for code in ('alternating_quarters','alternating_eighths','alternating_offbeat'))
+    context_menu_preferences.set_preferences(saved_menus)
+    # Beat-local ties prefer the offbeat; display circles follow manual labels.
+    from lingfeng.engraving.notation import beat_rhythm_parts
+    assert beat_rhythm_parts(3000,840,0,PPQ)==[(3000,360),(3360,480)]
+    assert beat_rhythm_parts(3000,960,0,PPQ)==[(3000,360),(3360,480),(3840,120)]
+    for duration in (840,960):
+        syncopation=Project(measures=[Measure(),Measure()])
+        syncopation.contexts=[Context(0,syncopation.end)]
+        source=Note(3000,duration,65);syncopation.notes=[source]
+        syncopation.chords=[Chord(0,syncopation.end,notes=[Note(0,syncopation.end,p)for p in (48,52,55)])]
+        set_marker(syncopation.chords[0],2,'m7',6)
+        expected=[(3000,360),(3360,480)]+([(3840,120)]if duration==960 else [])
+        for style in ('spatial','compact','traditional'):
+            syncopation.notation.update(style=style,per_line=1,circles=True,lyrics=False)
+            before=copy.deepcopy(syncopation.to_dict());events=midi_events(syncopation)
+            engraved=ScoreLayout(syncopation)
+            pieces=[f for system in engraved.systems for parts in system.fragments.values()for f in parts if f.note]
+            assert [(f.start,f.duration)for f in pieces]==expected and all(f.note is source for f in pieces)
+            assert all(is_chord_tone(syncopation,f.pitch,f.start)for f in pieces)
+            ties=set()
+            for page in range(engraved.pages):
+                image=QImage(900,1273,QImage.Format.Format_RGB32);image.fill(0xffffffff)
+                painter=QPainter(image);engraved.draw(painter,page);painter.end()
+                image.save(str(folder/f'v564-offbeat-{duration}-{style}-{page}.png'))
+                ties.update((nid,kind)for nid,kind,_ in engraved.tie_paths)
+            assert (source.id,'continuous')in ties
+            if duration==960:assert {(source.id,'incoming'),(source.id,'outgoing')}<=ties
+            assert export_pdf(syncopation,folder/f'v564-offbeat-{duration}-{style}.pdf')>0
+            assert syncopation.to_dict()==before and midi_events(syncopation)==events
+    # 0.56.5: full local-bar bass, full denominator beats, and exact independent copies.
+    probe=Project(measures=[Measure(3,8),Measure(3,8)]);probe.contexts=[Context(0,probe.end)]
+    probe.put_chord(Chord(0,probe.end,pattern='sustained_bass_beats',gate=.5))
+    assert [(n.start,n.duration) for n in probe.harmony_notes() if n.pitch==36]==[(0,1440),(1440,1440)]
+    assert [(n.start,n.duration) for n in probe.harmony_notes() if n.pitch==48]==[(t,480) for t in range(0,2880,480)]
+    assert analyze(probe.chords[0],probe).pattern=='sustained_bass_beats'
+    probe=Project();probe.chords=[Chord(0,960),Chord(960,960)]
+    probe.set_harmony_notes([Note(0,1920,53,79),Note(0,960,60,89),Note(960,960,64,91)])
+    for chord in probe.chords[:2]:set_marker(chord,53,'maj7',None)
+    copied=ChordClipboard.capture(probe.chords[:2],probe);expected=[[(n.start,n.duration,n.pitch,n.velocity) for n in c.notes] for c in probe.chords[:2]]
+    ids=copied.paste(probe,1920);pasted=[c for c in probe.chords if c.id in ids]
+    assert [[(n.start,n.duration,n.pitch,n.velocity) for n in c.notes] for c in pasted]==expected
+    assert [(n.start,n.duration) for n in probe.harmony_notes() if n.pitch==53]==[(0,1920),(1920,1920)]
+    probe.validate()
+    migrated=load_bindings({'up':'W','left':'A','view_left':'Left','play':'Up'})
+    assert migrated['up']=='Up' and migrated['left']=='Left' and migrated['view_left']=='' and migrated['play']==''
+    # 0.56.6: permissive cropped pastes and separately managed, lyric-first slurs.
+    probe=Project(measures=[Measure(),Measure(3,4),Measure(3,4)]);probe.contexts=[Context(0,probe.end)]
+    source=Chord(0,6000,root=53,notes=[Note(0,6000,53,79),Note(240,240,60,91)])
+    copied=ChordClipboard.capture([source]);ids=copied.paste(probe,3000)
+    pasted=next(c for c in probe.chords if c.id in ids)
+    assert pasted.start==3000 and pasted.end==3840 and pasted.notes[0].duration==840
+    assert copied.can_paste(probe,probe.end) and copied.paste(probe,probe.end)==set()
+    ids=copied.paste(probe,probe.end-50);assert next(c for c in probe.chords if c.id in ids).duration==50
+    probe.validate()
+    from lingfeng.engraving.lyrics import delete_range
+    from lingfeng.engraving.presentation import add_slur
+    probe=Project();probe.notes=[Note(0,480,60),Note(480,480,62)]
+    apply_range(probe,'我/-',0,1);before=probe.to_dict()
+    try:add_slur(probe,[n.id for n in probe.notes])
+    except ValueError:pass
+    else:raise AssertionError('Lyric slurs must prevent conflicting manual slurs')
+    assert probe.to_dict()==before and not probe.notation.get('symbols')
+    probe=Project();probe.notes=[Note(0,480,60),Note(480,480,62)]
+    add_slur(probe,[n.id for n in probe.notes]);symbols=copy.deepcopy(probe.notation['symbols'])
+    apply_range(probe,'我/-',0,1)
+    layout=ScoreLayout(probe);image=QImage(900,1273,QImage.Format.Format_RGB32);image.fill(0xffffffff)
+    painter=QPainter(image);layout.draw(painter,0);painter.end()
+    assert layout.melisma_paths and not layout.manual_slur_paths and probe.notation['symbols']==symbols
+    delete_range(probe,0,1);layout=ScoreLayout(probe)
+    painter=QPainter(image);layout.draw(painter,0);painter.end()
+    assert not layout.melisma_paths and layout.manual_slur_paths and probe.notation['symbols']==symbols
+    probe=Project(measures=[Measure() for _ in range(4)]);probe.contexts=[Context(0,probe.end)]
+    probe.notes=[Note(0,240,60),Note(11520,240,62)];apply_range(probe,'我/-',0,4)
+    for style in ('traditional','spatial','compact'):
+        probe.notation.update(style=style,per_line=1);layout=ScoreLayout(probe);kinds=[]
+        for page in range(layout.pages):
+            painter=QPainter(image);layout.draw(painter,page);painter.end();kinds.extend(kind for _,_,kind,_ in layout.melisma_paths)
+        assert kinds==['outgoing','through','through','incoming']
+    # 0.57: section destinations and a user-wide rhythm inference switch.
+    from lingfeng.platform import rhythm_preferences
+    from lingfeng.music.rhythm import analyze_performed, label as rhythm_label, extend
+    from unittest.mock import patch
+    probe=Project();probe.measures[0].section='Intro';probe.measures[3].section='Verse';probe.measures[5].section='Verse'
+    probe.put_chord(Chord(0,3840,pattern='quarters'))
+    match=analyze(probe.chords[0],probe);snapshot=probe.to_dict()
+    original_enabled=rhythm_preferences.enabled()
+    try:
+        rhythm_preferences.set_enabled(False)
+        with patch('lingfeng.music.rhythm._recognize',side_effect=AssertionError('Disabled rhythm detector ran')),patch('lingfeng.music.rhythm._recognize_bar',side_effect=AssertionError('Disabled bar rhythm detector ran')):
+            assert analyze(probe.chords[0],probe) is None and analyze_performed(probe.chords[0],probe) is None
+            assert rhythm_label(probe.chords[0],probe)==''
+            assert regenerate(probe.chords[0],0,6000,probe,match) is None and extend(probe.chords[0],0,6000,match) is None
+        assert probe.to_dict()==snapshot
+    finally:rhythm_preferences.set_enabled(original_enabled)
+    assert analyze(probe.chords[0],probe).pattern=='quarters'
+    window.replace_project(probe);menu=window.main_roll.timeline_menu(QPoint(KEY_W+1,10))
+    assert [a.data() for a in menu.section_jump_menu.actions()]==[0,3,5]
+    assert [a.text() for a in menu.section_jump_menu.actions()]==[tr('{0} · 第 {1} 小节',name,bar+1) for name,bar in [('Intro',0),('Verse',3),('Verse',5)]]
+    selection=copy.deepcopy(window.main_roll.selection);snapshot=probe.to_dict()
+    menu.section_jump_menu.actions()[1].trigger()
+    assert window.playhead==probe.starts[3] and window.main_roll.selection==selection and probe.to_dict()==snapshot
+    menu.deleteLater()
     window.dirty=False;window.close();app.processEvents()
     report={'status':'passed','version':__version__,'frozen':bool(getattr(sys,'frozen',False)),
             'python':sys.version.split()[0],'pdf_pages':pages,'melody_notes':len(q.notes),
@@ -1466,19 +1683,19 @@ def self_test(folder):
     report['checks']+=['last duration is default with temporary grid fallback','duration follows actual edits and undo','7b5 components and preferred recognition','7b5 progression and project roundtrip']
     report['checks']+=['default 20 pixel piano keys','default GM 02 bright piano','variable measure widths and linear spatial time grid','score-wide proportional symbol fitting','15 native synthesis presets and stop','synth pack settings and project roundtrip','actual export attribution sidecar','synth licenses and complete preset catalog']
     report['checks']+=['37 bundled calibrated synthesis presets and releases','128 distinct GM instrument names','chromatic tonic selector anchored at first chord','capture tonicization preserves Roman-only recipes','apply selected tonic and preview agree','literal chord query resolves against selected tonic']
-    report['checks']+=['modal degree labels shared by root bass and three progression dialogs','scale tones retain modal accidentals in both preferences','chord editor starts with key tonic and matching bass','only quality pattern gate and velocity remembered','root changes move bass without reverse coupling','root bass stores no redundant slash']
+    report['checks']+=['modal degree labels shared by root bass and three progression dialogs','scale tones retain modal accidentals in both preferences','chord editor starts with key tonic and matching bass','only quality pattern and gate remembered; velocity uses saved default','root changes move bass without reverse coupling','root bass stores no redundant slash']
     report['checks']+=['traditional notes and dashes use equal columns within beats','forced-row font ratio follows global size','unmerged systems share global font','forced-row original measure count roundtrip']
     report['checks']+=['traditional meter-beat whitespace','deferred score layout in compose','music snapshot refresh at score entry','engraving controls preserve frozen music','page zoom and width fit','measure visibility on both axes','viewport-sized bitmap cache','PDF snapshot with current MIDI export']
     report['checks']+=['isolated 32nd pair spacing in all score styles','three underlines with removed companion dot','display-only timing preserves MIDI bytes','traditional justified row width and compact height','short traditional measure lines','compose suspends cached score work']
     report['checks']+=['traditional rows reach both page margins','each traditional beat owns its visible columns without trailing beat space','visible advisory font limit can be exceeded','requested font matches project snapshot and rendering','font choices preserve measures per line']
     report['checks']+=['traditional row-wide common cells and uniform gaps across barlines','forced rows scale beat gaps with saved font ratio','traditional beat spacing preserves music and PDF']
     report['checks']+=['traditional short legato tails retain one melody row while true polyphony retains lanes','cross-beat syncopations and dotted values split into tied source fragments','aligned three-beat sustains retain extension dashes without augmentation dots','beat spelling preserves source notes lyric bindings and MIDI bytes on screen and PDF']
-    report['checks']+=['strict source-onset monophony gate reports a one-tick overlap without rewriting music','corrected adjacent source notes can enter Score and expose only three active editor tabs','retired structure editor is inactive while pure compatibility APIs preserve stored notation','traditional global numeric cells and barline-side gaps retain the two-to-one gap ratio']
+    report['checks']+=['polyphonic melody enters spatial and compact Score without rewriting music','polyphonic spatial and compact scores export PDF','traditional style is disabled for polyphony and returns after correction','corrected adjacent source notes retain all four active editor panels','retired structure editor is inactive while pure compatibility APIs preserve stored notation','traditional global numeric cells and barline-side gaps retain the two-to-one gap ratio']
     report['checks']+=['numeric recommended font fills the heaviest row while sparse rows keep the same digit cells','spatial and compact cross-beat ties and integral sustain dashes preserve source music']
     report['checks']+=['traditional integer recommendation and circle-outline unit reserve remain consistent','actual traditional first second and third rhythm strokes align below the row lowest octave dots']
     report['checks']+=['symbol-budget recommended font fits A4 without whole-row transforms or MIDI changes','cross-beat triplets render one source-group bracket label in all three score styles']
     report['checks']+=['forced traditional fonts bind to nonforced or unmerged-baseline visible-unit budgets']
-    report['checks']=[item.replace('busiest-beat 4:2 measure widths in all engraving styles','busiest-beat 4:2 measure widths in spatial and compact styles').replace('equal-density beats allocate 1:2 measure widths in all styles','equal-density beats allocate 1:2 measure widths in spatial and compact styles').replace('forced rows scale beat gaps with saved font ratio','forced traditional rows retain global cells and two-to-one gap units').replace('traditional short legato tails retain one melody row while true polyphony retains lanes','compatibility renderer retains legato/polyphony lanes while Score entry is strict') for item in report['checks']]
+    report['checks']=[item.replace('busiest-beat 4:2 measure widths in all engraving styles','busiest-beat 4:2 measure widths in spatial and compact styles').replace('equal-density beats allocate 1:2 measure widths in all styles','equal-density beats allocate 1:2 measure widths in spatial and compact styles').replace('forced rows scale beat gaps with saved font ratio','forced traditional rows retain global cells and two-to-one gap units').replace('traditional short legato tails retain one melody row while true polyphony retains lanes','compatibility renderer retains legato/polyphony lanes while traditional UI requires monophony') for item in report['checks']]
     report['checks']+=['partial lyric ranges and invisible hyphen skips','rap groups replace existing digits in all score styles','rap preserves MIDI notes and supports undo redo']
     report['checks']+=['unique MIDI lyric starts inside sustains','range selection autofills saved lyric assignments','range edits preserve outside lyrics and MIDI','range autofill follows undo redo']
     report['checks']+=['demo uses selectable Verse Chorus labels','adjacent Chinese English contractions and quotes','mixed lyric range autofill preserves MIDI','tight symbol envelopes retain safe common fonts and density-based widths in all styles']
@@ -1490,6 +1707,17 @@ def self_test(folder):
     report['checks']+=['score scrollbar owns camera while held','score measure leaving viewport cancels even with visible roll cursor','score browsing does not snap back after release','roll browsing ignores visible score and does not pin cursor at left edge']
     report['checks']+=['busiest-beat 4:2 measure widths in all engraving styles','density layout preserves MIDI bytes and global glyph safety','six bundled acoustic and electric sample presets','sample piano presets render finite audible bounded audio and stop','fresh projects prefer bundled acoustic piano','optional grand download pinned by revision size and SHA-256','bilingual sound-library UI and installed signal without network']
     report['checks']+=['2/4 and 4/4 equal-density beats allocate 1:2 measure widths in all styles','mixed-meter width correction preserves MIDI bytes','every optional catalog entry has pinned HTTPS metadata and a valid manifest without requiring bank installation','sound loading paints and processes GUI events before returning the ready router','sound loading cancel reaches its worker and waits for cleanup']
+    report['checks']+=['independent melody and chord default velocities','chord edit velocity ignores last edit','selected ordered quick qualities','complete chord quality and degree preview','manual Roman and letter annotations preserve MIDI performance','disabled chords bypass chord and pattern recognition','resuming recognition removes annotations','recognition and annotation project roundtrip']
+    report['checks']+=['first Score entry closes every tab','Score tabs preserve later visibility','cross-region adjacent notes merge as one sustained event','note velocity menus use saved defaults','unified generated chord velocity','common chord velocity project roundtrip','harmony creation follows chord velocity with blank-region default fallback','custom inclusive piano-roll pitch range preserves MIDI','annotation panel adds one multi-note slur without MIDI edits','manual slur renders in score','score annotation undo redo and persistent panel state']
+    report['checks']+=['marked chord symbols drive melody-roll matching and selected pitch-class highlights without MIDI changes']
+    report['checks']+=['manual chord labels guide score circles and glyph reserve in all three styles and PDF without MIDI changes','resuming recognition restores performed-tone circles']
+    report['checks']+=['offbeat-first beat-local ties and cross-bar continuations retain source IDs circles and MIDI in all three score styles and PDF']
+    report['checks']=[item.replace('three score tabs','four score panels initially hidden') for item in report['checks']]
+    report['checks']+=['marked chords resume recognition via actual QAction trigger','recognition checkbox preserves MIDI and supports undo redo','marked chord appearance differs from automatic chords','copy paste split and merge stay at menu root','context-menu ordering and optional advanced grouping','context-menu settings offer all retained blocks','alternating bass labels consistently use 底五交替']
     report['piano_sample_peaks']=piano_peaks
+    report['checks']+=['full-bar bass and full denominator-beat upper chords','copied actual voicing dynamics and timing are exact','copied cross-region sustains retain independent rearticulations','fixed movement arrows migrate old preferences and leave camera keys blank']
+    report['checks']+=['different-meter chord pastes crop at destination boundaries','project-end chord pastes crop or safely do nothing','lyric slurs block conflicting new manual arcs and silently hide existing ones without deleting data']
+    report['checks']+=['automatic lyric slurs continue across intervening rest rows in all three score styles']
+    report['checks']+=['global rhythm switch bypasses both detectors and cached inferred rebuilds without changing music','reenabling rhythm recognition restores existing inference','section jump menu retains repeated names and exact measure destinations','section navigation preserves music and time selection']
     (folder/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     return 0

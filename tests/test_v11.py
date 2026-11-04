@@ -12,6 +12,7 @@ from lingfeng.audio.midi_import import read_midi, apply_midi, MidiData, MidiTrac
 from lingfeng.ui.import_dialog import MidiImportDialog
 from lingfeng.music.timing import grid_points, grid_bucket, selected_measures
 from lingfeng.platform.i18n import set_language
+from tests.menu_helpers import walk_actions
 
 APP=QApplication.instance() or QApplication([])
 
@@ -98,7 +99,7 @@ class EditingTests(unittest.TestCase):
 
     def test_quantize_only_note_selection_and_undo(self):
         w=self.w;r=w.roll;self.assertFalse(hasattr(w,'quantize_button'));before=w.project.to_dict();w.quantize(r);self.assertEqual(w.project.to_dict(),before)
-        r.selected_ids={r.notes[0].id};r.refresh();APP.processEvents();menu=QMenu();r.selection_menu(menu,0);self.assertIn('按当前格点量化',[a.text() for a in menu.actions()]);w.quantize(r)
+        r.selected_ids={r.notes[0].id};r.refresh();APP.processEvents();menu=QMenu();r.selection_menu(menu,0);self.assertIn('按当前格点量化',[a.text() for a in walk_actions(menu)]);w.quantize(r)
         self.assertEqual(w.project.notes[0].start,240);self.assertEqual(w.project.notes[1].start,900);w.undo();self.assertEqual(w.project.to_dict(),before)
         r.selected_ids.clear();r.refresh();self.assertFalse(hasattr(w,'quantize_button'))
 

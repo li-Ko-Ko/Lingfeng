@@ -25,7 +25,7 @@ DEFAULT_PRESETS=[{'name':name,'sequence':sequence} for name,sequence,_ in HOOKTH
 ROMANS=('I','II','III','IV','V','VI','VII')
 
 def tokens(text):
-    parts=[p.replace('add9','add2') for p in re.split(r'[\s,，;；|→–—-]+',text.strip()) if p]
+    parts=[p for p in re.split(r'[\s,，;；|→–—]+|-(?=[b#]?[ivIV])',text.strip()) if p]
     if not 1<=len(parts)<=128:raise ValueError(tr('和弦进行须包含 1–128 个罗马数字和弦。'))
     for token in parts:resolve(token,0)
     return parts
@@ -46,9 +46,11 @@ def resolve(token,tonic):
     if not m or m[2].upper() not in ROMANS:raise ValueError(tr('无效的罗马数字和弦：{0}',token))
     accidental,roman,suffix=m.groups()
     degree=ROMANS.index(roman.upper());root=(MAJOR[degree]+(-1 if accidental=='b' else 1 if accidental=='#' else 0))%12
-    quality={'M7':'maj7','M9':'maj9','M':'','°':'dim','°7':'dim7','ø7':'m7b5','+':'aug','add9':'add2'}.get(suffix,suffix)
-    if roman.islower() and quality in ('','7','6','9'):quality='m'+quality
-    if roman.islower() and quality=='maj7':quality='mM7'
+    quality={'M7':'maj7','M9':'maj9','M':'','°':'dim','°7':'dim7','ø7':'m7b5','+':'aug'}.get(suffix,suffix)
+    if roman.islower():
+        # Lowercase Roman roots imply a minor third for every extended quality.
+        implied='mM'+quality[3:] if quality.startswith('maj') else 'm'+quality
+        if implied in QUALITIES:quality=implied
     if quality not in QUALITIES:raise ValueError(tr('无效的罗马数字和弦：{0}',token))
     bass_pc=(original_tonic+MAJOR[int(bm[2])-1]+(-1 if bm[1]=='b' else 1 if bm[1]=='#' else 0))%12 if bm else None
     if secondary:tonic=resolve(target,tonic).root%12
@@ -155,9 +157,10 @@ def apply(project,cid,text,keep_rhythm=True,pattern='block',velocity=None,gate=N
         semantic=resolve(token,tonic)
         rhythm=analyze_performed(old,project) if keep_rhythm else None
         c=copy.deepcopy(old);c.root=semantic.root;c.quality=semantic.quality;c.bass=semantic.bass;c.recognized=True;c.custom_rhythm=False
+        c.recognition_disabled=False;c.marked=False
         c.pattern=rhythm.pattern if rhythm else pattern;c.gate=gate if gate is not None else rhythm.gate if rhythm else old.gate
         if velocity is not None:c.velocity=velocity
-        generated=regenerate(c,c.start,c.end,project,Rhythm(c.pattern,tuple(c.pitches),c.gate))
+        generated=regenerate(c,c.start,c.end,project,Rhythm(c.pattern,tuple(c.pitches),c.gate),explicit=True)
         if generated is None:raise ValueError(tr('无法生成该拍号的和弦节奏型。'))
         # Replacement terminates crossing events in this region, as any explicit chord edit does.
         project.put_chord(generated);ids.append(c.id)
@@ -187,7 +190,7 @@ def search_recipe(query,tonic):
     try:return ' '.join(tokens(query))
     except ValueError as roman_error:
         from pychord import Chord as PyChord
-        parts=[p for p in re.split(r'[\s,，;；|→–—-]+',query.strip()) if p]
+        parts=[p for p in re.split(r'[\s,，;；|→–—]+|-(?=[A-G])',query.strip()) if p]
         if not 1<=len(parts)<=128:raise roman_error
         result=[]
         try:

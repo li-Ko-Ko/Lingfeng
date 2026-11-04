@@ -104,7 +104,9 @@ class WorkspaceTests(unittest.TestCase):
         start=QPoint(round(lane.x_at(0)+10),1);end=QPoint(round(lane.x_at(7680)-10),40)
         QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=start);QTest.mouseMove(lane,end);QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end)
         self.assertEqual(w.roll.selected_chords,{c.id for c in w.project.chords[:2]})
-        menu=lane.context_menu(a);labels={a.text().split('\t')[0] for a in menu.actions()};self.assertTrue({'删除所选和弦','复制所选和弦','二等分和弦','合并相邻和弦'}<=labels)
+        menu=lane.context_menu(a)
+        from tests.test_v22 import menu_actions
+        labels={a.text().split('\t')[0] for a in menu_actions(menu)};self.assertTrue({'删除所选和弦','复制所选和弦','二等分和弦','合并相邻和弦'}<=labels)
         self.assertIn('和弦根音',labels);self.assertFalse(menu.root_menu.isEnabled())
     def test_occupied_insert_enabled_and_empty_insert_undo(self):
         w=self.w;lane=w.chord_lane;menu=lane.context_menu(QPoint(round(lane.x_at(480)),25));self.assertTrue(menu.actions()[0].isEnabled())
@@ -115,7 +117,7 @@ class WorkspaceTests(unittest.TestCase):
         from lingfeng.engraving.structure import apply_draft
         draft=dict(id='legacy',kind='repeat',regions=[dict(bars=list(range(a,b)),ranges=[[a*3840,b*3840]])for a,b in ((0,4),(4,8))])
         w.mutate('stored structure',lambda p:apply_draft(p,draft));self.assertEqual(len(w.project.notation['compressions']),1)
-        self.assertFalse(w.logic_panel.isEnabled());self.assertEqual(w.score_tabs.count(),3)
+        self.assertFalse(w.logic_panel.isEnabled());self.assertEqual(w.score_tabs.count(),2)
         w.toggle_score_panel_floating('melody');self.assertTrue(w.score_floats['melody'].isFloating());w.toggle_score_panel_floating('melody');self.assertEqual(w.score_splitter.widget(1),w.score_tools)
     def test_half_screen_minimum_and_size_buttons(self):
         w=self.w;w.resize(680,900);QTest.qWait(30);self.assertEqual(w.width(),680)

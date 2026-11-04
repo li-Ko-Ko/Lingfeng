@@ -14,6 +14,7 @@ from lingfeng.music.model import PPQ, MODES, COLORS, BACKGROUND_COLORS, NOTE_COL
 from lingfeng.music.note_operations import can_join, can_split, resize_chord
 from lingfeng.music.chord_operations import roman_label, chord_details, contextual_chord_name
 from lingfeng.music.rhythm import label as rhythm_label, analyze as analyze_rhythm
+from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
 from lingfeng.ui.timeline import TimelineGesture, RULER_TIME_H
 from lingfeng.ui.keybindings import menu_shortcut
 from lingfeng.ui.navigation import watch_scrollbar
@@ -97,7 +98,7 @@ class ChordLane(QWidget):
     def paintEvent(self,event):
         p=QPainter(self);e=self.editor
         preview=(self.preview.id,self.preview.start,self.preview.end) if self.preview else None
-        key=(roll_view_key(e),self.offset(),preview,str(self.marquee),frozenset(e.selected_chords),e.hovered_chord,e.selected_chord,self.velocity_visible,self.aux_ruler_scale)
+        key=(roll_view_key(e),self.offset(),preview,str(self.marquee),frozenset(e.selected_chords),e.hovered_chord,e.selected_chord,self.velocity_visible,self.aux_ruler_scale,rhythm_recognition_enabled())
         cached_layer(self,p,key,self.paint_content)
         p.setClipRect(KEY_W,0,self.width()-KEY_W,self.height());p.setRenderHint(QPainter.RenderHint.Antialiasing)
         if e.anchor_tick is not None:
@@ -144,16 +145,26 @@ class ChordLane(QWidget):
         p.fillRect(QRectF(x,3,w,self.card_height()-6),paint_color('#FAFBFD'));p.restore()
         radius=min(6,r.width()/2)
         # The destination covers lower cards' labels; only the original is a ghost.
-        p.setPen(QPen(paint_color('#C7D9D7'),min(1,r.width())));p.setBrush(paint_color('#EDF5F2'));p.drawRoundedRect(r,radius,radius)
+        marked=original.marked
+        p.setPen(QPen(paint_color('#C39245' if marked else '#C7D9D7'),min(1,r.width()),Qt.PenStyle.DashLine if marked else Qt.PenStyle.SolidLine))
+        p.setBrush(paint_color('#FFF5E4' if marked else '#EDF5F2'));p.drawRoundedRect(r,radius,radius)
         p.save();p.setClipRect(r.adjusted(5,3,-4,-3),Qt.ClipOperation.IntersectClip)
         p.setPen(paint_color('#275D54'));p.setFont(QFont('Segoe UI',12,QFont.Weight.DemiBold))
         visible=r.intersected(QRectF(KEY_W,0,self.width()-KEY_W,self.height()))
         title=visible.adjusted(7,3,-5,0);title.setHeight(23)
         info=original
+        if marked and visible.width()>=100:
+            p.setFont(QFont('Microsoft YaHei',8));p.setPen(paint_color('#8C5D24'))
+            badge_width=min(p.fontMetrics().horizontalAdvance(tr('手动标记'))+8,visible.width()-55)
+            badge=QRectF(visible.right()-badge_width-5,visible.top()+5,badge_width,18)
+            p.drawText(badge,Qt.AlignmentFlag.AlignCenter,p.fontMetrics().elidedText(tr('手动标记'),Qt.TextElideMode.ElideRight,int(badge.width())))
+            title.setRight(badge.left()-4)
+            p.setFont(QFont('Segoe UI',12,QFont.Weight.DemiBold));p.setPen(paint_color('#275D54'))
         p.drawText(title,Qt.AlignmentFlag.AlignVCenter,p.fontMetrics().elidedText(roman_label(project,info),Qt.TextElideMode.ElideRight,max(0,int(title.width()))))
         p.setFont(QFont('Microsoft YaHei',8));p.setPen(paint_color('#65827D'))
         subtitle=visible.adjusted(7,27,-5,0);subtitle.setHeight(18)
-        detail=tr('无和弦') if info.notes==[] else contextual_chord_name(project,info)+' · '+rhythm_label(info,project)
+        detail=tr('无和弦') if info.notes==[] and not info.marked else ' · '.join(filter(None,(contextual_chord_name(project,info),rhythm_label(info,project))))
+        if marked and visible.width()<100:detail=tr('手动标记')+' · '+detail
         p.drawText(subtitle,Qt.AlignmentFlag.AlignVCenter,p.fontMetrics().elidedText(detail,Qt.TextElideMode.ElideRight,max(0,int(subtitle.width()))));p.restore()
         if chord.id in e.selected_chords or chord.id==e.hovered_chord or chord.id==e.selected_chord:
             p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(paint_color('#247D6E'),min(2,r.width())));p.drawRoundedRect(r,radius,radius)
@@ -356,14 +367,15 @@ class ChordLane(QWidget):
         from lingfeng.music.model import SHARP, QUALITIES
         from lingfeng.music.chord_operations import can_merge_chords, can_move_diatonic, can_apply_pattern, quality_items
         e=self.editor;raw_tick=self.tick_at(pos.x());tick=max(0,min(e.project.end-1,e.snap_time(raw_tick)))
-        chord=e.project.chord_at(raw_tick) or e.project.chord_at(tick)
+        clicked_chord=e.project.chord_at(raw_tick)
+        chord=clicked_chord or e.project.chord_at(tick)
         e.edit_target='chords';e.elementSelection.emit('chords')
         ids=set(e.selected_chords)
         if not preserve and chord and chord.id not in ids:ids={chord.id}
         self.selection_event(ids)
         selected=sorted((c for c in e.project.chords if c.id in ids),key=lambda c:c.start)
         chord=chord or (selected[0] if selected else None)
-        single=len(selected)==1;known=single and selected[0].recognized
+        single=len(selected)==1;known=single and selected[0].recognized and not selected[0].recognition_disabled
         menu=QMenu(self);menu.setToolTipsVisible(True)
         def action(label,callback,enabled=True,key=None):
             a=menu.addAction(tr(label),callback);a.setEnabled(enabled)
@@ -371,7 +383,8 @@ class ChordLane(QWidget):
             return a
         self.insertion_menu(menu,tr('插入空白和弦'),tick)
         self.insertion_menu(menu,tr('在定位线处插入空白和弦'),e.position_tick())
-        for label,target in [('在此粘贴和弦',tick),('在定位线处粘贴和弦',e.position_tick())]:
+        paste_here=('在此和弦开头覆盖粘贴',clicked_chord.start) if clicked_chord else ('在此粘贴和弦',tick)
+        for label,target in [paste_here,('在定位线处粘贴和弦',e.position_tick())]:
             allowed=getattr(e,'chord_clipboard',None)
             action(label,lambda checked=False,t=target:e.chordCommand.emit('paste',t),bool(allowed and allowed.can_paste(e.project,target)),key='paste_selection' if label=='在定位线处粘贴和弦' else None)
         menu.addSeparator()
@@ -392,7 +405,7 @@ class ChordLane(QWidget):
             menu_shortcut(act,e,'left' if direction<0 else 'right')
         moves.addSeparator()
         for label,steps in [('根音升高半音（恢复原位）',1),('根音降低半音（恢复原位）',-1)]:
-            act=moves.addAction(tr(label),lambda checked=False,v=steps:e.chordCommand.emit(f'root_step:{v}',ids));act.setEnabled(bool(selected) and all(c.recognized for c in selected))
+            act=moves.addAction(tr(label),lambda checked=False,v=steps:e.chordCommand.emit(f'root_step:{v}',ids));act.setEnabled(bool(selected) and all(c.recognized and not c.recognition_disabled for c in selected))
             menu_shortcut(act,e,'up' if steps>0 else 'down')
         moves.addSeparator()
         for label,steps in [('调内上移一级',1),('调内下移一级',-1)]:
@@ -404,28 +417,29 @@ class ChordLane(QWidget):
         moves.setEnabled(bool(selected))
         menu.addSeparator()
         action('编辑和弦…',lambda:e.chordRequested.emit(chord.id,tick),single,key='edit_chord')
-        action('在和弦钢琴卷帘中编辑',lambda:e.harmonyRequested.emit(chord.id),single)
-        action('试听实际和弦',lambda:e.chordCommand.emit('audition',ids),bool(selected))
-        from lingfeng.audio.velocity import options
+        action('设置和弦标记…',lambda:e.chordCommand.emit('mark',selected[0].id),single)
+        disabled=menu.addAction(tr('禁用和弦识别'));disabled.setEnabled(bool(selected))
+        menu.recognition_action=disabled;disabled.setCheckable(True)
+        disabled.setChecked(bool(selected) and all(c.recognition_disabled for c in selected))
+        disabled.triggered.connect(lambda checked:e.chordCommand.emit('recognition:'+str(int(checked)),ids))
+        disabled.setToolTip(tr('禁用和弦及节奏型识别，保留实际 MIDI。取消后移除手工标记并重新识别。'))
+        action('在和弦卷帘中编辑',lambda:e.harmonyRequested.emit(chord.id),single)
+        action('试听和弦',lambda:e.chordCommand.emit('audition',ids),bool(selected))
+        from lingfeng.ui.velocity_menu import populate_velocity_menu
         velocity=menu.addMenu(tr('修改力度'));menu.velocity_menu=velocity;velocity.setEnabled(bool(selected))
         velocities={n.velocity for c in selected for n in c.render_notes()}|{c.velocity for c in selected}
-        for value in options():
-            a=velocity.addAction(str(value),lambda checked=False,v=value:e.chordCommand.emit('velocity:'+str(v),ids))
-            a.setData(value);a.setCheckable(True)
-            a.setChecked(velocities=={value})
-        velocity.addSeparator()
-        def custom_velocity():
-            value,ok=QInputDialog.getInt(self,tr('修改力度'),tr('MIDI 力度（1–127）'),selected[0].velocity if selected else 72,1,127)
-            if ok:e.chordCommand.emit('velocity:'+str(value),ids)
-        velocity.addAction(tr('自定义力度…'),custom_velocity)
-        velocity.action_refs=velocity.actions()
+        populate_velocity_menu(velocity,'harmony',lambda value:e.chordCommand.emit('velocity:'+str(value),ids),default_first=False,current=velocities)
         roots=menu.addMenu(tr('和弦根音'));menu.root_menu=roots;roots.setEnabled(known)
         context=e.project.context_at(chord.start if chord else tick);tonic=context.tonic
         for label,pc in theme.pitch_class_choices(tonic,context.mode):
             a=roots.addAction(label,lambda checked=False,v=pc:e.chordCommand.emit('root:'+str(v),ids));a.setData(pc);a.setCheckable(True);a.setChecked(bool(single and chord and chord.root%12==pc))
         quick=menu.addMenu(tr('和弦性质'));menu.quality_menu=quick;quick.setEnabled(known)
-        for quality,label in quality_items():
-            a=quick.addAction(label,lambda checked=False,q=quality:e.chordCommand.emit('quality:'+q,ids));a.setCheckable(True);a.setChecked(bool(single and chord and chord.quality==quality))
+        from lingfeng.platform.chord_preferences import quick_qualities
+        labels=dict(quality_items())
+        for quality in quick_qualities():
+            label=labels[quality]
+            a=quick.addAction(label,lambda checked=False,q=quality:e.chordCommand.emit('quality:'+q,ids));a.setData(quality);a.setCheckable(True);a.setChecked(bool(single and chord and chord.quality==quality))
+        quick.setEnabled(known and bool(quick.actions()))
         bass=menu.addMenu(tr('替换低音'));menu.bass_menu=bass;bass.setEnabled(known)
         for label,pc in theme.pitch_class_choices(tonic,context.mode):
             a=bass.addAction(label,lambda checked=False,v=pc:e.chordCommand.emit('bass:'+str(v),ids));a.setData(pc)
@@ -442,14 +456,17 @@ class ChordLane(QWidget):
             a=patterns.addAction(tr(label),lambda checked=False,c=code:e.chordCommand.emit('pattern:'+c,ids));a.setEnabled(can_apply_pattern(e.project,selected,code));a.setCheckable(True);a.setChecked(bool(rhythms) and all(r and r.pattern==code for r in rhythms))
             if not a.isEnabled():a.setToolTip(tr('更改节奏型要求所选和弦均可识别、拍号相同，且支持该节奏型。'))
             if chord and not supports(code,e.project,chord.start):a.setToolTip(tr('该节奏型不支持和弦起点的拍号。'))
-        patterns.addSeparator();custom=patterns.addAction(tr('自定义'));menu.custom_rhythm_action=custom
-        custom.setCheckable(True);custom.setChecked(bool(selected) and all(c.custom_rhythm for c in selected))
-        custom.setToolTip(tr('勾选后不识别节奏型，移动与伸缩保留实际音符；取消后恢复动态识别。'))
+        patterns.addSeparator();custom=patterns.addAction(tr('禁用节奏型识别'));menu.custom_rhythm_action=custom
+        custom.setCheckable(True);custom.setChecked(bool(selected) and (not rhythm_recognition_enabled() or all(c.custom_rhythm or c.recognition_disabled for c in selected)))
+        custom.setEnabled(rhythm_recognition_enabled() and bool(selected) and not any(c.recognition_disabled for c in selected))
+        custom.setToolTip(tr('仅禁用节奏型识别，不影响和弦名称识别；禁用和弦识别时此项自动启用。') if rhythm_recognition_enabled() else tr('全局节奏型识别已关闭；可在设置 → 和弦 → 节奏型识别中开启。'))
         custom.triggered.connect(lambda checked:e.chordCommand.emit('custom:'+str(int(checked)),ids))
         menu.addSeparator();action('删除所选和弦',lambda:e.chordCommand.emit('delete',ids),bool(selected),key='delete')
         menu.addSeparator();menu.addAction(self.velocity_action)
         menu.action_refs=menu.actions()
         for sub in (moves,roots,quick,inversion,patterns):sub.action_refs=sub.actions()
+        from lingfeng.ui.menu_layout import arrange_chord_menu
+        arrange_chord_menu(menu)
         return menu
 
     def insertion_menu(self,menu,title,tick):
@@ -523,6 +540,15 @@ class ChordVelocityLane(QWidget):
 
     def wheelEvent(self,event):self.lane.wheelEvent(event)
 
+    def contextMenuEvent(self,event):
+        if event.pos().x()<KEY_W:return
+        e=self.lane.editor;chord=e.project.chord_at(self.lane.tick_at(event.pos().x()))
+        if chord is None:return
+        ids=set(e.selected_chords) if chord.id in e.selected_chords else {chord.id}
+        e.edit_target='chords';e.elementSelection.emit('chords');self.lane.selection_event(ids)
+        from lingfeng.ui.velocity_menu import input_velocity
+        input_velocity(self,'harmony',lambda value:e.chordCommand.emit('velocity:'+str(value),ids))
+
 
 class VelocityLane(QWidget):
     """Shared time scale; choose a note first to edit voices at the same tick."""
@@ -557,6 +583,17 @@ class VelocityLane(QWidget):
         if self.drag_note:
             note=self.drag_note;self.drag_note=None;self.editor.noteMoved.emit(note);self.editor.refresh()
 
+    def contextMenuEvent(self,event):
+        if event.pos().x()<KEY_W:return
+        e=self.editor;near=[n for n in e.notes if abs(e.x_at(n.start)+4-event.pos().x())<10]
+        if near:
+            note=next((n for n in near if n.id in e.selected_ids),near[-1])
+            if note.id not in e.selected_ids:e.selected_ids=e.expand_note_selection({note.id});e.selected_note=note.id
+        if not e.selected_notes():return
+        e.edit_target='notes';e.elementSelection.emit('notes');e.refresh()
+        from lingfeng.ui.velocity_menu import input_velocity
+        input_velocity(self,e.role,lambda value:e.commandRequested.emit('velocity:'+str(value),e.position_tick()))
+
 
 class TimelineNavigator(QWidget):
     def __init__(self,editor):
@@ -590,6 +627,13 @@ class TimelineNavigator(QWidget):
         p.setClipRect(KEY_W,0,width,self.height())
         for index,x,y,end in self.segments():
             p.setPen(QPen(paint_color('#438F7E' if index==0 else '#426BAA'),1.6));p.drawLine(QPointF(x,y),QPointF(end,y))
+        # Section markers are boundaries in the overview, leaving the musical
+        # labels in the ruler and jump menu where they have room to be read.
+        p.setPen(QPen(paint_color('#7E8D9F'),1,Qt.PenStyle.DashLine));p.setBrush(paint_color('#7E8D9F'))
+        for _,bar,_ in e.project.sections():
+            x=KEY_W+e.project.starts[bar]/e.project.end*width
+            p.drawLine(QPointF(x,2),QPointF(x,self.height()-2))
+            cap=QPainterPath();cap.moveTo(x-3,1);cap.lineTo(x+3,1);cap.lineTo(x,5);cap.closeSubpath();p.drawPath(cap)
         left=e.horizontalScrollBar().value()/e.zoom*PPQ
         visible=(e.viewport().width()-KEY_W)/e.zoom*PPQ
         rect=QRectF(KEY_W+left/e.project.end*width,2,min(visible,e.project.end-left)/e.project.end*width,self.height()-4)
@@ -664,7 +708,7 @@ class PianoRoll(QAbstractScrollArea):
         self.pan_state=None;self.right_press=False;self.context_handled=0;self.gap_click=False
         self.marquee_hold=QTimer(self);self.marquee_hold.setSingleShot(True);self.marquee_hold.setInterval(250);self.marquee_hold.timeout.connect(self.begin_marquee)
         self.selection=[[0,3840]];self.selected_note='';self.play_tick=None;self.anchor_tick=None
-        self.drag=None;self.preview=None;self.hit_notes=[];self.compact=False;self.cursor_tick=0
+        self.drag=None;self.preview=None;self.hit_notes=[];self.compact=False;self.pitch_range=None;self.manual_pitch_range=(48,72);self.cursor_tick=0
         self.panels={'velocity':False,'chords':True,'ruler':True,'navigator':True}
         self.pitches=list(range(108,20,-1))
         self.low,self.high=21,108
@@ -702,7 +746,9 @@ class PianoRoll(QAbstractScrollArea):
         self.horizontalScrollBar().setRange(0,max(0,int(self.project.end/PPQ*self.zoom)))
         self.horizontalScrollBar().setPageStep(self.viewport().width())
         used=self.shared_pitches if self.shared_pitches is not None else {n.pitch for n in self.notes}
-        self.pitches=sorted(used or {min(108,self.project.context_at(0).tonic+12)},reverse=True) if self.compact else list(range(108,20,-1))
+        if self.pitch_range is not None:
+            low,high=self.pitch_range;self.pitches=list(range(high,low-1,-1))
+        else:self.pitches=sorted(used or {min(108,self.project.context_at(0).tonic+12)},reverse=True) if self.compact else list(range(108,20,-1))
         self.low,self.high=min(self.pitches),max(self.pitches)
         self.verticalScrollBar().setRange(0,max(0,len(self.pitches)*self.row_height-self.viewport().height()+self.ruler_height))
         self.verticalScrollBar().setPageStep(max(1,self.viewport().height()-self.ruler_height))
@@ -723,8 +769,21 @@ class PianoRoll(QAbstractScrollArea):
     def position_tick(self):
         return int(self.anchor_tick if self.anchor_tick is not None else self.cursor_tick)
 
+    def creation_velocity(self,tick):
+        """Use the current chord's dynamics for newly drawn harmony notes."""
+        from lingfeng.platform.chord_preferences import default_velocity
+        chord=self.project.chord_at(tick) if self.role=='harmony' else None
+        return chord.velocity if chord is not None and chord.notes!=[] else default_velocity(self.role)
+
     def set_compact(self,value):
-        self.compact=value;self.update_ranges();self.center_pitch(60);self.refresh();self.viewChanged.emit()
+        self.compact=bool(value);self.pitch_range=None;self.update_ranges();self.center_pitch(60);self.refresh();self.viewChanged.emit()
+
+    def set_pitch_range(self,low,high):
+        """Filter visible keys without rewriting music or the note selection."""
+        if type(low) is not int or type(high) is not int or not 21<=low<=high<=108:
+            raise ValueError(tr('音高范围必须在 A0–C8 内，且最低音不能高于最高音。'))
+        self.pitch_range=(low,high);self.manual_pitch_range=self.pitch_range;self.compact=False
+        self.update_ranges();self.center_pitch((low+high)/2);self.refresh();self.viewChanged.emit()
 
     def set_row_height(self,value):
         # Preserve the exact row position at the center of the note area,
@@ -951,8 +1010,9 @@ class PianoRoll(QAbstractScrollArea):
                 if chord.id not in highlights:continue
                 # Highlight chord pitch classes, including their octave equivalents.
                 # The temporal boundary stays subtle; it is not a full-height wash.
+                pcs=chord.highlight_pcs if chord.marked else chord.pcs
                 for pitch in self.pitches:
-                    if pitch%12 not in chord.pcs:continue
+                    if pitch%12 not in pcs:continue
                     rect=QRectF(self.x_at(chord.start),self.y_at(pitch),chord.duration/PPQ*self.zoom,self.row_height)
                     p.fillRect(rect,QColor(30,180,135,100));p.setPen(QPen(paint_color('#247D6E'),1.6));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRect(rect.adjusted(1,1,-1,-1))
         self.hit_notes=[];self.note_joins={}
@@ -1264,7 +1324,7 @@ class PianoRoll(QAbstractScrollArea):
         if self.gap_click:return
         if self.cell_interior(pos):
             start=self.bucket(self.tick_at(pos.x()))[0]
-            note=Note(start,min(self.note_duration(start),self.project.end-start),self.pitch_at(pos.y()))
+            note=Note(start,min(self.note_duration(start),self.project.end-start),self.pitch_at(pos.y()),self.creation_velocity(start))
             self.preview=note;self.drag=('draw',copy.deepcopy(note));self.audition.emit([note.pitch]);self.refresh()
 
     def mouseMoveEvent(self,event):
@@ -1392,14 +1452,18 @@ class PianoRoll(QAbstractScrollArea):
         if hit:self.delete_linked(hit[1].id)
         elif self.cell_interior(pos):
             start=self.bucket(self.tick_at(pos.x()))[0]
-            note=Note(start,min(self.note_duration(start),self.project.end-start),self.pitch_at(pos.y()))
+            note=Note(start,min(self.note_duration(start),self.project.end-start),self.pitch_at(pos.y()),self.creation_velocity(start))
             self.noteAdded.emit(note);self.remember_duration(note)
             self.audition.emit([self.pitch_at(pos.y())])
 
     def selection_menu(self,menu,tick):
         notes=self.selected_notes()
-        copies=menu.addMenu(tr('复制音符'));menu.copy_menu=copies;copies.setEnabled(bool(notes))
-        for label,kind in [('直接复制','direct'),('复制逆行（时间反向）','retrograde'),('复制倒影（音高翻转）','inversion'),('复制逆行倒影','retrograde_inversion')]:
+        from lingfeng.ui.velocity_menu import populate_velocity_menu
+        velocity=menu.addMenu(tr('修改力度'));menu.velocity_menu=velocity;velocity.setEnabled(bool(notes))
+        populate_velocity_menu(velocity,self.role,lambda value:self.commandRequested.emit('velocity:'+str(value),tick))
+        direct=menu.addAction(tr('复制所选音符'),lambda:self.commandRequested.emit('copy:direct',tick));direct.setEnabled(bool(notes));menu_shortcut(direct,self,'copy_selection')
+        copies=menu.addMenu(tr('复制变换'));menu.copy_menu=copies;copies.setEnabled(bool(notes))
+        for label,kind in [('复制逆行（时间反向）','retrograde'),('复制倒影（音高翻转）','inversion'),('复制逆行倒影','retrograde_inversion')]:
             a=copies.addAction(tr(label),lambda checked=False,k=kind:self.commandRequested.emit('copy:'+k,tick))
             if kind=='direct':menu_shortcut(a,self,'copy_selection')
             a.setEnabled(bool(notes) and (kind=='direct' or all((n.pitch-self.project.context_at(n.start).tonic)%12 in MODES[self.project.context_at(n.start).mode] for n in notes)))
@@ -1411,12 +1475,12 @@ class PianoRoll(QAbstractScrollArea):
             a=menu.addAction(tr(label),lambda checked=False,c=command:self.commandRequested.emit(c,tick));a.setData(key);menu_shortcut(a,self,key)
             a.setEnabled(bool(notes) and all(21<=n.pitch+delta<=108 for n in notes))
         menu.addSeparator()
-        join=menu.addAction(tr('合并相邻音符'),lambda:self.commandRequested.emit('join',tick));join.setEnabled(can_join(notes) and (self.role!='harmony' or len({self.project.harmony_owner(n.id).id for n in notes})==1))
+        join=menu.addAction(tr('合并相邻音符'),lambda:self.commandRequested.emit('join',tick));join.setEnabled(can_join(notes))
         menu_shortcut(join,self,'merge')
         quantize=menu.addAction(tr('按当前格点量化'),lambda:self.commandRequested.emit('quantize',tick));quantize.setEnabled(bool(notes))
         split=menu.addAction(tr('二等分音符'),lambda:self.commandRequested.emit('split',tick));split.setEnabled(can_split(notes,self.grid))
         menu_shortcut(split,self,'split')
-        properties=menu.addAction(tr('音符属性…'),lambda:self.noteProperties.emit(notes[0].id));properties.setEnabled(len(notes)==1)
+        properties=menu.addAction(tr('编辑音符…'),lambda:self.noteProperties.emit(notes[0].id));properties.setEnabled(len(notes)==1)
         menu.addSeparator();delete=menu.addAction(tr('删除所选音符'),lambda:self.notesBatch.emit([],list(self.selected_ids)));delete.setEnabled(bool(notes));menu.addSeparator()
         menu_shortcut(delete,self,'delete')
         paste=menu.addAction(tr('在此粘贴音符'),lambda:self.commandRequested.emit('paste',self.snap_time(tick)));paste.setEnabled(self.has_note_clipboard)
@@ -1424,6 +1488,15 @@ class PianoRoll(QAbstractScrollArea):
         menu_shortcut(paste,self,'paste_selection')
         # Keep submenu actions alive when PySide creates temporary wrappers.
         menu.action_refs=menu.actions();copies.action_refs=copies.actions()
+        from lingfeng.ui.menu_layout import arrange_note_menu
+        arrange_note_menu(menu)
+
+    def jump_to_measure(self,bar):
+        if not 0<=bar<len(self.project.measures):return
+        tick=self.project.starts[bar]
+        self.horizontalScrollBar().setValue(round(tick/PPQ*self.zoom))
+        self.cursor_tick=tick;self.playheadChanged.emit(tick)
+        self.measureActivated.emit(bar);self.navigationRequested.emit();self.refresh()
 
     def timeline_menu(self,pos,preserve=False):
         tick=self.tick_at(pos.x());bar=self.project.measure_at(tick);menu=QMenu(self)
@@ -1437,6 +1510,12 @@ class PianoRoll(QAbstractScrollArea):
         from lingfeng.music.model import SECTIONS
         sections.addAction(tr('移除段落标识'),lambda:self.sectionRequested.emit(bars,''))
         for name in SECTIONS:sections.addAction(name,lambda checked=False,n=name:self.sectionRequested.emit(bars,n))
+        jumps=QMenu(tr('跳转小节'),menu);menu.section_jump_menu=jumps
+        menu.section_jump_action=menu.addMenu(jumps);menu.section_jump_action.setParent(menu)
+        for name,index,_ in self.project.sections():
+            action=jumps.addAction(tr('{0} · 第 {1} 小节',name,index+1),lambda checked=False,i=index:self.jump_to_measure(i));action.setData(index)
+        if not jumps.actions():jumps.addAction(tr('暂无段落标识')).setEnabled(False)
+        jumps.action_refs=jumps.actions()
         source=bars[0]
         for label,kind in [('将本小节调性应用至后续所有小节','key'),('将本小节拍号应用至后续所有小节','meter')]:
             a=menu.addAction(tr(label),lambda checked=False,k=kind,i=source:self.markerPropagationRequested.emit(i,k));a.setEnabled(len(bars)==1 and source<len(self.project.measures)-1)

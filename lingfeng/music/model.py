@@ -21,21 +21,14 @@ MODES = {
     'Mixolydian': (0, 2, 4, 5, 7, 9, 10),
     'Aeolian': (0, 2, 3, 5, 7, 8, 10),
 }
-QUALITIES = {
-    '': (0, 4, 7), 'm': (0, 3, 7), '7': (0, 4, 7, 10), '7b5': (0, 4, 6, 10),
-    'maj7': (0, 4, 7, 11), 'm7': (0, 3, 7, 10), 'mM7': (0, 3, 7, 11),
-    'dim': (0, 3, 6), 'm7b5': (0, 3, 6, 10), 'aug': (0, 4, 8),
-    'sus2': (0, 2, 7), 'sus4': (0, 5, 7), 'add2': (0, 2, 4, 7),
-    '6': (0,4,7,9), 'm6': (0,3,7,9), '9': (0,4,7,10,14),
-    'm9': (0,3,7,10,14), 'maj9': (0,4,7,11,14),
-    'dim7': (0,3,6,9), '7sus4': (0,5,7,10), '5': (0,7),
-}
+from lingfeng.music.quality_catalog import QUALITIES, QUALITY_RELATIONS
 PATTERNS = {'block':'持续柱式', 'quarters':'四分柱式', 'eighths':'八分柱式',
+            'sustained_bass_beats':'持续低音 + 每拍和弦',
             'up':'上行琶音', 'down':'下行琶音', 'alberti':'阿尔贝蒂低音',
             'bass_chord':'低音 + 和弦', 'offbeat':'反拍和弦',
-            'alternating_quarters':'根五交替 · 四分柱式',
-            'alternating_eighths':'根五交替 · 八分柱式',
-            'alternating_offbeat':'根五交替 · 反拍柱式'}
+            'alternating_quarters':'底五交替 · 四分柱式',
+            'alternating_eighths':'底五交替 · 八分柱式',
+            'alternating_offbeat':'底五交替 · 反拍柱式'}
 SHARP = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 FLAT = ('C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B')
 SECTIONS = ('Intro','Verse','Prechorus','Chorus','Link','Solo','Refrain','Tag','Postchorus','Superchorus','Coda','Outro')
@@ -115,6 +108,8 @@ class Chord:
     recognized: bool = True
     custom_rhythm: bool = False  # Explicitly preserve MIDI instead of inferring a pattern.
     bar_aligned: bool = False  # Meter-edited/generated events recognize against real bars.
+    recognition_disabled: bool = False  # Also bypasses automatic pattern recognition.
+    marked: bool = False  # Root/quality/bass are display-only annotations of explicit MIDI.
 
     @property
     def end(self):
@@ -134,20 +129,32 @@ class Chord:
         return {p % 12 for p in self.pitches}
 
     @property
+    def highlight_pcs(self):
+        """Roll matching and score circles follow marks, otherwise actual MIDI."""
+        return ({p % 12 for p in self.pitches} if self.marked
+                else {n.pitch % 12 for n in self.render_notes()})
+
+    def velocity_for_pitch(self, pitch, pitches=None):
+        """Every generated voice follows the common chord velocity."""
+        return self.velocity
+
+    @property
     def name(self):
-        if self.notes == []:return 'N.C.'
+        if self.notes == [] and not self.marked:return 'N.C.'
         if not self.recognized:return '未识别'
         return SHARP[self.root % 12] + self.quality + (f'/{SHARP[self.bass % 12]}' if self.bass is not None else '')
 
     def roman(self, tonic, flat=False, mode=None):
-        if self.notes == []:return 'N.C.'
+        if self.notes == [] and not self.marked:return 'N.C.'
         if not self.recognized:return '?'
         d, a, _ = spelling(self.root, tonic, flat, mode)
         r = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII')[d - 1]
         suffix = self.quality
-        if suffix in ('m', 'm7', 'mM7', 'm7b5', 'dim', 'm6', 'm9', 'dim7'):
+        minor='b3' in QUALITY_RELATIONS[suffix]
+        if minor:
             r = r.lower()
-        suffix = {'m': '', 'm7': '7', 'mM7':'M7', 'm6':'6', 'm9':'9', 'dim': '°', 'dim7':'°7', 'm7b5': 'ø7', 'aug': '+'}.get(suffix, suffix)
+        suffix = {'m': '', 'min':'', '-':'', 'dim': '°', 'dim7':'°7', 'm7b5': 'ø7', 'aug': '+'}.get(suffix,
+                 suffix[1:] if minor and suffix.startswith('m') else suffix)
         label = ('♯' if a > 0 else '♭' if a < 0 else '') + r + suffix
         if self.bass is not None:
             label += '/' + degree_text(self.bass, tonic, flat, mode=mode)
@@ -159,8 +166,8 @@ class Chord:
             return sorted([Note(n.start+self.start,n.duration,n.pitch,n.velocity,id=n.id,event_id=n.event_id) for n in self.notes],key=lambda n:(n.start,n.pitch))
         out=[]; pitches=self.pitches if pitches is None else pitches
         from lingfeng.music.rhythm import ALTERNATING, Rhythm
-        if self.pattern in ALTERNATING:
-            return sorted([Note(self.start+t,d,p,self.velocity,id=f'{self.id}:{t}:{p}')
+        if self.pattern in (*ALTERNATING,'sustained_bass_beats'):
+            return sorted([Note(self.start+t,d,p,self.velocity_for_pitch(p,pitches),id=f'{self.id}:{t}:{p}')
                            for t,d,p in Rhythm(self.pattern,tuple(pitches),self.gate).events(self.duration)],key=lambda n:(n.start,n.pitch))
         step=PPQ if self.pattern in ('quarters','bass_chord') else PPQ//2
         if self.pattern=='block':step=self.duration
@@ -176,7 +183,7 @@ class Chord:
             elif self.pattern=='bass_chord':chosen=[pitches[0]] if index%2==0 else pitches[1:]
             duration=min(self.duration-t, step if self.pattern=='block' else max(1,round(step*self.gate)))
             for pitch in chosen:
-                out.append(Note(self.start+t,duration,pitch,self.velocity,id=f'{self.id}:{index}:{pitch}'))
+                out.append(Note(self.start+t,duration,pitch,self.velocity_for_pitch(pitch,pitches),id=f'{self.id}:{index}:{pitch}'))
         return sorted(out,key=lambda n:(n.start,n.pitch))
 
     def materialize(self):
@@ -352,7 +359,7 @@ class Project:
             if chord is None:pcs=set()
             elif pitch_sets is not None and chord.id in pitch_sets:pcs=pitch_sets[chord.id]
             else:
-                pcs={n.pitch%12 for n in chord.render_notes()}
+                pcs=chord.highlight_pcs
                 if pitch_sets is not None:pitch_sets[chord.id]=pcs
         inside=pitch%12 in pcs
         return 'both' if scale and inside else 'scale' if scale else 'chord' if inside else 'other'
@@ -510,12 +517,12 @@ class Project:
         # Insert/paste/edit cannot create a region spanning different meters.
         boundary=region_at(self,chord.start)[1]
         if chord.end>boundary:
-            clipped=regenerate(chord,chord.start,boundary,self) or rescan_chord(self,chord.clip(chord.start,boundary))
+            clipped=regenerate(chord,chord.start,boundary,self,explicit=chord.notes is None) or rescan_chord(self,chord.clip(chord.start,boundary))
             clipped.id=chord.id;chord=clipped
         old=next((c for c in self.chords if c.id==chord.id),None)
         rhythm=analyze(old,self) if chord.notes is not None and old and old.recognized and (old.start,old.duration)!=(chord.start,chord.duration) else None
         if chord.notes is None or rhythm is not None:
-            chord=regenerate(chord,chord.start,chord.end,self,rhythm) or chord
+            chord=regenerate(chord,chord.start,chord.end,self,rhythm,explicit=chord.notes is None) or chord
         pieces = []
         for old in self.chords:
             if old.id == chord.id:
@@ -620,6 +627,10 @@ class Project:
             raise ValueError('轨道音量必须为 0–127。')
         ids=[n.id for n in self.notes]+[c.id for c in self.chords]
         for c in self.chords:
+            if (not isinstance(c.recognition_disabled,bool) or not isinstance(c.marked,bool)
+                    or c.marked and (not c.recognition_disabled or not c.recognized)
+                    or c.recognition_disabled and c.notes is None):
+                raise ValueError('和弦识别或标记参数无效。')
             if c.pattern not in PATTERNS or not isinstance(c.custom_rhythm,bool) or not isinstance(c.bar_aligned,bool) or not .05<=c.gate<=1 or not 1<=c.velocity<=127 or not -1<=c.octave<=2:
                 raise ValueError('和弦节奏型参数无效。')
             ends={}
@@ -642,11 +653,27 @@ class Project:
             if spec.get('device') in ('builtin','samples'):spec['device']='synth:stk-essentials'
         if data.get('schema_version')==5:data['schema_version']=6
         for c in data.get('chords',[]):
-            if c.get('notes') is not None:c['notes']=[Note(**n) for n in c['notes']]
-            if c.get('quality')=='add9':
+            if c.get('quality')=='add9' and 'recognition_disabled' not in c and 'marked' not in c:
                 c['quality']='add2'
-                # Generated chords adopt the default close-position add2.
-                # Explicit MIDI retains the user's performed voicing.
+                # Normalize the old close-position alias before materializing
+                # any legacy generation parameters. Explicit MIDI stays intact.
+            # Preserve performed dynamics from the short-lived independent bass
+            # setting as explicit MIDI. New generation uses one chord velocity.
+            legacy_bass=c.pop('bass_velocity',None)
+            if legacy_bass is not None:
+                if type(legacy_bass) is not int or not 1<=legacy_bass<=127:
+                    raise ValueError('和弦低音力度无效。')
+                if c.get('notes') is None:
+                    chord=Chord(**c);chord.materialize();voices=chord.pitches
+                    bass={min(voices)}
+                    from lingfeng.music.rhythm import ALTERNATING
+                    if chord.pattern in ALTERNATING and len(voices)>1:
+                        upper=sorted(voices)[1:]
+                        bass.add(next((p for p in upper if (p-upper[0])%12 in (6,7,8)),upper[0])-12)
+                    for note in chord.notes:
+                        if note.pitch in bass:note.velocity=legacy_bass
+                    c['notes']=[asdict(note) for note in chord.notes]
+            if c.get('notes') is not None:c['notes']=[Note(**n) for n in c['notes']]
         for key, kind in [('measures', Measure), ('notes', Note), ('chords', Chord), ('contexts', Context)]:
             data[key] = [kind(**item) for item in data[key]]
         if 'notation' in data:data['notation'].setdefault('system_gap',12)

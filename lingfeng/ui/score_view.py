@@ -7,7 +7,7 @@ from lingfeng.music.chord_operations import chord_details
 from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H, MARGIN
 from lingfeng.ui.theme import color, is_dark
 from lingfeng.music.model import PPQ
-from lingfeng.engraving.presentation import contiguous, forced_row_allowed, active_compressions
+from lingfeng.engraving.presentation import contiguous, forced_row_allowed, active_compressions, can_add_slur, slur_conflicts
 from lingfeng.ui.navigation import watch_scrollbar
 
 
@@ -29,23 +29,30 @@ class ScoreCanvas(QWidget):
         self.layout=None if deferred else ScoreLayout(self.project);self.scale=.8;self.view=None;self.suspended=deferred
         self.play_tick=None;self.anchor_tick=None;self.editing=False;self.pan=None;self.grid=240;self.grid_bars=0;self.press_pos=None;self.has_note_clipboard=False
         self.page_cache={};self.cache_key=None;self.cache_renders=0
-        self.selection_unit='measure';self.selected_bars=set();self.selected_beats=set();self.selection_anchor=None;self.selection_before=set();self.marquee=None
+        self.selection_unit='measure';self.selected_bars=set();self.selected_beats=set();self.selected_notes=set();self.selection_anchor=None;self.selection_before=set();self.marquee=None
         self.hovered_chord=''
         self.setMouseTracking(True);self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def rebuild(self,project):
         self.project=copy.deepcopy(project);self.layout=ScoreLayout(self.project)
         self.cache_key=None;self.page_cache.clear()
-        self.selected_bars.intersection_update(range(len(project.measures)));self.selected_beats={r for r in self.selected_beats if r[1]<=project.end};self.resize_content();self.update()
+        self.selected_bars.intersection_update(range(len(project.measures)));self.selected_beats={r for r in self.selected_beats if r[1]<=project.end};self.selected_notes.intersection_update(n.id for n in project.notes);self.resize_content();self.update()
         self.layoutChanged.emit()
 
     def clear_layout(self):
         self.layout=None;self.page_cache.clear();self.cache_key=None
-        self.selected_bars.clear();self.selected_beats.clear();self.resize_content();self.update()
+        self.selected_bars.clear();self.selected_beats.clear();self.selected_notes.clear();self.resize_content();self.update()
 
     def sync_presentation(self,project,spellings=False):
         """Update document information and engraving without importing new music."""
         if self.layout is None or self.suspended:return
+        if project.notation['style']=='traditional':
+            from lingfeng.music.onsets import is_monophonic
+            if is_monophonic(project.notes) and not is_monophonic(self.project.notes):
+                # A repaired melody may select traditional notation immediately;
+                # the old polyphonic snapshot cannot be used for that style.
+                self.rebuild(project)
+                return
         metadata={key:getattr(project,key) for key in ('title','author') if getattr(self.project,key)!=getattr(project,key)}
         keys=['style','per_line','circles','color','lyrics','row_gap','system_gap','font_size','show_scale_lines']
         same_bars=self.project.starts==project.starts
@@ -120,17 +127,20 @@ class ScoreCanvas(QWidget):
         return page,QPointF((pos.x()-x)/self.scale,(pos.y()-y)/self.scale)
 
     def set_selection_unit(self,unit):
-        self.selection_unit=unit;self.selection_anchor=None;self.selected_bars.clear();self.selected_beats.clear();self.update();self.selectionChanged.emit()
+        self.selection_unit=unit;self.selection_anchor=None;self.selected_bars.clear();self.selected_beats.clear();self.selected_notes.clear();self.update();self.selectionChanged.emit()
 
-    def selected_units(self):return self.selected_bars if self.selection_unit=='measure' else self.selected_beats
+    def selected_units(self):return self.selected_bars if self.selection_unit=='measure' else self.selected_notes if self.selection_unit=='note' else self.selected_beats
 
     def selection_ranges(self):
         from lingfeng.music.model import merge_ranges
-        return merge_ranges([self.project.starts[b:b+2] for b in self.selected_bars] if self.selection_unit=='measure' else list(self.selected_beats))
+        ranges=([self.project.starts[b:b+2] for b in self.selected_bars] if self.selection_unit=='measure' else
+                [(n.start,n.end) for n in self.project.notes if n.id in self.selected_notes] if self.selection_unit=='note' else list(self.selected_beats))
+        return merge_ranges(ranges)
 
     def selection_rects(self):
         if self.layout is None:return []
         if self.selection_unit=='measure':return self.layout.hit_bars
+        if self.selection_unit=='note':return self.layout.hit_notes
         result=[]
         for pg,rect,bar,points,positions in self.layout.hit_times:
             def x_at(tick):
@@ -157,9 +167,9 @@ class ScoreCanvas(QWidget):
         key=self.unit_at(pos)
         if key is not None and key not in self.selected_units():self.selected_units().clear();self.selected_units().add(key);self.update()
         bars=sorted(self.selected_bars) if self.selection_unit=='measure' else []
-        ranges=self.selection_ranges();payload=dict(bars=bars,ranges=ranges)
+        ranges=self.selection_ranges();payload=dict(bars=bars,ranges=ranges,note_ids=sorted(self.selected_notes))
         single=len(self.selected_units())==1;target=self.timeline_at(pos)
-        for label,role in [('在旋律钢琴卷帘中编辑','melody'),('在和弦钢琴卷帘中编辑','chords'),('从此处编辑歌词','lyrics')]:
+        for label,role in [('在旋律卷帘中编辑','melody'),('在和弦卷帘中编辑','chords'),('从此处编辑歌词','lyrics')]:
             a=menu.addAction(tr(label),lambda checked=False,r=role:self.editorRequested.emit(r,target[1]));a.setEnabled(target is not None and single)
         paste=menu.addAction(tr('在此粘贴音符'),lambda:self.pasteRequested.emit(target[1]));paste.setEnabled(self.has_note_clipboard and target is not None and single)
         position=self.anchor_tick if self.anchor_tick is not None else self.play_tick
@@ -173,6 +183,11 @@ class ScoreCanvas(QWidget):
         action=menu.addAction(tr('强制合并为一行'),lambda:self.commandRequested.emit('force_row',payload));action.setEnabled(forced_row_allowed(self.project,bars,self.layout.systems))
         action.setToolTip(tr('需要连续小节，且选区从当前谱行开头开始。'))
         action=menu.addAction(tr('恢复选区自动分行'),lambda:self.commandRequested.emit('auto_rows',payload));action.setEnabled(bool(bars))
+        slur=menu.addAction(tr('添加连音弧'),lambda:self.commandRequested.emit('slur',payload));slur.setEnabled(can_add_slur(self.project,self.selected_notes))
+        if slur_conflicts(self.project,dict(note_ids=self.selected_notes)):slur.setToolTip(tr('歌词连音优先：所选连音弧与歌词 /- 连音冲突。'))
+        symbol=next((key for pg,rect,key in reversed(self.layout.hit_symbols) if pg==page and rect.contains(point)),None)
+        if symbol is not None:
+            menu.addAction(tr('删除此标识'),lambda:self.commandRequested.emit('remove_structure',dict(bars=[],ranges=[],key=symbol)))
         menu.addSeparator();delete=menu.addAction(tr('删除所选小节…'),lambda:self.commandRequested.emit('delete_bars',payload));delete.setEnabled(0<len(bars)<len(self.project.measures))
         return menu
 
@@ -239,6 +254,10 @@ class ScoreCanvas(QWidget):
                 if modifiers&Qt.KeyboardModifier.ShiftModifier and self.selection_anchor is not None:
                     selected.clear()
                     if self.selection_unit=='measure':selected.update(range(min(key,self.selection_anchor),max(key,self.selection_anchor)+1))
+                    elif self.selection_unit=='note':
+                        notes=sorted(self.project.notes,key=lambda n:(n.start,n.pitch,n.id));ids=[n.id for n in notes]
+                        if key in ids and self.selection_anchor in ids:
+                            a,b=sorted((ids.index(key),ids.index(self.selection_anchor)));selected.update(ids[a:b+1])
                     else:
                         a=min(key[0],self.selection_anchor[0]);z=max(key[1],self.selection_anchor[1])
                         for bar,m in enumerate(self.project.measures):
@@ -269,7 +288,7 @@ class ScoreCanvas(QWidget):
     def keyPressEvent(self,event):
         from lingfeng.ui.keybindings import binding_owner
         if event.key()!=Qt.Key.Key_Escape and binding_owner(self) is not None:return super().keyPressEvent(event)
-        if event.key()==Qt.Key.Key_Escape:self.selected_bars.clear();self.selected_beats.clear();self.marquee=None;self.update();self.selectionChanged.emit()
+        if event.key()==Qt.Key.Key_Escape:self.selected_bars.clear();self.selected_beats.clear();self.selected_notes.clear();self.marquee=None;self.update();self.selectionChanged.emit()
         elif event.matches(QKeySequence.StandardKey.SelectAll):
             self.selected_units().update(key for _,_,key in self.selection_rects());self.update();self.selectionChanged.emit()
         else:super().keyPressEvent(event)

@@ -3,27 +3,37 @@ import copy
 from dataclasses import dataclass
 from lingfeng.music.model import Chord, Note, PATTERNS, QUALITIES, PPQ, uid
 from lingfeng.platform.i18n import tr
+from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
 
-QUALITY_LABELS={'':'大三和弦','m':'小三和弦','7':'属七和弦','7b5':'属七降五和弦','maj7':'大七和弦','m7':'小七和弦','mM7':'小大七和弦',
-    'dim':'减三和弦','m7b5':'半减七和弦','aug':'增三和弦','sus2':'挂二和弦 · sus2','sus4':'挂四和弦 · sus4',
-    'add2':'加二和弦 · add2','6':'大六和弦','m6':'小六和弦','9':'属九和弦','m9':'小九和弦',
-    'maj9':'大九和弦','dim7':'减七和弦','7sus4':'挂四属七和弦','5':'五和弦'}
+from lingfeng.music.quality_catalog import QUALITY_LABELS
 QUALITY_ORDER=list(QUALITIES)
 
 
 def set_quality_order(order):
-    order=['add2' if q=='add9' else q for q in order]
-    QUALITY_ORDER[:]=list(dict.fromkeys(q for q in order if q in QUALITIES))+[q for q in QUALITIES if q not in order]
+    order=order if isinstance(order,(list,tuple)) else []
+    QUALITY_ORDER[:]=list(dict.fromkeys(q for q in order if isinstance(q,str) and q in QUALITIES))+[q for q in QUALITIES if q not in order]
 
 
 def quality_items():return [(q,({'':'M','maj7':'M7','maj9':'M9'}.get(q,q)+' · '+tr(QUALITY_LABELS[q]))) for q in QUALITY_ORDER]
 
 
+def _preserve_compact_notes(chord):
+    """Edit legacy generated MIDI directly while automatic inference is paused."""
+    if chord.notes is None and not rhythm_recognition_enabled():chord.materialize()
+
+
 def quality_voicing(chord,value,pitches):
     """Replace written chord degrees while retaining the performed registers."""
     from lingfeng.music.chord_spelling import QUALITY_DEGREES
-    old=dict(zip(QUALITY_DEGREES[chord.quality],QUALITIES[chord.quality]))
-    new=dict(zip(QUALITY_DEGREES[value],QUALITIES[value]))
+    def written_intervals(quality):
+        # A quality can contain both b9 and #9. Keep each written occurrence
+        # instead of silently dropping a voice in a degree-keyed dictionary.
+        counts={};result={}
+        for degree,offset in zip(QUALITY_DEGREES[quality],QUALITIES[quality]):
+            occurrence=counts.get(degree,0);counts[degree]=occurrence+1
+            result[degree,occurrence]=offset
+        return result
+    old=written_intervals(chord.quality);new=written_intervals(value)
     pitches=tuple(sorted(set(pitches)));lowest=min(pitches)
     bass_pc=chord.root%12 if chord.bass is None else chord.bass%12
     bass=lowest if lowest%12==bass_pc else None
@@ -49,7 +59,8 @@ def quality_voicing(chord,value,pitches):
 
 def change_quality(chord,value,project=None,regenerate_notes=True):
     if value not in QUALITIES:raise ValueError(tr('无效的和弦性质。'))
-    if chord.quality==value and value!='add2':return
+    if chord.quality==value and (value!='add2' or not rhythm_recognition_enabled()):return
+    _preserve_compact_notes(chord)
     from lingfeng.music.rhythm import analyze_performed, regenerate, Rhythm, clipped_bar_events, bar_grid
     rhythm=analyze_performed(chord,project) if regenerate_notes else None
     if chord.recognized and rhythm is not None:
@@ -57,7 +68,7 @@ def change_quality(chord,value,project=None,regenerate_notes=True):
         result=regenerate(candidate,candidate.start,candidate.end,project,Rhythm(rhythm.pattern,tuple(candidate.pitches),rhythm.gate))
         if result is not None:
             voiced=Rhythm(rhythm.pattern,tuple(candidate.pitches),rhythm.gate)
-            result.notes=[Note(t,d,p,result.velocity) for t,d,p in clipped_bar_events(voiced,result.duration,bar_grid(result.start,result.end,project))]
+            result.notes=[Note(t,d,p,result.velocity_for_pitch(p,voiced.pitches)) for t,d,p in clipped_bar_events(voiced,result.duration,bar_grid(result.start,result.end,project))]
             chord.quality=value;chord.bass=None;chord.pattern=result.pattern;chord.gate=result.gate;chord.notes=result.notes;chord.bar_aligned=result.bar_aligned
             return
     old=QUALITIES[chord.quality];new=QUALITIES[value]
@@ -79,7 +90,7 @@ def change_quality(chord,value,project=None,regenerate_notes=True):
             source=min(rewritten,key=lambda n:(n.start,n.pitch))
             for interval in sorted(missing):
                 pitch=source.pitch+(chord.root+interval-source.pitch)%12
-                rewritten.append(Note(source.start,source.duration,pitch,source.velocity))
+                rewritten.append(Note(source.start,source.duration,pitch,chord.velocity))
         from lingfeng.music.note_operations import union_note
         chord.notes=[]
         for n in rewritten:
@@ -91,6 +102,7 @@ def change_quality(chord,value,project=None,regenerate_notes=True):
 def replace_bass(chord,bass,project=None,voicing=None):
     """Replace only the bass voice; a menu action, never a voicing lock."""
     if bass not in range(12):raise ValueError(tr('无效的低音。'))
+    if bass!=(chord.root%12 if chord.bass is None else chord.bass%12):_preserve_compact_notes(chord)
     if chord.notes:
         from lingfeng.music.rhythm import analyze
         rhythm=analyze(chord,project) if voicing is None else None
@@ -112,6 +124,7 @@ def invert_chord(chord,index,project=None,voicing=None):
 def change_root(chord,target,project=None,regenerate_notes=True):
     """Match the root shortcut/menu: preserve quality, replace the bass by root."""
     if target not in range(12):raise ValueError(tr('无效的和弦根音。'))
+    if target!=chord.root%12 or chord.bass not in (None,chord.root%12):_preserve_compact_notes(chord)
     from lingfeng.music.rhythm import analyze_performed, regenerate, Rhythm, clipped_bar_events, bar_grid
     rhythm=analyze_performed(chord,project) if regenerate_notes else None
     voicing=rhythm.pitches if rhythm else sorted({n.pitch for n in chord.render_notes()})
@@ -125,7 +138,7 @@ def change_root(chord,target,project=None,regenerate_notes=True):
         result=regenerate(chord,chord.start,chord.end,project,Rhythm(rhythm.pattern,tuple(chord.pitches),rhythm.gate))
         if result is not None:
             pitches=tuple(chord.pitches)
-            result.notes=[Note(t,d,p,result.velocity) for t,d,p in clipped_bar_events(Rhythm(rhythm.pattern,pitches,rhythm.gate),result.duration,bar_grid(result.start,result.end,project))]
+            result.notes=[Note(t,d,p,result.velocity_for_pitch(p,pitches)) for t,d,p in clipped_bar_events(Rhythm(rhythm.pattern,pitches,rhythm.gate),result.duration,bar_grid(result.start,result.end,project))]
             chord.pattern=result.pattern;chord.gate=result.gate;chord.notes=result.notes;chord.bar_aligned=True
 
 
@@ -144,7 +157,7 @@ def roman_label(project,chord,flat=False):
 
 def contextual_chord_name(project,chord,context=None):
     from lingfeng.music.chord_spelling import tone_for
-    if chord.notes==[]:return 'N.C.'
+    if chord.notes==[] and not chord.marked:return 'N.C.'
     if not chord.recognized:return tr('未识别')
     context=context or project.context_at(chord.start)
     label=tone_for(chord.root,context,chord).name+chord.quality
@@ -192,7 +205,7 @@ def compact_chord_details(project,chord):
     for context in chord_contexts(project,chord):
         parts.append('<div style="margin-top:6px"><b>'+escape('1 = '+roll_pitch_name(context.tonic)+' · '+context.mode)+'</b></div>')
         names=[]
-        if chord.recognized:
+        if chord.recognized and not chord.marked:
             root=tone_for(chord.root,context,chord)
             for offset,degree in zip(QUALITIES[chord.quality],QUALITY_DEGREES[chord.quality]):
                 pc=(chord.root+offset)%12
@@ -236,6 +249,7 @@ def pattern_template(chord):
 
 def can_merge_chords(chords,project=None):
     ordered=sorted(chords,key=lambda c:c.start)
+    if any(c.recognition_disabled for c in ordered):return False
     if project and ordered:
         from lingfeng.music.meter import region_at
         if ordered[-1].end>region_at(project,ordered[0].start)[1]:return False
@@ -336,13 +350,14 @@ def diatonic_chord(chord,context,steps,project=None):
     from lingfeng.music.note_operations import scale_index, scale_pitch
     pitches=chord.pitches if chord.notes is None else [n.pitch for n in chord.notes]
     tones=[chord.root+i for i in QUALITIES[chord.quality]]
-    if not chord.recognized or any((p-context.tonic)%12 not in MODES[context.mode] for p in [*tones,*pitches]):
+    if chord.recognition_disabled or not chord.recognized or any((p-context.tonic)%12 not in MODES[context.mode] for p in [*tones,*pitches]):
         raise ValueError(tr('调内移动要求和弦属性可识别，且全部和弦音都在当前调式内。'))
     move=lambda p:scale_pitch(scale_index(p,context)+steps,context)
     root=move(chord.root);intervals={(move(chord.root+i)-root)%12 for i in QUALITIES[chord.quality]}
     quality=next((q for q,t in QUALITIES.items() if {i%12 for i in t}==intervals),None)
     if quality is None:raise ValueError(tr('移动后的和弦性质暂不支持识别。'))
     result=copy.deepcopy(chord)
+    if steps or chord.bass not in (None,chord.root%12):_preserve_compact_notes(result)
     from lingfeng.music.rhythm import analyze
     rhythm=analyze(chord,project)
     voicing=rhythm.pitches if rhythm else sorted({n.pitch for n in chord.render_notes()})
@@ -374,37 +389,65 @@ class ChordClipboard:
         return cls(copy.deepcopy(ordered),tuple(signature(project,c.start) if project else (4,4) for c in ordered)) if ordered else None
 
     def can_paste(self,project,tick):
-        from lingfeng.music.meter import region_at
-        if tick<0 or not self.chords:return False
-        for c,meter in zip(self.chords,self.meters or ((4,4),)*len(self.chords)):
-            if tick>=project.end:return False
-            a,b,target=region_at(project,tick)
-            if target!=meter or tick+c.duration>b:return False
-            tick+=c.duration
-        return True
+        return bool(self.chords) and type(tick) is int and 0<=tick<=project.end
 
-    def paste(self,project,tick):
-        from lingfeng.music.rhythm import regenerate
-        if not self.can_paste(project,tick):raise ValueError(tr('粘贴范围必须完整位于匹配的拍号区间内。'))
-        ids=set()
+    def paste(self,project,tick,*,packed=True):
+        """Paste actual MIDI, stopping at the destination meter region's end.
+
+        Chord selections are packed in order. Range clips already store relative
+        starts and can retain their gaps with ``packed=False``. Neither path
+        regenerates notes when the source and destination meters differ.
+        """
+        from lingfeng.music.meter import region_at
+        if not self.can_paste(project,tick):return set()
+        limit=min(project.end,region_at(project,tick)[1]);cursor=tick
+        ids=set();event_ids={}
         for old in self.chords:
-            c=regenerate(old,tick,tick+old.duration,project) or copy.deepcopy(old);c.id=uid();c.start=tick
-            if c.notes is not None:
-                for n in c.notes:n.id=uid()
-            project.put_chord(c);ids.add(c.id);tick=c.end
+            start=cursor if packed else tick+old.start
+            if start>=limit:break
+            duration=min(old.duration,limit-start)
+            if duration<=0:continue
+            # Copy the performed music, including non-default voicings and
+            # per-note dynamics. Pattern recognition must not rewrite a copy.
+            c=copy.deepcopy(old);c.materialize();c.id=uid();c.start=start;c.duration=duration
+            c.notes=[n for n in c.notes if n.start<duration]
+            for n in c.notes:
+                n.duration=min(n.duration,duration-n.start);n.id=uid()
+                # Keep cross-region sustains inside this copy, with a new
+                # identity independent of the source and every earlier paste.
+                if n.event_id:n.event_id=event_ids.setdefault(n.event_id,uid())
+            project.put_chord(c);ids.add(c.id);cursor=c.end
         return ids
 
 
 def can_apply_pattern(project,chords,pattern):
     from lingfeng.music.meter import signature
     from lingfeng.music.rhythm import supports
-    return (bool(chords) and all(c.recognized for c in chords)
+    return (bool(chords) and all(c.recognized and not c.recognition_disabled for c in chords)
             and len({signature(project,c.start) for c in chords})==1
             and all(supports(pattern,project,c.start) for c in chords))
 
 
+def set_chord_velocity(chord,value):
+    """Change dynamics at chord level, retaining every performed note identity."""
+    if type(value) is not int or not 1<=value<=127:raise ValueError(tr('MIDI 力度必须为 1–127。'))
+    chord.velocity=value
+    if chord.notes is not None:
+        for n in chord.notes:n.velocity=value
+    return chord
+
+
 def change_chords(project, ids, command):
     selected=[c for c in project.chords if c.id in ids]
+    if command.startswith('velocity:'):
+        value=int(command.split(':',1)[1])
+        for c in selected:set_chord_velocity(c,value)
+        return
+    if command.startswith('recognition:'):
+        from lingfeng.music.recognition import set_recognition_disabled
+        disabled=command.split(':',1)[1]=='1'
+        for c in selected:set_recognition_disabled(c,disabled,project)
+        return
     if command.startswith('pattern:'):
         from lingfeng.music.rhythm import regenerate, Rhythm
         pattern=command.split(':',1)[1]
@@ -413,7 +456,7 @@ def change_chords(project, ids, command):
         replacements={}
         for old in selected:
             c=copy.deepcopy(old);c.custom_rhythm=False;c.pattern=pattern
-            replacements[c.id]=regenerate(c,c.start,c.end,project,Rhythm(pattern,tuple(c.pitches),c.gate))
+            replacements[c.id]=regenerate(c,c.start,c.end,project,Rhythm(pattern,tuple(c.pitches),c.gate),explicit=True)
         for c in selected:
             result=replacements[c.id]
             c.custom_rhythm=False;c.pattern=result.pattern;c.gate=result.gate;c.bar_aligned=result.bar_aligned;c.notes=result.notes
@@ -429,7 +472,7 @@ def change_chords(project, ids, command):
         replacements={c.id:diatonic_chord(c,project.context_at(c.start),int(command.split(':')[1]),project) for c in selected}
         project.chords=[replacements.get(c.id,c) for c in project.chords];return
     if command.startswith('root_step:'):
-        if not selected or any(not c.recognized for c in selected):raise ValueError(tr('更换根音要求所选和弦属性均可识别。'))
+        if not selected or any(not c.recognized or c.recognition_disabled for c in selected):raise ValueError(tr('更换根音要求所选和弦属性均可识别。'))
         replacements={}
         for c in selected:
             result=copy.deepcopy(c);change_root(result,(c.root+int(command.split(':')[1]))%12,project)
@@ -442,12 +485,13 @@ def change_chords(project, ids, command):
         for c in selected:
             c.materialize();c.custom_rhythm=True
             for n in c.notes:n.pitch+=delta
-            c.root=48+(c.root+delta)%12
-            if c.bass is not None:c.bass=(c.bass+delta)%12
+            if not c.marked:
+                c.root=48+(c.root+delta)%12
+                if c.bass is not None:c.bass=(c.bass+delta)%12
         return
     if len(selected)!=1:return
     c=selected[0]
-    if not c.recognized:return
+    if c.recognition_disabled or not c.recognized:return
     kind,value=command.split(':',1)
     if kind=='quality':change_quality(c,value,project)
     elif kind=='root':

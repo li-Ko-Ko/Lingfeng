@@ -112,12 +112,12 @@ class InterfaceTests(unittest.TestCase):
         field=QLineEdit(w.harmony_window);field.show();field.setFocus();APP.processEvents();QTest.keyClick(field,Qt.Key.Key_Tab);self.assertEqual(lane.editor.selected_chords,{ids[2]})
     def test_root_and_scale_keys_are_distinct_and_bass_actions_are_not_checkable(self):
         w=self.w;lane=w.chord_lane;c=w.project.chords[0];self.select(lane,c.id)
-        QTest.keyClick(lane,Qt.Key.Key_W);self.assertEqual(w.project.chords[0].name,'C#')
-        QTest.keyClick(lane,Qt.Key.Key_S);self.assertEqual(w.project.chords[0].name,'C')
-        QTest.keyClick(lane,Qt.Key.Key_W,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.chords[0].name,'Dm')
+        QTest.keyClick(lane,Qt.Key.Key_Up);self.assertEqual(w.project.chords[0].name,'C#')
+        QTest.keyClick(lane,Qt.Key.Key_Down);self.assertEqual(w.project.chords[0].name,'C')
+        QTest.keyClick(lane,Qt.Key.Key_Up,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.chords[0].name,'Dm')
         menu=lane.context_menu(QPoint(round(lane.x_at(960)),25));self.assertFalse(any(a.isCheckable() for a in menu.inversion_menu.actions()))
         menu.inversion_menu.actions()[1].trigger();self.assertEqual(w.project.chords[0].name,'Dm/F')
-        QTest.keyClick(lane,Qt.Key.Key_S,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.chords[0].name,'C')
+        QTest.keyClick(lane,Qt.Key.Key_Down,Qt.KeyboardModifier.AltModifier);self.assertEqual(w.project.chords[0].name,'C')
     def test_live_move_resize_and_undo_keep_worker_and_bar_phase(self):
         w=self.w;c=w.project.chords[0];c.pattern='up';w.refresh();w.toggle_play();worker=w.transport.thread;clock=w.transport.start_time
         w.chord_command('move:1200',{c.id},w.roll);self.assertEqual(signature(next(x for x in w.project.chords if x.id==c.id).render_notes()),reference(c,w.project,1200,5040))

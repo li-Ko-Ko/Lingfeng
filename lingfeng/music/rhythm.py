@@ -8,15 +8,18 @@ from dataclasses import dataclass
 from functools import lru_cache
 from lingfeng.music.model import PPQ, PATTERNS, Note, uid
 from lingfeng.platform.i18n import tr
+from lingfeng.platform.rhythm_preferences import enabled as recognition_enabled
 
 # Explicit compatibility metadata for the current generators. Compound meters
 # use eighth-note textures; alternating bass/chord and offbeats require complete
 # two-quarter groups. Sustain works with every meter supported by the editor.
-# Root/fifth bass follows the denominator and requires an even numerator.
+# Root/fifth bass follows the denominator and requires an even numerator. A
+# sustained bass with full-beat upper chords follows every local meter.
 ALL_METERS=frozenset((n,d) for n in range(1,17) for d in (2,4,8,16))
 ALTERNATING=('alternating_quarters','alternating_eighths','alternating_offbeat')
 PATTERN_METERS={
     'block':ALL_METERS,
+    'sustained_bass_beats':ALL_METERS,
     'quarters':frozenset((n,d) for n,d in ALL_METERS if d in (2,4)),
     **{p:frozenset((n,d) for n,d in ALL_METERS if (PPQ*4*n//d)%(PPQ//2)==0) for p in ('eighths','up','down')},
     **{p:frozenset((n,d) for n,d in ALL_METERS if d in (2,4) and (4*n//d)%2==0) for p in ('alberti','bass_chord','offbeat')},
@@ -40,12 +43,21 @@ class Rhythm:
     gate:float
 
     def events(self,duration,beat=PPQ):
+        if self.pattern=='sustained_bass_beats':
+            if len(self.pitches)<2:return
+            bass,*upper=self.pitches
+            # Both layers sustain to their next boundary, like block's full
+            # sustain. Gate remains saved for switching to other textures.
+            yield 0,duration,bass
+            for t in range(0,duration,beat):
+                for pitch in upper:yield t,min(duration-t,beat),pitch
+            return
         if self.pattern in ALTERNATING:
             if len(self.pitches)<2:return
             bass,*upper=self.pitches
-            # The fifth belongs to the chord: diminished/augmented qualities
-            # retain their altered fifth rather than acquiring a foreign tone.
-            fifth=next((p for p in upper if (p-upper[0])%12 in (6,7,8)),upper[0]+7)-12
+            # Use only supplied chord tones. Diminished/augmented qualities keep
+            # their altered fifth; an omitted fifth repeats the root bass.
+            fifth=next((p for p in upper if (p-upper[0])%12 in (6,7,8)),upper[0])-12
             for index,t in enumerate(range(0,duration,beat)):
                 yield t,min(duration-t,max(1,round(beat*self.gate))),bass if index%2==0 else fifth
             step=PPQ if self.pattern=='alternating_quarters' else PPQ//2
@@ -76,12 +88,12 @@ def _recognize(duration,hint,gate,canonical,notes):
     # to the existing full voicing preserves the intended arpeggio after cropping.
     voicings=tuple(dict.fromkeys((canonical,used)))
     for pattern in dict.fromkeys((hint,*PATTERNS)):
-        step=duration if pattern=='block' else PPQ if pattern in ('quarters','bass_chord','offbeat','alternating_quarters') else PPQ//2
+        step=duration if pattern=='block' else PPQ if pattern in ('quarters','bass_chord','offbeat','alternating_quarters','sustained_bass_beats') else PPQ//2
         offset=PPQ//2 if pattern=='offbeat' else 0
         if actual_onsets!=tuple(range(offset,duration,step)):continue
         full_lengths={d for t,d,p in notes if t+d<duration}
-        if pattern!='block' and pattern not in ALTERNATING and len(full_lengths)>1:continue
-        gates=(gate,) if pattern=='block' else tuple(dict.fromkeys((gate,*(d/step for d in full_lengths),*(d/PPQ for d in full_lengths if pattern in ALTERNATING),1.0)))
+        if pattern not in ('block','sustained_bass_beats') and pattern not in ALTERNATING and len(full_lengths)>1:continue
+        gates=(gate,) if pattern in ('block','sustained_bass_beats') else tuple(dict.fromkeys((gate,*(d/step for d in full_lengths),*(d/PPQ for d in full_lengths if pattern in ALTERNATING),1.0)))
         for pitches in voicings:
             if pattern in ('alberti','bass_chord') and len(pitches)<2:continue
             for candidate_gate in gates:
@@ -113,7 +125,7 @@ def _recognize_bar(duration,bars,hint,gate,canonical,notes,allowed=tuple(PATTERN
         if not notes and pattern!=hint:continue
         step=PPQ if pattern in ('quarters','bass_chord','offbeat','alternating_quarters') else PPQ//2
         lengths=tuple({step,*(beat for _,_,beat in bars),*(beat//2 for _,_,beat in bars)}) if pattern in ALTERNATING else (step,)
-        gates=(gate,) if pattern=='block' else tuple(dict.fromkeys((gate,1.0,*(d/unit for t,d,p in notes for unit in lengths if .05<=d/unit<=1))))
+        gates=(gate,) if pattern in ('block','sustained_bass_beats') else tuple(dict.fromkeys((gate,1.0,*(d/unit for t,d,p in notes for unit in lengths if .05<=d/unit<=1))))
         for pitches in dict.fromkeys((canonical,used)):
             if not pitches or pattern in ('alberti','bass_chord') and len(pitches)<2:continue
             for g in gates:
@@ -123,7 +135,8 @@ def _recognize_bar(duration,bars,hint,gate,canonical,notes,allowed=tuple(PATTERN
 
 
 def analyze(chord,project=None):
-    if chord.custom_rhythm or not chord.recognized:return None
+    if not recognition_enabled():return None
+    if chord.recognition_disabled or chord.custom_rhythm or not chord.recognized:return None
     if chord.notes is None:
         return Rhythm(chord.pattern,tuple(chord.pitches),chord.gate) if chord.pattern in supported_patterns(project,chord.start) else None
     if chord.recognized:
@@ -140,6 +153,8 @@ def analyze(chord,project=None):
 
 
 def label(chord,project=None):
+    if not recognition_enabled():return ''
+    if chord.recognition_disabled:return tr('禁用节奏型识别')
     if not chord.recognized:return tr('未知节奏型')
     if chord.custom_rhythm:return tr('自定义（锁定）')
     rhythm=analyze(chord,project)
@@ -153,7 +168,8 @@ def analyze_performed(chord,project=None):
     omitted by the old chord. A lone gated bass pulse is a quarter block here,
     even if it was previously cropped from a bass/chord alternation.
     """
-    if chord.custom_rhythm or not chord.recognized:return None
+    if not recognition_enabled():return None
+    if chord.recognition_disabled or chord.custom_rhythm or not chord.recognized:return None
     if chord.notes is None:return analyze(chord,project)
     if chord.pattern in ALTERNATING:
         match=analyze(chord,project)
@@ -168,10 +184,16 @@ def analyze_performed(chord,project=None):
     return match if match and match.pattern in supported_patterns(project,chord.start) else None
 
 
-def regenerate(chord,start,end,project=None,rhythm=None):
-    """Rebuild named patterns from full bars, then crop; reset per-note edits."""
-    if not chord.recognized or chord.custom_rhythm:return None
-    rhythm=rhythm or analyze(chord,project)
+def regenerate(chord,start,end,project=None,rhythm=None,*,explicit=False):
+    """Rebuild a recognized texture, or explicitly synthesize a chosen pattern.
+
+    The user preference stops inferred rebuilds, including an earlier cached
+    match passed by a caller. Explicit creation/pattern commands still generate
+    their selected pattern and use real bar boundaries without recognizing MIDI.
+    """
+    if not recognition_enabled() and not explicit:return None
+    if chord.recognition_disabled or not chord.recognized or chord.custom_rhythm:return None
+    rhythm=rhythm or (Rhythm(chord.pattern,tuple(chord.pitches),chord.gate) if explicit else analyze(chord,project))
     if rhythm is None:return None
     if project is not None and not supports(rhythm.pattern,project,start):return None
     if project is not None:
@@ -184,12 +206,14 @@ def regenerate(chord,start,end,project=None,rhythm=None):
     result.bar_aligned=True
     result.pattern=rhythm.pattern;result.gate=rhythm.gate
     template=Rhythm(result.pattern,tuple(result.pitches),result.gate)
-    result.notes=[Note(t,d,p,result.velocity) for t,d,p in clipped_bar_events(template,result.duration,bar_grid(start,end,project))]
+    result.notes=[Note(t,d,p,result.velocity_for_pitch(p,template.pitches)) for t,d,p in clipped_bar_events(template,result.duration,bar_grid(start,end,project))]
     return result
 
 
 def extend(chord,start,end,rhythm=None):
     """Regenerate the recognized rhythm using its actual pitches and velocities."""
+    if not recognition_enabled():return None
+    if chord.recognition_disabled:return None
     rhythm=rhythm or analyze(chord)
     if rhythm is None:return None
     result=copy.deepcopy(chord);result.start=start;result.duration=end-start;result.pattern=rhythm.pattern;result.gate=rhythm.gate
@@ -197,7 +221,7 @@ def extend(chord,start,end,rhythm=None):
     result.notes=[]
     for t,d,pitch in rhythm.events(result.duration):
         old=by_event.get((start+t,pitch));reference=old or by_pitch.get(pitch)
-        result.notes.append(Note(t,d,pitch,reference.velocity if reference else chord.velocity,id=old.id if old else uid()))
+        result.notes.append(Note(t,d,pitch,reference.velocity if reference else chord.velocity_for_pitch(pitch,rhythm.pitches),id=old.id if old else uid()))
     # Keep the compact generated representation only when it is lossless.
     candidate=copy.deepcopy(result);candidate.notes=None
     signature=lambda notes:sorted((n.start,n.duration,n.pitch,n.velocity) for n in notes)

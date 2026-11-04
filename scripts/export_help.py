@@ -11,8 +11,8 @@ from lingfeng.platform.help_content import HELP_CATEGORIES, TOPICS, ABOUT_ZH, AB
 def export(path=ROOT/'docs/HELP.md'):
     topics={topic[0]:topic for topic in TOPICS}
     parts=['# 伶风操作帮助 / Lingfeng user guide',
-           '本文由 `python scripts/export_help.py` 从程序内帮助生成。程序中的帮助支持分类浏览以及中英文全文搜索。快捷键均为默认绑定，可在设置中修改。',
-           'Generated from the in-app help with `python scripts/export_help.py`. In-app help provides categories and Chinese/English full-text search. Listed shortcuts are defaults and can be changed in Settings.',
+           '本文由 `python scripts/export_help.py` 从程序内帮助生成。程序中的帮助支持分类浏览以及中英文全文搜索。移动快捷键固定使用方向键及其修饰组合；其它可配置键位可在设置中修改。',
+           'Generated from the in-app help with `python scripts/export_help.py`. In-app help provides categories and Chinese/English full-text search. Movement shortcuts use fixed arrows and modifier combinations; other configurable shortcuts can be changed in Settings.',
            '## 目录 / Contents']
     for group,(zh,en,titles) in enumerate(HELP_CATEGORIES,1):
         parts.append(f'{group}. [{zh} / {en}](#category-{group})')

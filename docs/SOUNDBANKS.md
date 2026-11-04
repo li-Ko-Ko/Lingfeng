@@ -1,10 +1,10 @@
-# 0.55 力度选项 / Velocity options
+# 0.56.2 音符与力度设置 / Notes and velocity settings
 
-和弦轨右键一个或多个和弦 → 修改力度。设置 → 力度选项可编辑常用值并点击“检测当前和弦音源并生成选项”；检测当前工程和弦轨所选音色，确认后保存，取消丢弃。默认、启动、打开设置和切换音源均不检测。
+和弦轨右键一个或多个和弦 → 修改力度。设置 → 音符与力度将旋律／和弦默认力度与常用值放在同一窗口，可编辑常用值并点击“检测当前和弦音源并生成选项”；检测当前工程和弦轨所选音色，确认后保存，取消丢弃。默认、启动、打开设置和切换音源均不检测。
 
 SFZ 读取 include／宏展开及 global／master／group／region 继承后的 `lovel`／`hivel`，排除 release 区域；SF2 只读取当前 bank／program 的预设及乐器区域表，合并全局／局部设置并相交键位及力度范围，跳过采样音频。按有效区间生成中间值；重复区域、立体声或轮替采样不重复计数。跨键位边界、重叠与交叉层会影响建议，区间数不等于所有音高统一的采样层数，也不是响度测量。原生合成与外部 MIDI 无法报告采样层时保留常用值；单层音色仍响应力度。
 
-Right-click one or several chords → Change velocity. Settings → Velocity options edits the common list and optionally inspects the current project’s chord preset. Only the detection button starts inspection; OK saves and Cancel discards it. SFZ attack mappings and the selected SF2 bank/program supply velocity ranges without decoding samples or executing synth DLLs. Deduplicated bands produce midpoint suggestions, with gaps retained. Key-dependent splits, overlaps, crossfades and controllers may differ from a uniform layer model. Native synths and external MIDI keep the existing list. Single-layer sounds still respond to velocity.
+Right-click one or several chords → Change velocity. Settings → Notes and velocity combines melody/chord defaults with the common list. It also offers optional inspection of the current project’s chord preset. Only the detection button starts inspection; OK saves and Cancel discards it. SFZ attack mappings and the selected SF2 bank/program supply velocity ranges without decoding samples or executing synth DLLs. Deduplicated bands produce midpoint suggestions, with gaps retained. Key-dependent splits, overlaps, crossfades and controllers may differ from a uniform layer model. Native synths and external MIDI keep the existing list. Single-layer sounds still respond to velocity.
 
 Mapping references: [SFZ velocity selection](https://sfzformat.com/opcodes/lovel/), [SoundFont 2.04 specification](https://www.synthfont.com/sfspec24.pdf).
 
@@ -45,12 +45,12 @@ The small pack balances size and piano character: a two-layer Kawai upright, a s
 
 ## 下载与本地添加 / Download and local installation
 
-1. 打开 **设置 → 音源与音色 → 下载／添加音源…**。
+1. 打开 **设置 → 音源与输入 → 音源与音色 → 下载／添加音源…**。
 2. 选择需要的音源，点击 **下载并添加**。Salamander 为 16 层力度的 Yamaha C5；Greg 合集为三种电钢琴；FluidR3 提供 128 种 GM 乐器。大小和许可在窗口中显示。
 3. 下载在后台显示进度，可取消；固定版本、大小和 SHA-256 校验通过后才安装。取消或失败清理本次临时文件，不改动已经安装的音源。成功后自动扫描，可为旋律和和弦分别选择音源及音色。
 4. 已有完整伶风音源 ZIP 时，选择 **从本地 ZIP 添加…**。也可复制完整文件夹到程序同级 `synths/`，点击 **重新扫描并保存**，或添加其它扫描目录。
 
-Use **Settings → Sound sources and instruments → Download / add sounds…** to choose a sound bank or install a local pack ZIP. Background downloads are explicit, cancellable, pinned and SHA-256 checked. Success refreshes the index; failure preserves existing packs. The GM download verifies all soundfont, runtime and source archives separately before installing.
+Use **Settings → Sound and input → Sound sources and instruments → Download / add sounds…** to choose a sound bank or install a local pack ZIP. Background downloads are explicit, cancellable, pinned and SHA-256 checked. Success refreshes the index; failure preserves existing packs. The GM download verifies all soundfont, runtime and source archives separately before installing.
 
 安装目标为程序同级 `synths/`，程序目录必须可写。同名音源已存在时不覆盖；关闭程序后再移动或更新旧包。自动下载大钢琴需要本版本小型包中的已核验引擎；手工安装完整大钢琴 ZIP 则自带引擎。普通 VST/CLAP 插件、裸 SFZ 或 SF2 不是完整伶风音源 ZIP。
 

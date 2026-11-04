@@ -59,8 +59,8 @@ class OpeningTests(unittest.TestCase):
         p=song();apply_range(p,'已有歌词\n第二小节',0,2)
         self.w=MainWindow(p);self.w.save_preferences=lambda:None;self.w.timer.stop();self.w.autosave.stop();self.w.show()
     def tearDown(self):self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents()
-    def test_first_tab_click_autofills_without_mutating(self):
-        w=self.w;w.switch_workspace('score');before=w.project.to_dict();w.score_tabs.setCurrentWidget(w.lyric_panel)
+    def test_first_tab_open_autofills_without_mutating(self):
+        w=self.w;w.switch_workspace('score');before=w.project.to_dict();w.show_score_panel('lyrics')
         self.assertTrue(w.lyric_panel.text.toPlainText().startswith('已有歌词\n第二小节'));self.assertEqual(w.project.to_dict(),before)
     def test_first_menu_and_floating_open_use_current_selection(self):
         w=self.w;w.switch_workspace('score');w.score_view.canvas.selected_bars={1};w.toggle_score_panel_floating('lyrics')

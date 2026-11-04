@@ -79,7 +79,9 @@ class UIRegressionTests(unittest.TestCase):
         h.set_row_height(30);self.assertEqual(r.row_height,25);self.assertEqual(h.row_height,30)
         w.harmony_window.sync.setChecked(True);h.horizontalScrollBar().setValue(400);self.assertEqual(r.horizontalScrollBar().value(),h.horizontalScrollBar().value())
     def test_three_tabs_share_tools_and_language_preserves_drafts(self):
-        w=self.w;w.switch_workspace('score');w.open_score_roll('chords',0);self.assertEqual(w.score_tabs.count(),3);self.assertEqual(w.score_tabs.currentIndex(),1)
+        w=self.w;w.switch_workspace('score')
+        for key in ('melody','harmony','lyrics'):w.show_score_panel(key)
+        w.open_score_roll('chords',0);self.assertEqual(w.score_tabs.count(),3);self.assertEqual(w.score_tabs.currentIndex(),1)
         w.tool.setCurrentIndex(w.tool.findData('draw'));self.assertEqual(w.harmony_window.roll.tool,'draw')
         w.harmony_window.tool.setCurrentIndex(0);self.assertEqual(w.roll.tool,'smart')
         w.follow_playhead.setChecked(False);w.score_tabs.setCurrentIndex(2)

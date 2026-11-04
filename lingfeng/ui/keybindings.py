@@ -12,12 +12,12 @@ COMMANDS={
     'undo':('撤销','Ctrl+Z'),'redo':('重做','Ctrl+Y'),'redo_alt':('重做（备用快捷键）','Ctrl+Shift+Z'),
     'cut_selection':('剪切选区','Ctrl+X'),'copy_selection':('复制选区','Ctrl+C'),
     'paste_selection':('粘贴选区','Ctrl+V'),'select_all':('全选','Ctrl+A'),
-    'up':('上移：音符半音／和弦根音半音','W'),'down':('下移：音符半音／和弦根音半音','S'),
-    'scale_up':('音符／和弦调内上移一级','Alt+W'),'scale_down':('音符／和弦调内下移一级','Alt+S'),
-    'scale_up_alt':('音符／和弦调内上移一级（备用快捷键）','Alt+Up'),'scale_down_alt':('音符／和弦调内下移一级（备用快捷键）','Alt+Down'),
+    'up':('上移：音符半音／和弦根音半音','Up'),'down':('下移：音符半音／和弦根音半音','Down'),
+    'scale_up':('音符／和弦调内上移一级','Alt+Up'),'scale_down':('音符／和弦调内下移一级','Alt+Down'),
+    'scale_up_alt':('音符／和弦调内上移一级（备用快捷键）',''),'scale_down_alt':('音符／和弦调内下移一级（备用快捷键）',''),
     'octave_up':('音符上移八度','Ctrl+Up'),'octave_down':('音符下移八度','Ctrl+Down'),
-    'left':('向左移动音符／和弦','A'),'right':('向右移动音符／和弦','D'),
-    'view_left':('向左浏览时间轴','Left'),'view_right':('向右浏览时间轴','Right'),
+    'left':('向左移动音符／和弦','Left'),'right':('向右移动音符／和弦','Right'),
+    'view_left':('向左浏览时间轴',''),'view_right':('向右浏览时间轴',''),
     'toggle_tool':('切换智能／绘制工具','Q'),'switch_input':('切换旋律／和弦输入位置','E'),
     'grid_triplet':('切换吸附格点三连音','Shift+3'),
     'smart':('选择智能工具',''),'draw':('选择绘制工具',''),
@@ -32,13 +32,19 @@ ALIASES={'redo_alt':'redo','delete_alt':'delete','scale_up_alt':'scale_up','scal
 GLOBAL_COMMANDS={'new','open','save','save_as','undo','redo','cut_selection','copy_selection','paste_selection','select_all'}
 FIXED_KEYS={'Esc':'取消当前操作／清除选择','Return / Enter':'确认输入或对话框','Shift+Tab':'反向切换焦点','Alt+F4':'关闭当前窗口'}
 RESERVED={'Esc','Backtab','Shift+Backtab','Shift+Tab','Return','Enter','Alt+F4'}
+# Keep movement consistent across saved preferences, dispatch and menu labels.
+# Empty legacy aliases and camera commands stay in the preference schema so an
+# older saved mapping cannot reclaim the direction keys during migration.
+FIXED_COMMANDS={key:COMMANDS[key][1] for key in ('up','down','left','right','scale_up','scale_down',
+    'octave_up','octave_down','scale_up_alt','scale_down_alt','view_left','view_right')}
+MOVEMENT_KEYS={sequence for sequence in FIXED_COMMANDS.values() if sequence}
 
 
 def canonical(text):return QKeySequence(text).toString(QKeySequence.SequenceFormat.PortableText)
 
 
 def normalized(mapping):
-    return {key:canonical(mapping.get(key,default)) for key,(label,default) in COMMANDS.items()}
+    return {key:canonical(FIXED_COMMANDS.get(key,mapping.get(key,default))) for key,(label,default) in COMMANDS.items()}
 
 
 def validate(mapping):
@@ -47,6 +53,7 @@ def validate(mapping):
         sequence=QKeySequence(text);text=canonical(text)
         if sequence.count()>1:raise ValueError(tr('快捷键只支持一组按键组合。'))
         if text in RESERVED:raise ValueError(tr('该快捷键保留给系统或输入控件：{0}',text))
+        if command not in FIXED_COMMANDS and text in MOVEMENT_KEYS:raise ValueError(tr('该快捷键保留给移动操作：{0}',text))
         if text and text in used:raise ValueError(tr('快捷键重复：{0}',text))
         if text:used.add(text)
 
@@ -59,9 +66,12 @@ def load_bindings(mapping):
         if 'switch_input' not in mapping and mapping.get('draw')=='E':mapping.pop('draw')
         if mapping.get('replay')=='Home':mapping['replay']='R'
         result=normalized(mapping)
-        # Explicit saved choices take priority over newly introduced defaults.
+        # Fixed movement keys take priority even over explicit legacy choices.
+        # Other saved choices still take priority over newly introduced defaults.
         used=set()
-        for key in [k for k in mapping if k in result]+[k for k in result if k not in mapping]:
+        order=[*FIXED_COMMANDS,*[k for k in mapping if k in result and k not in FIXED_COMMANDS],
+            *[k for k in result if k not in mapping and k not in FIXED_COMMANDS]]
+        for key in order:
             if result[key] in used:result[key]=''
             elif result[key]:used.add(result[key])
         validate(result);return result
@@ -76,7 +86,11 @@ def binding_owner(widget):
 
 
 def shortcut_sequences(bindings,command):
-    return [QKeySequence(bindings[key]) for key in (command,*(k for k,v in ALIASES.items() if v==command)) if bindings.get(key)]
+    sequences=[]
+    for key in (command,*(k for k,v in ALIASES.items() if v==command)):
+        sequence=FIXED_COMMANDS.get(key,bindings.get(key,''))
+        if sequence and (key in FIXED_COMMANDS or canonical(sequence) not in MOVEMENT_KEYS):sequences.append(QKeySequence(sequence))
+    return sequences
 
 
 def menu_shortcut(action,widget,command,popup=True):
@@ -113,7 +127,9 @@ class EditorKeys(QObject):
                 if isinstance(current,(QLineEdit,QTextEdit,QPlainTextEdit,QAbstractSpinBox,QComboBox,QKeySequenceEdit,QMenu)):return False
                 current=current.parentWidget() if hasattr(current,'parentWidget') else None
         sequence=QKeySequence(event.keyCombination()).toString(QKeySequence.SequenceFormat.PortableText)
-        command=next((key for key,value in w.keybindings.items() if value and value==sequence),None)
+        command=next((key for key,value in FIXED_COMMANDS.items() if value and value==sequence),None)
+        if command is None:
+            command=next((key for key,value in w.keybindings.items() if key not in FIXED_COMMANDS and value and value==sequence),None)
         if command=='next_chord':
             from lingfeng.ui.piano_roll import ChordLane
             roll=w.active_roll()
@@ -140,7 +156,7 @@ class EditorKeys(QObject):
 class KeyBindingsDialog(QDialog):
     def __init__(self,mapping,parent=None):
         super().__init__(parent);self.setWindowTitle(tr('快捷键设置'));self.setMinimumWidth(430);self.resize(560,650);root=QVBoxLayout(self);self.fields={}
-        info=QLabel(tr('点击输入框后按下快捷键；清空可禁用。文本输入时不触发编辑快捷键。'));info.setWordWrap(True);root.addWidget(info)
+        info=QLabel(tr('点击输入框后按下快捷键；清空可禁用。文本输入时不触发编辑快捷键。')+'\n'+tr('移动快捷键固定使用方向键；镜头移动暂不绑定快捷键。'));info.setWordWrap(True);root.addWidget(info)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setFrameShape(QFrame.Shape.NoFrame);body=QWidget();form=QFormLayout(body);form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows);scroll.setWidget(body);root.addWidget(scroll,1)
         sections={'new':'文件','undo':'编辑','up':'移动','toggle_tool':'工具','play':'播放','split':'选区编辑'}
         mapping=load_bindings(mapping);self.previous=dict(mapping);self.resolving=False
@@ -148,6 +164,7 @@ class KeyBindingsDialog(QDialog):
             if key in sections:
                 heading=QLabel(tr(sections[key]));heading.setStyleSheet('font-weight:600; margin-top:8px');form.addRow(heading)
             field=QKeySequenceEdit(QKeySequence(mapping[key]));field.setMaximumSequenceLength(1);field.setFinishingKeyCombinations([]);field.setClearButtonEnabled(True);self.fields[key]=field;form.addRow(tr(label),field)
+            if key in FIXED_COMMANDS:field.setEnabled(False);field.setClearButtonEnabled(False)
             field.editingFinished.connect(lambda k=key:self.resolve_change(k))
         form.addRow(QLabel(tr('系统与输入控件（固定）')))
         for key,label in FIXED_KEYS.items():
@@ -159,7 +176,7 @@ class KeyBindingsDialog(QDialog):
         self.previous=normalized({})
         for key,field in self.fields.items():field.setKeySequence(QKeySequence(self.previous[key]))
         self.error.clear()
-    def value(self):return {key:field.keySequence().toString(QKeySequence.SequenceFormat.PortableText) for key,field in self.fields.items()}
+    def value(self):return normalized({key:field.keySequence().toString(QKeySequence.SequenceFormat.PortableText) for key,field in self.fields.items()})
     def accept(self):
         for key in self.fields:
             if not self.resolve_change(key):return
@@ -175,6 +192,8 @@ class KeyBindingsDialog(QDialog):
 
     def _resolve_change(self,key):
         value=self.fields[key].keySequence().toString(QKeySequence.SequenceFormat.PortableText)
+        if key in FIXED_COMMANDS and value!=FIXED_COMMANDS[key]:
+            self.fields[key].setKeySequence(QKeySequence(FIXED_COMMANDS[key]));return False
         if value==self.previous[key]:return True
         try:validate({key:value})
         except ValueError as exc:

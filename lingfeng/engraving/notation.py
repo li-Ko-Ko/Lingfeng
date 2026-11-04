@@ -10,7 +10,7 @@ from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen, QPainter
 from lingfeng.music.model import PPQ, MODES, Note, spelling, pitch_name, FONT_SIZE_MAX
 from lingfeng.ui.fonts import ensure_fonts
 from lingfeng.ui.theme import color as theme_color
-from lingfeng.engraving.presentation import visible_bars, active_compressions, annotation_allowed, lyric_verses, row_groups
+from lingfeng.engraving.presentation import visible_bars, active_compressions, annotation_allowed, lyric_verses, row_groups, slur_notes, slur_conflicts, melody_voices
 
 INK = QColor('#263345')
 MUTED = QColor('#8692A2')
@@ -38,9 +38,9 @@ CIRCLE_PEN_WIDTH=.95
 
 
 def is_chord_tone(project,pitch,tick):
-    """Circles describe performed MIDI, never implied or omitted chord tones."""
+    """Manual chord labels guide circles; unmarked chords use performed MIDI."""
     chord=project.chord_at(tick)
-    return bool(chord and pitch%12 in {n.pitch%12 for n in chord.render_notes()})
+    return bool(chord and pitch%12 in chord.highlight_pcs)
 
 
 @dataclass
@@ -77,22 +77,31 @@ def rhythm_parts(start, duration):
 
 
 def beat_rhythm_parts(start,duration,bar_start,beat):
-    """Spell cross-beat syncopations with ties, retaining ordinary long dashes."""
+    """Keep beat ties; prefer the offbeat when a beat-local value needs a tie."""
     if ((start-bar_start)%beat==0 and round(duration/PPQ)>=1 and
             abs(duration-round(duration/PPQ)*PPQ)<=RHYTHM_TOLERANCE):
         return [(start,duration)]
-    result=[]
-    for left,length in rhythm_parts(start,duration):
-        right=left+length
-        plain_beats=((left-bar_start)%beat==0 and
-                     abs(length-round(length/PPQ)*PPQ)<=RHYTHM_TOLERANCE)
-        if plain_beats:
-            result.append((left,length));continue
+    single=lambda length:any(abs(length-value)<=RHYTHM_TOLERANCE for value in RHYTHM_VALUES)
+    def boundaries(left,right):
         first=bar_start+((left-bar_start)//beat+1)*beat
-        # A 1–2 tick MIDI conversion remainder is not a separate rhythmic value.
-        boundaries=[left,*range(first,right,beat),right]
-        boundaries=[t for t in boundaries if t in (left,right) or left+RHYTHM_TOLERANCE<t<right-RHYTHM_TOLERANCE]
-        for a,b in zip(boundaries,boundaries[1:]):result.extend(rhythm_parts(a,b-a))
+        # A conversion remainder beside a beat is not a new rhythmic value.
+        return [left,*[t for t in range(first,right,beat)
+                       if left+RHYTHM_TOLERANCE<t<right-RHYTHM_TOLERANCE],right]
+    end=start+duration
+    cuts=boundaries(start,end)
+    if len(cuts)==2 and single(duration):return [(start,duration)]
+    result=[]
+    # Retain the existing integral-quarter sustain shorthand at an on-beat
+    # onset, including meters whose beat is shorter/longer than a quarter.
+    prefix=duration//PPQ*PPQ
+    if (start-bar_start)%beat==0 and PPQ<=prefix<duration-RHYTHM_TOLERANCE:
+        result.append((start,prefix));start+=prefix;cuts=boundaries(start,end)
+    for left,right in zip(cuts,cuts[1:]):
+        middle=bar_start+((left-bar_start)//beat)*beat+beat//2
+        if not single(right-left) and left+RHYTHM_TOLERANCE<middle<right-RHYTHM_TOLERANCE:
+            result.extend(rhythm_parts(left,middle-left))
+            result.extend(rhythm_parts(middle,right-middle))
+        else:result.extend(rhythm_parts(left,right-left))
     return result
 
 
@@ -290,7 +299,7 @@ class ScoreLayout:
         self.hit_times=[];self.hit_symbols=[];self.dark=False;self.tie_paths=[];self.rest_positions=[];self.symbol_marks=[];self.lyric_positions=[];self.symbol_boxes=[];self.unpitched_positions=[]
         self.pages = 1;self.glyph_scale=1;self.glyph_sizes=[];self.engraving_cache={};self.width_cache={};self.rhythm_adjustments={}
         self.traditional_grids={};self.cell_width_cache={};self.fragment_cache={};self.fragment_systems={};self.ink_text_cache={};self.dot_ink_cache={}
-        self.tuplet_groups=[];self.tuplet_marks=[];self.fragment_tuplets={}
+        self.tuplet_groups=[];self.tuplet_marks=[];self.fragment_tuplets={};self.manual_slur_paths=[]
         self.build()
 
     def source_tuplets(self):
@@ -480,6 +489,9 @@ class ScoreLayout:
         self.font_limit=max(.0001,min(FONT_SIZE_MAX,self.font_limit))
         self.recommended_font_size=self.font_limit if style=='traditional' else min(15,self.font_limit)
         self.glyph_scale=self.font_size/15
+        voices=melody_voices(p.notes)
+        manual=[(i,slur_notes(p,item)) for i,item in enumerate(p.notation.get('symbols',[]))
+                if item['kind']=='slur' and not slur_conflicts(p,item,self.melismas,voices)]
         page,y=0,140
         for system in self.systems:
             system.symbol_scale*=self.glyph_scale
@@ -522,6 +534,18 @@ class ScoreLayout:
                     tops.append(self.tuplet_ink_top(f,system,ny))
                 label_top=min(tops)+(self.text_ink('3',9,center=True)[1]-5)*system.symbol_scale
                 padding=max(0,system.context_height+20+6*system.symbol_scale-label_top)
+                system.extra_header+=padding;system.note_baseline+=padding;system.grid_bottom+=padding;system.height+=padding
+            first,last=p.starts[system.bars[0]],p.starts[system.bars[-1]+1]
+            system.melisma_through=any(a<first and b>=last for a,b,_,_ in self.melismas)
+            if system.melisma_through:
+                # Empty intermediate rows have no endpoint glyph to reserve
+                # slur ink. Allocate an explicit band before pagination, also
+                # covering the extra continuation curve above a held note.
+                padding=20*system.symbol_scale
+                system.extra_header+=padding;system.note_baseline+=padding;system.grid_bottom+=padding;system.height+=padding
+            system.manual_slurs=[(i,notes) for i,notes in manual if len(notes)>=2 and notes[0].start<last and notes[-1].start>=first]
+            if system.manual_slurs:
+                padding=(20+6*min(3,len(system.manual_slurs)))*system.symbol_scale
                 system.extra_header+=padding;system.note_baseline+=padding;system.grid_bottom+=padding;system.height+=padding
             system.natural_width=sum(system.bar_widths);system.natural_height=system.height
             descriptors=self.ink_descriptors(system)
@@ -1029,7 +1053,7 @@ class ScoreLayout:
         painter.drawText(QPointF(x-width/2 if center else x,y),text)
 
     def draw(self, painter, page, play_tick=None,dark=False):
-        self.melisma_paths=[]
+        self.melisma_paths=[];self.manual_slur_paths=[]
         self.dark=dark;self.tie_paths=[];self.rest_positions=[];self.symbol_marks=[];self.lyric_positions=[];self.symbol_boxes=[];self.unpitched_positions=[];self.glyph_sizes=[];self.tuplet_marks=[];p = self.project
         if play_tick is not None:
             for item in self.compressions:
@@ -1056,6 +1080,7 @@ class ScoreLayout:
         transform=self.system_transform(system)
         counts=[len(x) for x in (self.hit_notes,self.hit_bars,self.hit_chords,self.hit_times,self.tie_paths,self.rest_positions,self.symbol_marks,self.lyric_positions,self.hit_symbols)]
         melisma_count=len(self.melisma_paths)
+        manual_count=len(self.manual_slur_paths)
         box_count=len(self.symbol_boxes);unpitched_count=len(self.unpitched_positions);tuplet_count=len(self.tuplet_marks)
         painter.save();painter.setTransform(transform,True);self.draw_system_content(painter,local,play_tick);painter.restore()
         for items,count in zip((self.hit_notes,self.hit_bars,self.hit_chords),counts[:3]):
@@ -1067,6 +1092,8 @@ class ScoreLayout:
             nid,kind,path=self.tie_paths[i];self.tie_paths[i]=(nid,kind,transform.map(path))
         for i in range(melisma_count,len(self.melisma_paths)):
             a,b,kind,path=self.melisma_paths[i];self.melisma_paths[i]=(a,b,kind,transform.map(path))
+        for i in range(manual_count,len(self.manual_slur_paths)):
+            index,kind,path=self.manual_slur_paths[i];self.manual_slur_paths[i]=(index,kind,transform.map(path))
         for i in range(counts[5],len(self.rest_positions)):
             tick,pitch,x,y=self.rest_positions[i];point=transform.map(QPointF(x,y));self.rest_positions[i]=(tick,pitch,point.x(),point.y())
         for i in range(counts[6],len(self.symbol_marks)):
@@ -1334,9 +1361,34 @@ class ScoreLayout:
                 kind='outgoing';start=QPointF(left[0]+5*scale,left[1]);end=QPointF(x-2,left[1]-2*scale);color=left[2]
             elif right and a<first_tick:
                 kind='incoming';start=QPointF(system.left+scale,right[1]-4*scale);end=QPointF(right[0]-5*scale,right[1]);color=right[2]
+            elif a<first_tick and b>=last_tick:
+                # Adjacent MIDI attacks can straddle whole rows of rests or a
+                # sustained source note. Keep the lyric arc visible on every
+                # intervening row/page, just as a manual phrase annotation is.
+                anchors=[value for (ident,tick),value in slur_anchors.items() if ident in (left_id,right_id) and first_tick<=tick<last_tick]
+                rest_baseline=baseline if style=='traditional' else baseline-(len(system.pitches)-1)*gap/2
+                y=min((value[1] for value in anchors),default=rest_baseline-24*scale)
+                kind='through';start=QPointF(system.left+scale,y-4*scale);end=QPointF(x-2,y-2*scale);color=INK
             else:continue
             self.melisma_paths.append((a,b,kind,curve(start,end,color,kind)))
-        self.draw_tuplet_groups(painter,system,tuplet_anchors,self.tie_paths[tie_start:],self.melisma_paths[melisma_start:])
+        manual_for_tuplets=[]
+        for layer,(index,notes) in enumerate(getattr(system,'manual_slurs',[])):
+            a,b=notes[0].start,notes[-1].start
+            left=slur_anchors.get((notes[0].id,a));right=slur_anchors.get((notes[-1].id,b))
+            anchors=[value for (_,tick),value in slur_anchors.items() if a<=tick<=b]
+            y=min((value[1] for value in anchors),default=baseline-24*scale)-(6+6*min(layer,3))*scale
+            start=QPointF(left[0]+3*scale,left[1]-6*scale) if left else QPointF(system.left+scale,y)
+            end=QPointF(right[0]-3*scale,right[1]-6*scale) if right else QPointF(x-2*scale,y)
+            if end.x()<=start.x():continue
+            kind='continuous' if left and right else 'outgoing' if left else 'incoming' if right else 'through'
+            path=QPainterPath(start);dx=end.x()-start.x();rise=min(16*scale,max(5*scale,dx*.06))
+            top=y-rise
+            if kind=='incoming':path.cubicTo(QPointF(start.x()+dx*.35,y-rise*.4),QPointF(start.x()+dx*.8,top),end)
+            else:path.cubicTo(QPointF(start.x()+dx*.25,top),QPointF(start.x()+dx*.75,top),end)
+            painter.setPen(QPen(self.color(INK),1.05*scale));painter.setBrush(Qt.BrushStyle.NoBrush);painter.drawPath(path)
+            self.manual_slur_paths.append((index,kind,path));manual_for_tuplets.append((a,b,kind,path))
+            self.hit_symbols.append((system.page,path.boundingRect().adjusted(-4*scale,-4*scale,4*scale,4*scale),('symbols',index)))
+        self.draw_tuplet_groups(painter,system,tuplet_anchors,self.tie_paths[tie_start:],self.melisma_paths[melisma_start:]+manual_for_tuplets)
 
     def draw_tuplet_groups(self,painter,system,anchors,ties,melismas):
         scale=system.symbol_scale
@@ -1367,6 +1419,9 @@ class ScoreLayout:
 
 def export_pdf(project,path,pages=None):
     project.validate()
+    from lingfeng.music.onsets import is_monophonic
+    if project.notation['style']=='traditional' and not is_monophonic(project.notes):
+        raise ValueError('传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。')
     layout=ScoreLayout(project)
     pages=list(range(layout.pages)) if pages is None else list(pages)
     if not pages or pages!=sorted(set(pages)) or any(not 0<=p<layout.pages for p in pages):raise ValueError('谱面页码范围无效。')

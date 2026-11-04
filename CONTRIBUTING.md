@@ -6,15 +6,22 @@ Lingfeng is a personally maintained Windows desktop project. Reproducible bug re
 
 ## 1. 开发环境 / Development environment
 
-在仓库根目录执行以下 PowerShell 命令。使用独立虚拟环境，无需修改全局 Python：
+从全新检出开始执行以下 PowerShell 命令，使用 Windows x64 的 Python 3.13 和独立虚拟环境。当前源码为 0.57；最近生成的发行归档为 0.55，源码版本更新不表示已有同版本便携下载。
 
-Run these PowerShell commands from the repository root using a dedicated virtual environment:
+Start from a fresh checkout using Windows x64, Python 3.13 and a dedicated virtual environment. The current source is 0.57 and the most recently generated release archive is 0.55. A source version update does not imply a matching portable download.
 
 ```powershell
+git clone https://github.com/li-Ko-Ko/Lingfeng.git
+Set-Location Lingfeng
 py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe main.py --version
 .\.venv\Scripts\python.exe main.py
 ```
+
+`requirements-build.txt` 固定直接运行与构建依赖，包括 PySide6/shiboken6 6.9.2 和 PyInstaller 6.20.0；仅运行时也可安装 `requirements.txt`，其中 Qt 允许兼容版本范围。所有命令均从仓库根目录执行，不需要开发者本机的虚拟环境、缓存或安装路径。这些输入用于重建相同版本的程序及功能；传递依赖、Windows 与构建工具环境仍可能影响产物，不承诺 EXE 逐字节一致。
+
+`requirements-build.txt` pins direct runtime and build dependencies, including PySide6/shiboken6 6.9.2 and PyInstaller 6.20.0. For runtime-only use, `requirements.txt` allows a compatible Qt range. Run every command from the repository root; no maintainer-specific environment, cache or installation path is required. These inputs reproduce the application version and functionality. Transitive dependencies, Windows and build-tool environments can still affect outputs; byte-for-byte identical executables are not promised.
 
 当前发行包含免费的小型钢琴与电钢琴包，以及三组 STK 原生合成包、37 个预设。小型包通过 sfizz 播放 SFZ；大钢琴按需下载。使用 `scripts/build_piano_packs.py --download --pack all --zip` 从固定版本与哈希重建钢琴包；只在显式指定 `--download` 时访问网络。预编译包需要保留其完整文件夹；重建音源需要 STK 5.0.1、Zig 0.14.1 和 `scripts/build_synth_packs.py` 的显式 `--stk`、`--zig` 路径。接口与构建说明见 [SOUNDBANKS](docs/SOUNDBANKS.md)。Windows MIDI 使用本机已安装的输出设备，系统音色资源不在仓库中分发。
 
@@ -23,6 +30,15 @@ py -3.13 -m venv .venv
 The release includes a free small piano/electric-piano pack and three STK native packs with 37 presets. The small pack uses sfizz for SFZ playback; the grand is an optional download. Rebuild piano packs from pinned assets with `python scripts/build_piano_packs.py --download --pack all --zip`; network access occurs only with `--download`. Keep each prebuilt pack folder complete. Rebuilding uses STK 5.0.1, Zig 0.14.1 and explicit `--stk`/`--zig` paths for `scripts/build_synth_packs.py`; see [SOUNDBANKS](docs/SOUNDBANKS.md). Windows MIDI uses locally installed devices; system instrument resources are not redistributed.
 
 Build optional 0.53 electric/FluidR3 GM packs with `python scripts/build_piano_packs.py --download --pack upgrades --zip`. SF2 uses its own FluidSynth runtime and corresponding source. No new pip dependency or large bank is added to the core release.
+
+若要手动直接重建原生 STK 包，先创建仓库 `tmp/`；该脚本把编译子进程的 `TEMP`／`TMP` 指向此目录。将下面两个工具路径替换为已准备好的完整 STK 5.0.1 源码目录与 Zig 0.14.1 可执行文件。常规程序构建使用仓库已有的完整音源包，不要求重新编译它们。
+
+Before directly rebuilding the native STK packs, create the repository's `tmp/` directory: the builder uses it for compiler `TEMP`/`TMP`. Replace the two tool paths below with the complete STK 5.0.1 source directory and Zig 0.14.1 executable. A normal application build uses the complete packs already in the repository and does not require recompiling them.
+
+```powershell
+New-Item -ItemType Directory -Force tmp | Out-Null
+.\.venv\Scripts\python.exe scripts/build_synth_packs.py --stk 'path\to\STK-5.0.1' --zig 'path\to\zig.exe'
+```
 
 ## 2. 报告问题 / Report a problem
 
@@ -50,6 +66,22 @@ Prefer a new project with a few notes, or remove music unrelated to the problem.
 
 The repository and release source bundle contain the inputs needed to run, rebuild and test the application, plus user documentation and third-party notices.
 
+公开文件由 `scripts/release_policy.py` 的 `repository_files()` 清单统一选择。应用功能、完整离线音源、验证与许可构成可复现程序所需的公开文件集：
+
+`repository_files()` in `scripts/release_policy.py` selects the public tree. Its scope covers application functionality, bundled offline sounds, validation and licensing:
+
+| 文件 / Files | 用途 / Purpose |
+| --- | --- |
+| `main.py`、`lingfeng/`、审核后的 `assets/` | 启动入口、应用代码、语言目录与界面资源 / Launcher, application code, translations and UI assets |
+| `requirements*.txt`、`build.ps1`、审核后的 `scripts/` | 运行依赖、程序打包、音源重建与校验 / Dependencies, packaging, sound rebuilds and checks |
+| `native/`、四组随附 `synths/` | 原生合成接口、离线声音、引擎及对应重建输入 / Native synthesis, offline sounds, runtimes and their rebuild inputs |
+| `tests/`、审核后的 `examples/` | 回归用例、测试辅助模块与可公开示例 / Regression tests, test helpers and shareable examples |
+| `README.md`、`CONTRIBUTING.md`、`CHANGELOG.md`、审核后的 `docs/`、`licenses/`、`LICENSE` | 用户说明、格式、发行记录、来源及第三方条款 / Guides, format, archive history, sources and license terms |
+
+四组随附音源是 `piano-small`、`stk-essentials`、`stk-colors`、`stk-acoustic`。保留其完整文件夹及源码／许可，才能复现随附播放与音频检查；可选大型音源单独下载。生成的 EXE、`dist/`、虚拟环境、缓存、验证输出、个人工程及用户偏好不作为源码提交。清单不删除本地文件，仅限制公开仓库及源码交付范围。
+
+The four bundled packs are `piano-small`, `stk-essentials`, `stk-colors` and `stk-acoustic`. Keep their complete folders, runtime sources and notices to reproduce bundled playback and audio checks; large optional banks are separate downloads. Generated executables, `dist/`, environments, caches, validation outputs, personal scores and user preferences are excluded from source commits. The inventory limits publication and source packaging; it does not delete local files.
+
 保持每次修改围绕一个问题。音乐时间与演奏数据归模型所有，谱面排版不应改写 MIDI；普通编辑通过现有事务/撤销路径提交。界面文案需同时维护中文与英文，不使用显示标签作为稳定数据值。
 
 Keep changes focused on one problem. The model owns musical time and performed events; engraving must not rewrite MIDI. Use the existing edit transaction/undo paths. Maintain Chinese and English UI text together, and keep stable data values independent of display labels.
@@ -57,6 +89,14 @@ Keep changes focused on one problem. The model owns musical time and performed e
 ```powershell
 .\.venv\Scripts\python.exe scripts/run_regression.py
 .\.venv\Scripts\python.exe scripts/audit_text.py
+```
+
+可先只运行相关模块，例如 0.57 的段落导航与全局节奏型开关：
+
+For a focused check, pass module names, for example section navigation and the global rhythm switch in 0.57:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_regression.py test_v57_sections test_v57_rhythm test_v57_settings
 ```
 
 统一回归为每个 `tests/test_*.py` 模块创建独立进程，默认使用无屏幕 Qt 平台，并将 `LINGFENG_USER_DATA`、`LINGFENG_SYNTH_CACHE`、临时目录隔离到仓库 `tmp/`。结果写入 `output/`。完整套件包含 Windows 设备、原生合成与音频检查；无声、数值稳定或停音测试不能替代所有设备上的主观听感验收。修改后先运行相关模块，再进行发行需要的完整回归。
@@ -68,10 +108,21 @@ The runner starts each `tests/test_*.py` module in a separate process with offsc
 When running tests individually, isolate their data as well so they cannot overwrite normal settings or progression presets:
 
 ```powershell
+New-Item -ItemType Directory -Force tmp | Out-Null
 $env:QT_QPA_PLATFORM = 'offscreen'
 $env:LINGFENG_USER_DATA = Join-Path $PWD 'tmp\manual-test-user'
 $env:LINGFENG_SYNTH_CACHE = Join-Path $PWD 'tmp\manual-test-index\current.json'
 .\.venv\Scripts\python.exe -m unittest tests.test_music tests.test_harmony -v
+```
+
+源码也提供与便携程序相同的自检入口。请在单独的 PowerShell 终端中使用隔离设置目录；结果的 `result.json` 应为 `status: passed`。自检会创建临时工程、图片、PDF 与音频验证文件，不用于普通启动。
+
+The source and portable application share a self-test entry point. Use isolated settings in a separate PowerShell terminal, and check that the resulting `result.json` has `status: passed`. Self-tests create projects, images, PDFs and audio verification files; normal startup does not run them.
+
+```powershell
+$env:LINGFENG_USER_DATA = Join-Path $PWD 'tmp\self-test-user'
+$env:LINGFENG_SYNTH_CACHE = Join-Path $PWD 'tmp\self-test-index\current.json'
+.\.venv\Scripts\python.exe main.py --self-test output\self-test-source
 ```
 
 编辑帮助后运行 `python scripts/export_help.py`，从同一主题重新生成 [HELP](docs/HELP.md)；使用与项目相同的虚拟环境执行该命令。提交说明应包含具体问题、修改后的行为、实际运行的检查和仍未验证的范围。不要仅为匹配实现而放宽测试断言。
@@ -81,13 +132,27 @@ After editing help, run `python scripts/export_help.py` with the project environ
 ## 4. 打包 / Packaging
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 .\build.ps1 -Python '.\.venv\Scripts\python.exe'
 ```
 
 默认只更新 `dist/<版本>/Lingfeng/` 独立程序文件夹，包含源码、许可及四组审核通过的轻量音源；不生成 ZIP 或 `.sha256`，也不改动任何已有归档。运行独立 EXE 的 `--self-test <输出目录>`，再执行 `python scripts/verify_release.py` 检查文件夹的源码、运行资源和音源一致性。可把文件夹路径作为位置参数传入。
 
 The default output is the standalone folder `dist/<version>/Lingfeng/`, including source, licenses and all four approved lightweight sound packs. No ZIP or `.sha256` is generated, and existing archives remain untouched. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the folder's source, frozen resources and sounds. An explicit folder path may be supplied as a positional argument.
+
+例如验证当前 0.57 本地构建。使用单独 PowerShell 终端，等待窗口版 EXE 的自检进程结束后读取报告：
+
+For the current 0.57 build, use a separate PowerShell terminal and wait for the windowed executable to finish before reading the report:
+
+```powershell
+$env:LINGFENG_USER_DATA = Join-Path $PWD 'tmp\portable-test-user'
+$env:LINGFENG_SYNTH_CACHE = Join-Path $PWD 'tmp\portable-test-index\current.json'
+$testOutput = Join-Path $PWD 'output\self-test-portable'
+$executable = Join-Path $PWD 'dist\0.57\Lingfeng\Lingfeng.exe'
+$check = Start-Process -FilePath $executable -ArgumentList @('--self-test', "`"$testOutput`"") -WindowStyle Hidden -Wait -PassThru
+if ($check.ExitCode -ne 0) { throw 'Standalone self-test failed. Check result.json.' }
+Get-Content (Join-Path $testOutput 'result.json')
+.\.venv\Scripts\python.exe scripts/verify_release.py dist\0.57\Lingfeng
+```
 
 只有明确要求生成新的发行归档时，才使用下面的可选命令。已有同版本 ZIP 或校验文件会报错并保留，不允许覆盖；不会隐式生成单独的音源 ZIP。
 
@@ -100,9 +165,9 @@ Use the optional commands below only when a new release archive is explicitly re
 .\.venv\Scripts\python.exe scripts/verify_release.py --archive
 ```
 
-常规本地改动写入 `CHANGELOG_LOCAL.md`（仅本地 / local only）；[CHANGELOG](CHANGELOG.md) 仅记录实际已生成发行归档的版本。创建归档不代表已经上传或发布。保留第三方许可和对应源码说明；不要提交本机构建环境、录音、调试日志或私人工程。
+[CHANGELOG](CHANGELOG.md) 仅记录实际已生成发行归档的版本；只有源码和本地文件夹的更新不新增发行节点。创建归档不代表已经上传或发布。保留第三方许可和对应源码说明；不要提交本机构建环境、录音、调试日志或私人工程。
 
-Record local work in `CHANGELOG_LOCAL.md`（仅本地 / local only）. [CHANGELOG](CHANGELOG.md) records versions for which release archives were actually generated. Creating an archive does not imply uploading or publishing it. Preserve third-party notices and corresponding-source information; do not commit local environments, recordings, debug logs or private projects as source.
+[CHANGELOG](CHANGELOG.md) records versions for which release archives were actually generated. Source-only and local-folder updates do not add release entries. Creating an archive does not imply uploading or publishing it. Preserve third-party notices and corresponding-source information; do not commit local environments, recordings, debug logs or private projects as source.
 
 ## 5. 许可 / Licensing
 

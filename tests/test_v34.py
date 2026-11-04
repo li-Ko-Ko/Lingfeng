@@ -124,10 +124,15 @@ class DataTests(unittest.TestCase):
 
     def test_all_quality_progression_capture_roundtrips(self):
         from lingfeng.music.model import QUALITIES
+        from lingfeng.platform.chord_preferences import DEFAULT_QUICK_QUALITIES
         p=Project()
         for quality in QUALITIES:
             p.chords=[Chord(0,960,48,quality)]
-            self.assertEqual(resolve(capture(p,{p.chords[0].id}),48).quality,quality)
+            # Roman display may canonicalize aliases such as min to m; the
+            # written intervals, including extensions, must still round-trip.
+            restored=resolve(capture(p,{p.chords[0].id}),48)
+            self.assertEqual(QUALITIES[restored.quality],QUALITIES[quality],quality)
+            if quality in DEFAULT_QUICK_QUALITIES:self.assertEqual(restored.quality,quality)
 
     def test_removed_container_suffix_is_rejected(self):
         with tempfile.TemporaryDirectory(dir='tmp') as folder:

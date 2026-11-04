@@ -111,9 +111,9 @@ def package(destination=None,*,archive=False):
 
 运行本文件夹中的 Lingfeng.exe，保留 _internal 和 synths。
 {installation}
-新增音源：复制完整文件夹到 synths，进入 设置 → 音源与音色 → 重新扫描并保存。
+新增音源：复制完整文件夹到 synths，进入 设置 → 音源与输入 → 音源与音色 → 重新扫描并保存。
 扫描结果和默认选择自动保存，下次启动直接读取；也可以添加其它扫描目录。
-已附带免费小型钢琴与电钢琴。大钢琴：设置 → 音源与音色 → 下载／添加音源。
+已附带免费小型钢琴与电钢琴。大钢琴：设置 → 音源与输入 → 音源与音色 → 下载／添加音源。
 也可从本地完整音源 ZIP 添加，下载支持进度、取消和校验。
 音源的编辑试听与离线 MP3 使用同一引擎；导出保留音源许可说明。
 Windows 实时录制会录入同一设备上的其它声音。
@@ -124,7 +124,7 @@ source/ 提供程序源码；每个音源包内含源码和许可。详见 docs/
 Run Lingfeng.exe in this folder and keep _internal and synths. The approved
 lightweight synth packs, source files and license notices are included.
 The free small piano and electric pianos are included. Download the optional
-grand or add a local pack ZIP in Settings > Sound sources and instruments >
+grand or add a local pack ZIP in Settings > Sound and input > Sound sources and instruments >
 Download / add sounds. Downloads show progress and verify checksums. You can
 also copy complete folders into synths/ and use Rescan and save.
 See docs/HELP.md for the categorized bilingual manual. User preferences,

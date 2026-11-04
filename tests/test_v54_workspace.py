@@ -1,7 +1,8 @@
-"""Strict source-melody Score entry and retained, inactive structure interfaces."""
+"""Source-onset analysis, polyphonic Score entry and inactive structure interfaces."""
 import copy
 from dataclasses import FrozenInstanceError
 import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -20,7 +21,7 @@ APP=QApplication.instance() or QApplication([])
 
 def song(notes=None):
     p=Project();p.notes=notes if notes is not None else [Note(0,960,60),Note(960,960,62)]
-    p.notation.update(font_size=15,circles=False,lyrics=False)
+    p.notation.update(font_size=15,circles=False,lyrics=False,font_layout_version=45)
     return p
 
 
@@ -51,6 +52,10 @@ class OnsetTests(unittest.TestCase):
 
 class ScoreEntryTests(unittest.TestCase):
     def setUp(self):
+        temporary=tempfile.TemporaryDirectory(dir='tmp');self.addCleanup(temporary.cleanup)
+        environment=patch.dict(os.environ,{'LINGFENG_USER_DATA':temporary.name,
+            'LINGFENG_SYNTH_CACHE':os.path.join(temporary.name,'synth-index.json')})
+        environment.start();self.addCleanup(environment.stop)
         self.save=patch.object(MainWindow,'save_preferences');self.save.start();self.addCleanup(self.save.stop)
         self.dialogs=[]
         def show(box):
@@ -71,90 +76,77 @@ class ScoreEntryTests(unittest.TestCase):
         before['notation']['font_layout_version']=45
         self.assertEqual(w.project.to_dict(),before);self.assertEqual(export_midi(w.project,None),midi)
 
-    def test_any_positive_original_overlap_blocks_all_styles_without_state_changes(self):
+    def test_positive_original_overlap_is_allowed_in_spatial_and_compact(self):
         w=self.w;w.project.notes[0].duration=961
-        w.roll.selected_ids={w.project.notes[0].id};w.roll.selection=[[480,1440]];w.roll.setFocus();APP.processEvents()
-        history=object();w.undo_history.append(history);w.dirty=True
-        for style in ('traditional','spatial','compact'):
+        notes=copy.deepcopy(w.project.notes);midi=export_midi(w.project,None)
+        for style in ('spatial','compact'):
             with self.subTest(style=style):
-                w.project.notation['style']=style;before=copy.deepcopy(w.project.to_dict());focus=APP.focusWidget()
-                self.assertFalse(w.switch_workspace('score'));self.assertEqual(w.workspace,'compose')
-                self.assertEqual(w.project.to_dict(),before);self.assertEqual(w.undo_history,[history]);self.assertTrue(w.dirty)
-                self.assertEqual(w.roll.selected_ids,{w.project.notes[0].id});self.assertEqual(w.roll.selection,[[480,1440]])
-                self.assertIs(APP.focusWidget(),focus);self.assertIsNone(w.score_view.canvas.layout)
-                self.assertTrue(w.compose_button.isChecked());self.assertFalse(w.score_button.isChecked())
-        self.assertEqual(len(self.dialogs),3)
-        text=self.dialogs[-1]['informative']
-        self.assertIn('第 1 小节',text);self.assertIn('第 2 拍',text);self.assertIn('960–961',text)
-        for note in w.project.notes:self.assertIn(note.id,text);self.assertIn(str(note.pitch),text)
+                w.project.notation['style']=style;w.refresh()
+                self.assertTrue(w.switch_workspace('score'));self.assertEqual(w.workspace,'score')
+                self.assertEqual(w.score_view.canvas.project.notes,notes)
+                self.assertFalse(w.score_style.model().item(w.score_style.findData('traditional')).isEnabled())
+                self.assertEqual(export_midi(w.project,None),midi)
+                w.switch_workspace('compose')
+        self.assertFalse(self.dialogs)
 
-    def test_simultaneous_attacks_and_humanized_legato_are_not_tolerated(self):
+    def test_simultaneous_attacks_and_humanized_legato_only_disable_traditional(self):
         for notes in ([Note(0,320,60),Note(240,720,57)],
                       [Note(0,480,60),Note(0,480,64)],
                       [Note(0,480,60),Note(479,480,64)]):
             with self.subTest(notes=[(n.start,n.duration)for n in notes]):
-                self.w.project.notes=notes
-                self.assertFalse(self.w.switch_workspace('score'))
-        self.assertEqual(len(self.dialogs),3)
+                self.w.project.notes=notes;self.w.refresh()
+                self.assertTrue(self.w.switch_workspace('score'))
+                self.assertFalse(self.w.score_style.model().item(self.w.score_style.findData('traditional')).isEnabled())
+                self.w.switch_workspace('compose')
+        self.assertFalse(self.dialogs)
 
-    def test_score_button_and_lyrics_entry_each_show_one_diagnostic_without_losing_focus(self):
-        w=self.w;w.project.notes[0].duration=961;w.roll.setFocus();APP.processEvents()
-        focus=APP.focusWidget();QTest.mouseClick(w.score_button,Qt.MouseButton.LeftButton)
-        self.assertEqual(w.workspace,'compose');self.assertIs(APP.focusWidget(),focus);self.assertEqual(len(self.dialogs),1)
-        w.batch_lyrics();self.assertEqual(len(self.dialogs),2);self.assertEqual(w.workspace,'compose')
+    def test_score_button_and_lyrics_entry_work_with_polyphonic_melody(self):
+        w=self.w;w.project.notes[0].duration=961;w.refresh()
+        QTest.mouseClick(w.score_button,Qt.MouseButton.LeftButton)
+        self.assertEqual(w.workspace,'score');w.switch_workspace('compose');w.batch_lyrics()
+        self.assertEqual(w.workspace,'score');self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
+        self.assertFalse(self.dialogs)
 
-    def test_each_reentry_checks_live_music_instead_of_deferred_valid_snapshot(self):
+    def test_each_reentry_syncs_polyphonic_live_music(self):
         w=self.w;self.assertTrue(w.switch_workspace('score'));snapshot=w.score_view.canvas.project
         w.switch_workspace('compose');w.mutate('overlap',lambda p:setattr(p.notes[0],'duration',961))
-        before=copy.deepcopy(w.project.to_dict());history=list(w.undo_history)
-        self.assertFalse(w.switch_workspace('score'));self.assertIs(w.score_view.canvas.project,snapshot)
-        self.assertEqual(w.project.to_dict(),before);self.assertEqual(w.undo_history,history);self.assertEqual(len(self.dialogs),1)
+        history=list(w.undo_history)
+        self.assertTrue(w.switch_workspace('score'));self.assertIsNot(w.score_view.canvas.project,snapshot)
+        self.assertEqual(w.score_view.canvas.project.notes[0].duration,961);self.assertEqual(w.undo_history,history)
         w.mutate('fix',lambda p:setattr(p.notes[0],'duration',960))
-        self.assertTrue(w.switch_workspace('score'));self.assertEqual(w.score_view.canvas.project.notes[0].duration,960)
+        self.assertTrue(w.score_style.model().item(w.score_style.findData('traditional')).isEnabled())
+        self.assertFalse(self.dialogs)
 
-    def test_replacement_from_score_loads_conflicting_file_in_compose_once(self):
+    def test_replacement_from_score_keeps_polyphonic_file_in_score(self):
         w=self.w;w.switch_workspace('score');p=song([Note(0,961,60),Note(960,480,64)])
         notes=copy.deepcopy(p.notes);w.replace_project(p)
-        self.assertIs(w.project,p);self.assertEqual(w.project.notes,notes);self.assertEqual(w.workspace,'compose')
-        self.assertIsNone(w.score_view.canvas.layout);self.assertEqual(len(self.dialogs),1)
+        self.assertIs(w.project,p);self.assertEqual(w.project.notes,notes);self.assertEqual(w.workspace,'score')
+        self.assertEqual(w.score_view.canvas.project.notes,notes);self.assertFalse(self.dialogs)
         self.assertFalse(w.undo_history);self.assertFalse(w.dirty)
 
-    def test_startup_and_mono_replacement_have_no_implicit_score_bypass(self):
+    def test_polyphonic_startup_can_enter_score_without_correcting_music(self):
         w=self.w;p=song([Note(0,481,60),Note(480,480,64)])
         w.replace_project(p);self.assertEqual(w.workspace,'compose');self.assertFalse(self.dialogs)
-        self.assertFalse(w.switch_workspace('score'));self.assertEqual(len(self.dialogs),1)
+        self.assertTrue(w.switch_workspace('score'));self.assertEqual(w.score_view.canvas.project.notes,p.notes)
         w.replace_project(song());self.assertTrue(w.switch_workspace('score'))
         w.replace_project(song([Note(0,1920,65)]));self.assertEqual(w.workspace,'score')
-        self.assertEqual(w.score_view.canvas.project.notes[0].pitch,65);self.assertEqual(len(self.dialogs),1)
+        self.assertEqual(w.score_view.canvas.project.notes[0].pitch,65);self.assertFalse(self.dialogs)
 
-    def test_conflicting_startup_project_remains_in_compose_until_fixed(self):
-        p=song([Note(0,961,60),Note(960,480,64)]);before=copy.deepcopy(p.notes)
-        window=MainWindow(p);window.timer.stop();window.autosave.stop()
-        try:
-            self.assertEqual(window.workspace,'compose');self.assertIsNone(window.score_view.canvas.layout);self.assertFalse(self.dialogs)
-            self.assertFalse(window.switch_workspace('score'));self.assertEqual(window.project.notes,before)
-            self.assertEqual(len(self.dialogs),1)
-        finally:window.dirty=False;window.close();window.deleteLater();APP.processEvents()
-
-    def test_language_reentry_checks_original_music_once(self):
+    def test_language_reentry_preserves_polyphonic_score_and_deferred_music(self):
         w=self.w;w.switch_workspace('score');w.mutate('overlap',lambda p:setattr(p.notes[0],'duration',961))
-        before=copy.deepcopy(w.project.to_dict());w.change_language('en',False)
-        self.assertEqual(w.workspace,'compose');self.assertEqual(w.project.to_dict(),before);self.assertEqual(len(self.dialogs),1)
-
-    def test_all_overlap_details_remain_available_without_an_override(self):
-        w=self.w;w.project.notes=[Note(t,961,60+i)for i,t in enumerate(range(0,4800,960))]
-        self.assertFalse(w.switch_workspace('score'));self.assertEqual(len(self.dialogs),1)
-        self.assertIn('4',self.dialogs[0]['text']);self.assertIn('3840–3841',self.dialogs[0]['details'])
-        for n in w.project.notes:self.assertIn(n.id,self.dialogs[0]['details'])
+        before=copy.deepcopy(w.project.to_dict());snapshot=copy.deepcopy(w.score_view.canvas.project.notes)
+        w.change_language('en',False)
+        self.assertEqual(w.workspace,'score');self.assertEqual(w.project.to_dict(),before)
+        self.assertEqual(w.score_view.canvas.project.notes,snapshot);self.assertFalse(self.dialogs)
 
     def test_structure_entry_points_stay_hidden_after_language_and_stale_panel_state(self):
         w=self.w;w.switch_workspace('score')
-        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics'});self.assertEqual(w.score_tabs.count(),3)
+        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics','annotations'});self.assertEqual(w.score_tabs.count(),0)
         self.assertFalse(w.logic_panel.isVisible());self.assertFalse(w.logic_panel.isEnabled())
         self.assertIsNone(w.show_score_panel('logic'));w.toggle_score_panel_floating('logic');w.set_score_panel_visible('logic',True)
         w.score_panel_state['logic']=dict(visible=True,floating=True);w.change_language('en',False)
         self.assertNotIn('logic',w.score_panel_state);self.assertNotIn('logic',w.score_view_actions)
-        self.assertEqual(w.score_tabs.count(),3);self.assertFalse(w.logic_panel.isVisible())
+        self.assertEqual(w.score_tabs.count(),0);self.assertFalse(w.logic_panel.isVisible())
 
     def test_structure_commands_are_inactive_but_existing_data_and_normal_rows_survive(self):
         w=self.w;p=w.project
@@ -163,7 +155,7 @@ class ScoreEntryTests(unittest.TestCase):
         before=copy.deepcopy(p.to_dict());midi=export_midi(p,None);self.assertTrue(w.switch_workspace('score'))
         canvas=w.score_view.canvas;canvas.grab();self.assertEqual(visible_bars(w.project),list(range(4)))
         payload=dict(bars=[0,1],ranges=[[0,7680]],key=('compressions',0))
-        for command in ('compress:repeat','symbol:segno','expand','clear_symbols','remove_structure'):w.score_command(command,payload)
+        for command in ('compress:repeat','expand','remove_structure'):w.score_command(command,payload)
         w.logic_panel.create_draft();w.logic_panel.commit();self.assertFalse(w.logic_panel.drafts)
         before['notation']['font_layout_version']=45;self.assertEqual(w.project.to_dict(),before);self.assertFalse(w.undo_history)
         self.assertEqual(export_midi(w.project,None),midi)

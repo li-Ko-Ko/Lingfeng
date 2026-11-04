@@ -56,7 +56,7 @@ class QualityTests(unittest.TestCase):
         d=ChordDialog(p.chords[0],p)
         try:self.assertEqual(d.quality.currentData(),'7b5');self.assertEqual(d.value().pcs,{0,4,6,10})
         finally:d.deleteLater()
-        set_language('en');self.assertIn('Dominant seventh flat five',dict(quality_items())['7b5'])
+        set_language('en');self.assertIn('Dominant seventh flat fifth',dict(quality_items())['7b5'])
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             file=Path(folder)/'flat-five.lfs';p.save(file);q=Project.load(file)
             self.assertEqual(q.to_dict(),p.to_dict())

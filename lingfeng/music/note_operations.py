@@ -138,7 +138,9 @@ def resize_chord(chord,start,end,fill_pattern=True,project=None):
     if project is not None:
         from lingfeng.music.meter import resize_bounds
         start,end=resize_bounds(project,chord,start,end)
-    if chord.custom_rhythm and chord.notes is None:
+    from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
+    if not rhythm_recognition_enabled() and (start,end)==(chord.start,chord.end):return copy.deepcopy(chord)
+    if chord.notes is None and (chord.custom_rhythm or not rhythm_recognition_enabled()):
         chord=copy.deepcopy(chord);chord.materialize()
     if fill_pattern:
         from lingfeng.music.rhythm import regenerate
@@ -161,6 +163,8 @@ def repartition_chord(project,cid,start,end):
     """Resize a structure region; vacated space is silent, covered space is replaced."""
     old=next(c for c in project.chords if c.id==cid)
     if not 0<=start<end<=project.end:raise ValueError(tr('和弦结构范围无效。'))
+    from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
+    if not rhythm_recognition_enabled() and (start,end)==(old.start,old.end):return
     result=resize_chord(old,start,end,project=project)
     result.id=old.id;project.put_chord(result);project.validate()
 

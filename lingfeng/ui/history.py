@@ -52,7 +52,24 @@ class HistoryMixin:
         return dict(surface=surface,workspace=workspace,tick=tick,notes=set(roll.selected_ids),
                     chords=set(roll.selected_chords),target=roll.edit_target)
 
-    def restore_history_location(self,location):
+    def history_roll_view(self,location):
+        """Music undo keeps the note editor's current time and keyboard view."""
+        if not location or location.get('target')!='notes' or location.get('surface') not in ('melody','harmony'):return None
+        roll=self.harmony_window.roll if location['surface']=='harmony' else self.roll
+        anchor=roll.vertical_anchor();index=max(0,min(len(roll.pitches)-1,int(anchor)))
+        return roll,roll.horizontalScrollBar().value()/roll.zoom,roll.pitches[index],anchor-index
+
+    def restore_history_roll_view(self,view):
+        roll,time,pitch,fraction=view
+        # Compact-keyboard edits can insert/remove rows above the visible area.
+        # Preserve a musical row and its subpixel offset, not its old row index.
+        index=min(range(len(roll.pitches)),key=lambda i:abs(roll.pitches[i]-pitch))
+        roll.set_vertical_anchor(index+fraction)
+        roll.has_centered_view=True;roll.center_generation=getattr(roll,'center_generation',0)+1
+        roll.horizontalScrollBar().setValue(round(time*roll.zoom))
+        self.sync_time_views(roll);roll.refresh()
+
+    def restore_history_location(self,location,preserve_view=False):
         if not location or not getattr(self,'workspace_ready',False):return
         surface=location['surface'];self.switch_workspace(location['workspace'])
         window=self;focus=self;roll=None
@@ -75,7 +92,8 @@ class HistoryMixin:
             roll.selected_ids=location['notes']&{n.id for n in roll.notes};roll.selected_note=next(iter(roll.selected_ids),'')
             if location['target']=='chords':
                 self.chord_selection(location['chords']&{c.id for c in self.project.chords},roll)
-            roll.ensure_tick(min(location['tick'],self.project.end-1));roll.refresh()
+            if not preserve_view:roll.ensure_tick(min(location['tick'],self.project.end-1))
+            roll.refresh()
         elif surface=='score' and not self.transport.playing:self.score_view.locate_tick(location['tick'])
         if window.isMinimized():window.showNormal()
         window.raise_();window.activateWindow()
@@ -86,9 +104,11 @@ class HistoryMixin:
         self.commit_volume()
         if not history:return
         state=history.pop();location=getattr(state,'location',None)
+        view=self.history_roll_view(location)
         opposite.append(HistoryState(self.project.to_dict(),location))
         playing=self.transport.playing;tick=self.transport.position() if playing else self.playhead
         self.project=Project.from_dict(state);self.dirty=True
         if playing:self.transport.revise(self.project)
-        self.refresh(score_spellings=bool(location and location.get('score_spellings')));self.restore_history_location(location)
+        self.refresh(score_spellings=bool(location and location.get('score_spellings')));self.restore_history_location(location,preserve_view=view is not None)
+        if view:self.restore_history_roll_view(view)
         if playing and not self.transport.playing:self.resume_edited_playback(tick)

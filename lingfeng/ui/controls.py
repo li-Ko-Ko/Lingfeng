@@ -1,7 +1,7 @@
 from lingfeng.platform.i18n import tr
 """Compact shared editing controls for the main and floating piano rolls."""
 from PySide6.QtCore import Signal,Qt,QTimer,QPointF,QRectF
-from PySide6.QtWidgets import QWidget,QHBoxLayout,QLabel,QComboBox,QToolButton,QMenu,QSpinBox,QDoubleSpinBox,QAbstractSpinBox
+from PySide6.QtWidgets import QWidget,QHBoxLayout,QLabel,QComboBox,QToolButton,QMenu,QSpinBox,QDoubleSpinBox,QAbstractSpinBox,QDialog,QDialogButtonBox,QFormLayout
 from PySide6.QtGui import QActionGroup,QPainter,QPen,QPolygonF
 from PySide6.QtWidgets import QApplication
 from lingfeng.ui.theme import color, is_dark
@@ -143,11 +143,45 @@ class FontSizeControl(QDoubleSpinBox):
         y=self.height()*.27;p.drawLine(QPointF(x,y-3),QPointF(x,y+3))
 
 
+class PitchRangeDialog(QDialog):
+    """Choose an inclusive 88-key display range using standard MIDI names."""
+    def __init__(self,low=48,high=72,parent=None):
+        super().__init__(parent);self.setWindowTitle(tr('自定义音高范围'));self.setMinimumWidth(370)
+        from lingfeng.ui.theme import roll_pitch_name
+        form=QFormLayout(self)
+        info=QLabel(tr('选择包含两端的显示范围。C3 = MIDI 48，C5 = MIDI 72；范围外音符仅隐藏，MIDI 保持不变。'))
+        info.setWordWrap(True);form.addRow(info)
+        self.low=QComboBox();self.high=QComboBox()
+        for pitch in range(21,109):
+            label=roll_pitch_name(pitch)+' · MIDI '+str(pitch)
+            self.low.addItem(label,pitch);self.high.addItem(label,pitch)
+        self.low.setCurrentIndex(self.low.findData(low));self.high.setCurrentIndex(self.high.findData(high))
+        form.addRow(tr('最低音（包含）'),self.low);form.addRow(tr('最高音（包含）'),self.high)
+        self.notice=QLabel();self.notice.setWordWrap(True);form.addRow(self.notice)
+        self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
+        self.low.currentIndexChanged.connect(self.validate_range);self.high.currentIndexChanged.connect(self.validate_range);self.validate_range()
+
+    def value(self):return self.low.currentData(),self.high.currentData()
+
+    def validate_range(self):
+        low,high=self.value();valid=type(low) is int and type(high) is int and 21<=low<=high<=108
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(valid)
+        self.notice.setText('' if valid else tr('音高范围必须在 A0–C8 内，且最低音不能高于最高音。'))
+        return valid
+
+    def accept(self):
+        if self.validate_range():super().accept()
+
+
 class RollViewControls(QWidget):
     def __init__(self,roll,parent=None):
         super().__init__(parent);self.roll=roll
         layout=QHBoxLayout(self);layout.setContentsMargins(0,0,0,0);layout.setSpacing(8)
-        self.range=QComboBox();self.range.addItems([tr('全部 88 键'),tr('已用音高')]);self.range.currentIndexChanged.connect(lambda i:roll.set_compact(i==1));layout.addWidget(self.range)
+        self.range=QComboBox();self.range.addItems([tr('全部 88 键'),tr('已用音高'),tr('自定义音高范围…')])
+        self.range.setToolTip(tr('选择全部键、已用音高或自定义范围；再次选择当前自定义范围可修改两端。'))
+        self.range.currentIndexChanged.connect(self.set_range_mode)
+        self.range.activated.connect(lambda index:self.edit_pitch_range() if index==2 else None);layout.addWidget(self.range)
         layout.addWidget(QLabel(tr('键高')));self.height=SizeControl(roll.row_height)
         self.height.currentIndexChanged.connect(roll.set_row_height);layout.addWidget(self.height)
         self.options=IconButton('options');self.options.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -158,5 +192,22 @@ class RollViewControls(QWidget):
         self.options.setMenu(self.menu)
         for label,delta in [('−',-12),('+',12)]:
             btn=QToolButton();btn.setText(label);btn.setToolTip(tr('以卷帘可视区中央为中心缩放时间轴'));btn.clicked.connect(lambda checked=False,d=delta:self.zoom(d));layout.addWidget(btn)
+        roll.viewChanged.connect(self.sync_range);self.sync_range()
+
+    def set_range_mode(self,index):
+        if index in (0,1):self.roll.set_compact(index==1)
+
+    def sync_range(self):
+        from lingfeng.ui.theme import roll_pitch_name
+        bounds=self.roll.pitch_range
+        label=' – '.join(roll_pitch_name(pitch) for pitch in bounds) if bounds is not None else tr('自定义音高范围…')
+        blocked=self.range.blockSignals(True)
+        self.range.setItemText(2,label);self.range.setCurrentIndex(2 if bounds is not None else int(self.roll.compact));self.range.blockSignals(blocked)
+
+    def edit_pitch_range(self):
+        dialog=PitchRangeDialog(*self.roll.manual_pitch_range,parent=self.window())
+        if dialog.exec()==QDialog.DialogCode.Accepted:self.roll.set_pitch_range(*dialog.value())
+        self.sync_range()
+
     def zoom(self,delta):
         self.roll.zoom_at(1.2**(delta/12));self.roll.navigationRequested.emit()

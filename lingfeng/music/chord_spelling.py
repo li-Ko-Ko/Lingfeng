@@ -7,12 +7,7 @@ LETTERS='CDEFGAB'
 NATURALS=(0,2,4,5,7,9,11)
 FLAT=('C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B')
 # Written degrees determine spelling independently of performed register.
-QUALITY_DEGREES={
-    '':(1,3,5),'m':(1,3,5),'7':(1,3,5,7),'7b5':(1,3,5,7),'maj7':(1,3,5,7),'m7':(1,3,5,7),'mM7':(1,3,5,7),
-    'dim':(1,3,5),'m7b5':(1,3,5,7),'aug':(1,3,5),'sus2':(1,2,5),'sus4':(1,4,5),
-    'add2':(1,2,3,5),'6':(1,3,5,6),'m6':(1,3,5,6),'9':(1,3,5,7,9),
-    'm9':(1,3,5,7,9),'maj9':(1,3,5,7,9),'dim7':(1,3,5,7),'7sus4':(1,4,5,7),'5':(1,5),
-}
+from lingfeng.music.quality_catalog import QUALITY_DEGREES
 
 def accidental(pc,natural):return (pc-natural+6)%12-6
 

@@ -13,6 +13,7 @@ from tests.music_reference import bar_events
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.engraving.lyrics import put, events, matching_issues
 from tests.test_v14 import Synth
+from tests.menu_helpers import find_action, walk_actions
 
 APP=QApplication.instance() or QApplication([])
 
@@ -72,14 +73,14 @@ class InterfaceTests(unittest.TestCase):
     def test_multivoice_paste_over_existing_notes_and_repeat(self):
         w=self.w;p=w.project;p.notes=[Note(0,480,60,100),Note(0,960,64,90),Note(1920,1920,60,70),Note(1920,1920,64,75)];w.refresh()
         w.roll.selected_ids={n.id for n in p.notes[:2]};w.note_command(w.roll,'copy:direct');menu=QMenu();w.roll.selection_menu(menu,2400)
-        action=next(a for a in menu.actions() if a.text()=='在此粘贴音符');self.assertTrue(action.isEnabled());action.trigger()
+        action=find_action(menu,'在此粘贴音符');self.assertTrue(action.isEnabled());action.trigger()
         expected=[(0,480,60,100),(0,960,64,90),(1920,2400,60,70),(1920,2400,64,75),(2400,2880,60,100),(2400,3360,64,90),(2880,3840,60,70),(3360,3840,64,75)]
         self.assertEqual(spans(w.project.notes),expected)
         w.seek(2400);w.paste_selection();self.assertEqual(spans(w.project.notes),expected);w.project.validate()
     def test_harmony_multivoice_paste_at_position_marker(self):
         w=self.w;w.project.chords=[Chord(0,7680,notes=[Note(0,480,60,100),Note(0,480,64,90),Note(1920,1920,60,70),Note(1920,1920,64,75)])];w.refresh()
         r=w.harmony_window.roll;r.selected_ids={n.id for n in r.notes if n.start==0};w.note_command(r,'copy:direct');r.anchor_tick=2400;r.cursor_tick=4800
-        menu=QMenu();r.selection_menu(menu,5000);next(a for a in menu.actions() if a.text()=='在定位线处粘贴音符').trigger()
+        menu=QMenu();r.selection_menu(menu,5000);find_action(menu,'在定位线处粘贴音符').trigger()
         self.assertEqual([(n.start,n.end) for n in w.project.harmony_notes() if n.pitch==60],[(0,480),(1920,2400),(2400,2880),(2880,3840)])
     def test_range_clipboard_also_overwrites_and_keeps_legacy_lyrics(self):
         w=self.w;w.project.notes=[Note(0,480,60,100),Note(1920,1920,60,70,lyric='旧')];w.refresh();before=events(w.project)
@@ -88,7 +89,7 @@ class InterfaceTests(unittest.TestCase):
     def test_occupied_auto_enabled_at_pointer_and_marker(self):
         w=self.w;w.project.chords=[Chord(0,1920,notes=[],recognized=False)];w.refresh();r=w.roll;r.anchor_tick=960
         menu=r.lane.context_menu(QPoint(round(r.x_at(480)),25))
-        for action in menu.actions():
+        for action in walk_actions(menu):
             if action.text() in ('插入空白和弦','在定位线处插入空白和弦'):
                 actions=action.menu().actions();self.assertTrue(all(a.isEnabled() for a in actions))
         w.chord_command('insert',(960,'auto'),r);self.assertEqual(w.project.chord_at(960).start,960)

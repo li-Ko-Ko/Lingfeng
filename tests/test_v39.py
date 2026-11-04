@@ -32,7 +32,7 @@ class QualityTests(unittest.TestCase):
             for label in labels:self.assertIn(label,hint)
             self.assertEqual(contextual_chord_name(p,c),'C'+quality)
         self.assertEqual(Chord(0,PPQ,48,'maj9').pcs,{0,2,4,7,11})
-        self.assertNotIn('add9',QUALITIES)
+        self.assertEqual(QUALITIES['add9'],(0,4,7,14))
 
     def test_progression_capture_apply_and_inversions(self):
         for quality in ('mM7','add2'):
@@ -53,6 +53,7 @@ class QualityTests(unittest.TestCase):
                 with self.subTest(pattern=pattern,bass=bass):
                     p=Project();c=Chord(480,3*PPQ,48,'add2',bass,pattern=pattern,gate=.7,velocity=83,octave=1)
                     p.chords=[c];data=p.to_dict();data['chords'][0]['quality']='add9'
+                    for key in ('recognition_disabled','marked'):data['chords'][0].pop(key,None)
                     expected=events(c)
                     q=Project.from_dict(data);actual=q.chords[0]
                     self.assertEqual(actual.quality,'add2');self.assertEqual(events(actual),expected)
@@ -62,15 +63,16 @@ class QualityTests(unittest.TestCase):
     def test_legacy_explicit_notes_preserve_registers_and_metadata(self):
         p=Project();p.chords=[Chord(240,PPQ,notes=[Note(0,200,62,87,event_id='shared')],custom_rhythm=True)]
         data=p.to_dict();data['chords'][0]['quality']='add9'
+        for key in ('recognition_disabled','marked'):data['chords'][0].pop(key,None)
         q=Project.from_dict(data)
         self.assertEqual(q.chords[0].notes,p.chords[0].notes)
         self.assertTrue(q.chords[0].custom_rhythm)
 
     def test_saved_quality_order_and_recipes_migrate(self):
         set_quality_order(['m7','add9','add2','mM7'])
-        self.assertEqual([q for q,_ in quality_items()][:3],['m7','add2','mM7'])
-        self.assertEqual(make_preset('Iadd9 V7')['sequence'],'Iadd2 V7')
-        self.assertEqual(resolve('Iadd9',0).quality,'add2')
+        self.assertEqual([q for q,_ in quality_items()][:4],['m7','add9','add2','mM7'])
+        self.assertEqual(make_preset('Iadd9 V7')['sequence'],'Iadd9 V7')
+        self.assertEqual(resolve('Iadd9',0).quality,'add9')
         set_language('en');labels=dict(quality_items())
         self.assertIn('Minor major seventh',labels['mM7']);self.assertIn('Added second',labels['add2'])
 
@@ -137,12 +139,15 @@ class ApplicationTests(unittest.TestCase):
             self.w.edit_chord(c.id,c.start)
 
     def test_confirmed_options_follow_different_chords_cancel_and_restart(self):
-        opts=dict(quality='mM7',pattern='quarters',gate=70,velocity=82)
-        def accept(d):d.apply_options(opts);return QDialog.DialogCode.Accepted
+        opts=dict(quality='mM7',pattern='quarters',gate=70)
+        def accept(d):
+            d.apply_options(dict(opts,velocity=82));self.assertEqual(d.velocity.value(),72)
+            d.velocity.setValue(82);return QDialog.DialogCode.Accepted
         self.edit(0,accept);self.assertEqual(self.w.chord_edit_options,opts)
         target=copy.deepcopy(self.w.project.chords[1]);before=self.w.project.to_dict();history=len(self.w.undo_history)
         def cancel(d):
             self.assertEqual(d.options(),opts)
+            self.assertEqual(d.velocity.value(),72)
             self.assertEqual((d.value().start,d.value().duration),(target.start,target.duration))
             d.quality.setCurrentIndex(d.quality.findData('add2'));return QDialog.DialogCode.Rejected
         self.edit(1,cancel)

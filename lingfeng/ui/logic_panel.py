@@ -61,7 +61,7 @@ class LogicPanel(QWidget):
             name=tr(names['jump_coda' if item['kind']=='coda' else item['kind']]);text=tr('{0} · 第 {1}–{2} 小节',name,item['start']+1,item['end'])
             if item not in valid:text+=' · '+tr('音乐已变更，压缩暂停')
             entry(text,('compressions',i))
-        for i,item in enumerate(p.notation.get('symbols',[])):entry(tr('{0} · 第 {1} 小节',tr(names[item['kind']]),p.measure_at(item['start'])+1),('symbols',i))
+        for i,item in enumerate(p.notation.get('symbols',[])):entry(tr('{0} · 第 {1} 小节',tr(names.get(item['kind'],'连音弧')),p.measure_at(item['start'])+1),('symbols',i))
         self.refreshing=False;self.show_details()
 
     def show_details(self):

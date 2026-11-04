@@ -122,9 +122,9 @@ class AdvisoryFontTests(unittest.TestCase):
             self.assertAlmostEqual(b[0].height()/a[0].height(),60/24)
 
     def test_sparse_pitch_separation_relaxes_advice_without_requiring_duration_cells(self):
-        # Both sources end at the beat; later tied fragments must not become
-        # an unrelated bottleneck for the intended close-onset comparison.
-        sparse=song([[1]*4],'spatial');sparse.notes=[Note(0,80,60),Note(80,880,84)]
+        # Keep the second source a single representable value, followed by a
+        # rest; tied fragments would add an unrelated same-pitch bottleneck.
+        sparse=song([[1]*4],'spatial');sparse.notes=[Note(0,80,60),Note(80,640,84)]
         dense=copy.deepcopy(sparse);dense.notes[1].pitch=60
         sparse.notation['row_gap']=dense.notation['row_gap']=18
         a,b=ScoreLayout(sparse),ScoreLayout(dense)

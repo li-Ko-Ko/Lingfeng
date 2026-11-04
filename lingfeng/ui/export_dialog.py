@@ -25,7 +25,9 @@ class ExportDialog(QDialog):
         box=QVBoxLayout(self);self.form=QFormLayout();box.addLayout(self.form)
         if format=='pdf':
             from lingfeng.engraving.notation import ScoreLayout
-            pages=ScoreLayout(self.project).pages
+            from lingfeng.music.onsets import is_monophonic
+            self.unsupported_traditional=self.project.notation['style']=='traditional' and not is_monophonic(self.project.notes)
+            pages=1 if self.unsupported_traditional else ScoreLayout(self.project).pages
             self.first=QSpinBox();self.first.setRange(1,pages)
             self.last=QSpinBox();self.last.setRange(1,pages);self.last.setValue(pages)
             self.form.addRow(tr('起始页'),self.first);self.form.addRow(tr('结束页'),self.last)
@@ -62,6 +64,9 @@ class ExportDialog(QDialog):
         self.status=QLabel();self.status.setWordWrap(True);box.addWidget(self.status)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel);box.addWidget(self.buttons)
         self.export_button=self.buttons.addButton(tr('导出…'),QDialogButtonBox.ButtonRole.AcceptRole)
+        if format=='pdf' and self.unsupported_traditional:
+            self.info.setText(tr('传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。'))
+            self.first.setEnabled(False);self.last.setEnabled(False);self.export_button.setEnabled(False)
         self.buttons.accepted.connect(self.export);self.buttons.rejected.connect(self.reject)
         self.update_options()
 
@@ -81,6 +86,7 @@ class ExportDialog(QDialog):
 
     def options(self):
         if self.format=='pdf':
+            if self.unsupported_traditional:raise ValueError(tr('传统简谱仅支持单声部旋律，请使用立体简谱或立体简谱 · 紧凑。'))
             if self.first.value()>self.last.value():raise ValueError(tr('谱面页码范围无效。'))
             return dict(pages=range(self.first.value()-1,self.last.value()))
         start,end=bounds(self.project,self.range.currentData(),self.first.value(),self.last.value(),self.owner.loop_range,self.section.currentIndex())

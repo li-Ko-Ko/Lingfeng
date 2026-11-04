@@ -52,7 +52,7 @@ from lingfeng.ui.sound_dialog import SoundSettingsDialog
 
 class NoteDialog(QDialog):
     def __init__(self,note,project,parent=None):
-        super().__init__(parent);self.setWindowTitle(tr('音符属性'));self.note=copy.deepcopy(note)
+        super().__init__(parent);self.setWindowTitle(tr('编辑音符'));self.note=copy.deepcopy(note)
         form=QFormLayout(self);form.setSpacing(14)
         self.pitch=QComboBox()
         for p in range(21,109):self.pitch.addItem(pitch_name(p),p)
@@ -62,7 +62,7 @@ class NoteDialog(QDialog):
         if self.duration.findData(note.duration)<0:self.duration.addItem(tr('自定义 · {0:g} 个四分音符', note.duration / PPQ),note.duration)
         self.duration.setCurrentIndex(self.duration.findData(note.duration));form.addRow(tr('时值'),self.duration)
         self.start=QSpinBox();self.start.setRange(0,project.end-1);self.start.setValue(note.start);self.start.setSingleStep(60);form.addRow(tr('起点（tick）'),self.start)
-        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(note.velocity);form.addRow(tr('力度'),self.velocity)
+        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(note.velocity);self.velocity.setToolTip(tr('MIDI 力度（1–127）'));form.addRow(tr('力度'),self.velocity)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
         self.setMinimumWidth(320)
@@ -72,16 +72,18 @@ class NoteDialog(QDialog):
         return self.note
 
 
-CHORD_EDIT_OPTION_KEYS=('quality','pattern','gate','velocity')
+CHORD_EDIT_OPTION_KEYS=('quality','pattern','gate')
 
-def chord_edit_defaults(options):
-    """Drop retired root/bass/octave/regeneration memory on upgrade."""
-    return {key:options[key] for key in CHORD_EDIT_OPTION_KEYS if key in options} if isinstance(options,dict) else {}
+def chord_edit_defaults(options,legacy=False):
+    """Keep musical editing choices; velocity always uses its saved default."""
+    result={key:options[key] for key in CHORD_EDIT_OPTION_KEYS if key in options} if isinstance(options,dict) else {}
+    if legacy and result.get('quality')=='add9':result['quality']='add2'
+    return result
 
 
 class ChordDialog(QDialog):
     def __init__(self,chord,project,parent=None,defaults=None):
-        super().__init__(parent);self.setWindowTitle(tr('和弦'));self.chord=copy.deepcopy(chord);self.project=project
+        super().__init__(parent);self.setWindowTitle(tr('编辑和弦'));self.chord=copy.deepcopy(chord);self.project=project
         form=QFormLayout(self);form.setSpacing(14)
         self.root=QComboBox()
         for pc,name in enumerate(SHARP):self.root.addItem(name,pc)
@@ -89,7 +91,11 @@ class ChordDialog(QDialog):
         self.root.setCurrentIndex(self.root.findData(tonic));form.addRow(tr('根音'),self.root)
         self.quality=QComboBox()
         from lingfeng.music.chord_operations import quality_items
-        for code,label in quality_items():self.quality.addItem(label,code)
+        from lingfeng.platform.chord_preferences import quick_qualities
+        labels=dict(quality_items())
+        codes=quick_qualities()
+        if chord.quality not in codes:codes=codes+[chord.quality]
+        for code in codes:self.quality.addItem(labels[code],code)
         self.quality.setCurrentIndex(self.quality.findData(chord.quality));form.addRow(tr('和弦性质'),self.quality)
         self.bass=QComboBox()
         for pc,name in enumerate(SHARP):self.bass.addItem(name,pc)
@@ -104,7 +110,8 @@ class ChordDialog(QDialog):
         rhythm=analyze_performed(chord,project);self.recognized_rhythm=rhythm
         self.pattern.setCurrentIndex(self.pattern.findData(rhythm.pattern if rhythm else chord.pattern));form.addRow(tr('节奏型'),self.pattern)
         self.gate=QSpinBox();self.gate.setRange(5,100);self.gate.setValue(round((rhythm.gate if rhythm else chord.gate)*100));self.gate.setSuffix('%');form.addRow(tr('发音长度'),self.gate)
-        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(chord.velocity);form.addRow(tr('默认力度'),self.velocity)
+        from lingfeng.platform.chord_preferences import default_velocity
+        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(default_velocity('harmony'));self.velocity.setToolTip(tr('MIDI 力度（1–127）'));form.addRow(tr('和弦默认力度'),self.velocity)
         self.octave=QSpinBox();self.octave.setRange(-1,2);self.octave.setValue(chord.octave);form.addRow(tr('伴奏八度'),self.octave)
         self.regenerate=QCheckBox(tr('重新生成和弦'));self.regenerate.setChecked(True);form.addRow(self.regenerate)
         self.pattern.currentIndexChanged.connect(lambda:self.regenerate.setChecked(True))
@@ -112,7 +119,7 @@ class ChordDialog(QDialog):
         self.start.valueChanged.connect(self.update_patterns);self.update_patterns()
         if chord.notes is not None:
             label=QLabel(tr('默认重新生成完整和弦音。取消勾选且根音、性质不变时，保留实际音符编辑。'));label.setWordWrap(True);form.addRow(label)
-        self.preview=QLabel();form.addRow(tr('级数 / 和弦名称'),self.preview)
+        self.preview=QLabel();form.addRow(tr('罗马数字 / 和弦名称'),self.preview)
         self.root.currentIndexChanged.connect(self.follow_root)
         for combo in [self.root,self.quality,self.bass,self.start,self.duration]:
             signal=combo.currentIndexChanged if isinstance(combo,QComboBox) else combo.valueChanged
@@ -123,9 +130,9 @@ class ChordDialog(QDialog):
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);form.addRow(buttons);self.setMinimumWidth(340)
 
     def options(self):
-        """Only these four confirmed controls carry over to the next edit."""
+        """Velocity is a preference, independent of the last editing operation."""
         return dict(quality=self.quality.currentData(),pattern=self.pattern.currentData(),
-                    gate=self.gate.value(),velocity=self.velocity.value())
+                    gate=self.gate.value())
 
     def follow_root(self):
         self.bass.setCurrentIndex(self.bass.findData(self.root.currentData()))
@@ -137,7 +144,6 @@ class ChordDialog(QDialog):
             control=getattr(self,name);value=options[name];blocked=control.blockSignals(True)
             try:
                 if isinstance(control,QComboBox):
-                    if name=='quality' and value=='add9':value='add2'
                     index=control.findData(value)
                     if index>=0:control.setCurrentIndex(index)
                 elif isinstance(control,QCheckBox):
@@ -152,12 +158,15 @@ class ChordDialog(QDialog):
         root=self.root.currentData();quality=self.quality.currentData();bass=self.bass.currentData()
         if bass==root:bass=None # Root-position bass keeps the existing project representation.
         rebuild=self.regenerate.isChecked() or (self.recognized_rhythm is not None and chord.recognized and (root!=chord.root%12 or quality!=chord.quality))
-        if not rebuild:
+        from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
+        if not rebuild and not rhythm_recognition_enabled():chord.materialize()
+        if not rebuild and not chord.recognition_disabled:
             if root!=chord.root%12:change_root(chord,root,self.project,regenerate_notes=False)
             if quality!=chord.quality:change_quality(chord,quality,self.project,regenerate_notes=False)
             if bass!=chord.bass:replace_bass(chord,root if bass is None else bass,self.project)
         chord.root=48+root;chord.quality=quality;chord.bass=bass;chord.start=round(self.start.value()*PPQ);chord.duration=round(self.duration.value()*PPQ)
         chord.gate=self.gate.value()/100;chord.velocity=self.velocity.value();chord.octave=self.octave.value();chord.recognized=True
+        chord.recognition_disabled=False;chord.marked=False
         if rebuild:chord.pattern=self.pattern.currentData();chord.notes=None;chord.custom_rhythm=False
         if chord.notes is not None:
             chord.notes=[n for n in chord.notes if n.start<chord.duration]
@@ -182,6 +191,40 @@ class ChordDialog(QDialog):
         tick=round(self.start.value()*PPQ)
         for i in range(self.pattern.count()):self.pattern.model().item(i).setEnabled(supports(self.pattern.itemData(i),self.project,tick))
         if self.regenerate.isChecked() and not supports(self.pattern.currentData(),self.project,tick):self.pattern.setCurrentIndex(0)
+
+
+class ChordMarkerDialog(QDialog):
+    """A display-only symbol editor; its value contains no MIDI parameters."""
+    def __init__(self,chord,project,parent=None):
+        super().__init__(parent);self.setWindowTitle(tr('和弦标记'));self.project=project;self.chord=chord
+        form=QFormLayout(self);form.setSpacing(14)
+        from lingfeng.ui.theme import pitch_class_choices
+        from lingfeng.music.chord_operations import quality_items
+        context=project.context_at(chord.start)
+        self.root=QComboBox();self.bass=QComboBox();self.quality=QComboBox()
+        self.bass.addItem(tr('跟随根音'),None)
+        for label,pc in pitch_class_choices(context.tonic,context.mode):
+            self.root.addItem(label,pc);self.bass.addItem(label,pc)
+        for code,label in quality_items():self.quality.addItem(label,code)
+        self.root.setCurrentIndex(self.root.findData(chord.root%12))
+        self.quality.setCurrentIndex(self.quality.findData(chord.quality))
+        self.bass.setCurrentIndex(self.bass.findData(chord.bass))
+        form.addRow(tr('根音'),self.root);form.addRow(tr('和弦性质'),self.quality);form.addRow(tr('指定低音 / 转位'),self.bass)
+        self.preview=QLabel();self.preview.setWordWrap(True);form.addRow(tr('罗马数字 / 和弦名称'),self.preview)
+        info=QLabel(tr('仅修改罗马数字与字母标识，不改变 MIDI；确认后同时禁用和弦及节奏型识别。取消禁用和弦识别将移除标记并恢复自动识别。'))
+        info.setWordWrap(True);form.addRow(info)
+        for control in (self.root,self.quality,self.bass):control.currentIndexChanged.connect(self.update_preview)
+        self.update_preview()
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);form.addRow(buttons);self.setMinimumWidth(460)
+
+    def value(self):
+        return dict(root=48+self.root.currentData(),quality=self.quality.currentData(),bass=self.bass.currentData())
+
+    def update_preview(self):
+        from lingfeng.music.chord_operations import roman_label, contextual_chord_name
+        symbol=Chord(self.chord.start,self.chord.duration,**self.value())
+        self.preview.setText(roman_label(self.project,symbol)+'   '+contextual_chord_name(self.project,symbol))
 
 
 class ChordPreferenceDialog(QDialog):

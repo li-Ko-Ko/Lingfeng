@@ -18,18 +18,22 @@ def mixed():
 def events(notes):return sorted((n.start,n.duration,n.pitch,n.velocity,n.flat) for n in notes)
 
 class ModelTests(unittest.TestCase):
-    def test_paste_requires_exact_meter_and_whole_destination_range(self):
+    def test_paste_accepts_other_meters_and_crops_at_destination_boundary(self):
         p=mixed();c=Chord(3840,1920);p.chords=[c];clip=ChordClipboard.capture([c],p)
-        self.assertFalse(clip.can_paste(p,0));self.assertTrue(clip.can_paste(p,3840));self.assertFalse(clip.can_paste(p,6000))
+        self.assertTrue(clip.can_paste(p,0));self.assertTrue(clip.can_paste(p,3840));self.assertTrue(clip.can_paste(p,6000))
+        for tick in (0,3840,6000):
+            trial=copy.deepcopy(p);ids=clip.paste(trial,tick);result=next(c for c in trial.chords if c.id in ids)
+            self.assertEqual((result.start,result.end),(tick,min(tick+c.duration,region_at(trial,tick)[1])))
+            trial.validate()
         before=p.to_dict()
-        with self.assertRaises(ValueError):clip.paste(p,0)
+        self.assertEqual(clip.paste(p,-1),set());self.assertEqual(clip.paste(p,p.end),set())
         self.assertEqual(p.to_dict(),before)
         p.measures[0]=Measure(6,8);p.contexts=[Context(0,p.end)]
-        self.assertFalse(clip.can_paste(p,0))
+        self.assertTrue(clip.can_paste(p,0));ids=clip.paste(p,0);self.assertEqual(len(ids),1);p.validate()
 
     def test_clipboard_meter_is_stable_after_source_edits(self):
         p=mixed();c=Chord(0,1920);clip=ChordClipboard.capture([c],p)
-        p.change_meter(0,3,4,True);self.assertFalse(clip.can_paste(p,0))
+        p.change_meter(0,3,4,True);self.assertEqual(clip.meters,((4,4),));self.assertTrue(clip.can_paste(p,0))
         self.assertTrue(clip.can_paste(p,p.starts[2]));clip.paste(p,p.starts[2]);p.validate()
 
     def test_left_and_right_crops_use_full_bar_phase_for_known_patterns(self):
@@ -148,11 +152,14 @@ class InterfaceTests(unittest.TestCase):
             lane.begin_resize();QTest.mouseMove(lane,end);self.assertEqual(before,w.project.to_dict())
         QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end);self.assertEqual(w.project.chords[0].end,2880)
 
-    def test_paste_menu_disabled_for_wrong_meter_and_keyboard_does_not_modify(self):
+    def test_paste_menu_and_keyboard_accept_other_source_meter(self):
         w=self.w;c=w.project.chords[1];self.select({c.id});w.copy_selection();before=w.project.to_dict()
         menu=w.chord_lane.context_menu(QPoint(round(w.chord_lane.x_at(480)),25))
-        action=next(a for a in menu.actions() if a.text()=='在此粘贴和弦');self.assertFalse(action.isEnabled())
-        w.chord_command('paste',0,w.roll);self.assertEqual(before,w.project.to_dict())
+        from tests.menu_helpers import find_action
+        action=find_action(menu,'在此和弦开头覆盖粘贴');self.assertTrue(action.isEnabled())
+        w.chord_command('paste',0,w.roll);self.assertNotEqual(before,w.project.to_dict())
+        self.assertEqual(events(w.project.chord_at(0).render_notes()),[(n.start-c.start,n.duration,n.pitch,n.velocity,n.flat) for n in c.render_notes()])
+        w.undo();self.assertEqual(before,w.project.to_dict())
 
     def test_delete_confirmation_cancel_accept_and_one_undo(self):
         w=self.w;before=w.project.to_dict()

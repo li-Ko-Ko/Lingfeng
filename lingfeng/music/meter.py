@@ -28,7 +28,8 @@ def resize_bounds(project,chord,start,end):
 
 
 def rescan_chord(project,chord):
-    """Re-read actual MIDI after a crop; explicit Custom only locks rhythm."""
+    """Re-read MIDI unless chord recognition is paused; rhythm has its own switch."""
+    if chord.recognition_disabled:return chord
     from lingfeng.music.recognition import recognize, update_symbol
     from lingfeng.music.rhythm import analyze
     pitches=[n.pitch for n in chord.render_notes()]

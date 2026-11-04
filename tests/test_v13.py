@@ -13,6 +13,7 @@ from lingfeng.engraving.notation import ScoreLayout, fragments_for_bar, SYMBOL_P
 from lingfeng.audio.transport import Transport
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.platform.i18n import set_language
+from tests.menu_helpers import walk_actions
 
 APP=QApplication.instance() or QApplication([])
 
@@ -192,7 +193,7 @@ class WindowTests(unittest.TestCase):
         with patch('lingfeng.ui.lyric_panel.LyricsGateDialog.exec') as gate:
             self.assertTrue(w.switch_workspace('score'));gate.assert_not_called()
         self.assertEqual(w.workspace,'score');self.assertTrue(matching_issues(w.project))
-        self.assertEqual(w.score_tabs.count(),3)
+        self.assertEqual(w.score_tabs.count(),0)
 
     def test_lyrics_tab_commit_unique_onsets_undo_and_rap_only_input(self):
         w=self.w;w.switch_workspace('score');w.batch_lyrics();self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
@@ -201,8 +202,9 @@ class WindowTests(unittest.TestCase):
 
     def test_root_quality_inversion_menus_and_preference_controls(self):
         w=self.w;c=Chord(0,3840);w.project.chords=[c];w.refresh();menu=w.chord_lane.context_menu(QPoint(round(w.chord_lane.x_at(240)),20))
-        menus={a.text():a.menu() for a in menu.actions() if a.menu()}
-        self.assertEqual(len(menus['和弦根音'].actions()),12);self.assertEqual(len(menus['和弦性质'].actions()),len(QUALITIES));self.assertEqual(len(menus['替换低音'].actions()),12)
+        menus={a.text():a.menu() for a in walk_actions(menu) if a.menu()}
+        from lingfeng.platform.chord_preferences import quick_qualities
+        self.assertEqual(len(menus['和弦根音'].actions()),12);self.assertEqual(len(menus['和弦性质'].actions()),len(quick_qualities()));self.assertEqual(len(menus['替换低音'].actions()),12)
         from lingfeng.ui.dialogs import ChordPreferenceDialog
         d=ChordPreferenceDialog(w);d.list.setCurrentRow(1);d.move_item(-1);self.assertEqual(d.value()[0],'m');d.close()
 

@@ -120,16 +120,22 @@ class HarmonyWindow(FloatingPane):
         if select:self.roll.selected_chord=cid
         c=self.current();self.candidates.clear()
         if c:
-            self.summary.setText(tr('{0} · 起点 {1:g} · 时长 {2:g}（四分音符） · ', contextual_chord_name(self.owner.project,c), c.start / PPQ, c.duration / PPQ)+rhythm_label(c,self.owner.project))
             if not self.owner.rolls_linked():self.roll.selection=[[c.start,c.end]]
-            for candidate in recognize([n.pitch for n in c.render_notes()],preferred=(c.root%12,c.quality)):
+            for candidate in ([] if c.recognition_disabled else recognize([n.pitch for n in c.render_notes()],preferred=(c.root%12,c.quality))):
                 self.candidates.addItem(candidate.name,candidate)
-            if not self.candidates.count():self.candidates.addItem(tr('未匹配 / 空区间'),None)
+            if not self.candidates.count():self.candidates.addItem(tr('禁用和弦识别') if c.recognition_disabled else tr('未匹配 / 空区间'),None)
             if locate:self.roll.ensure_tick(c.start)
-        else:self.summary.setText(tr('先添加或选中一个和弦区间'))
-        self.summary.setToolTip(self.summary.text())
-        if c:self.summary.setText(tr('{0} · {1:g} 拍',contextual_chord_name(self.owner.project,c),c.duration/PPQ))
+        self.refresh_summary()
         self.roll.refresh()
+
+    def refresh_summary(self):
+        c=self.current()
+        if c:
+            summary=tr('{0} · 起点 {1:g} · 时长 {2:g}（四分音符） · ',contextual_chord_name(self.owner.project,c),c.start/PPQ,c.duration/PPQ).removesuffix(' · ')
+            self.summary.setToolTip(' · '.join(filter(None,(summary,rhythm_label(c,self.owner.project)))))
+            self.summary.setText(tr('{0} · {1:g} 拍',contextual_chord_name(self.owner.project,c),c.duration/PPQ))
+        else:
+            self.summary.setText(tr('先添加或选中一个和弦区间'));self.summary.setToolTip(self.summary.text())
 
     def note_selected(self,nid):
         c=self.owner.project.harmony_owner(nid)
@@ -142,12 +148,12 @@ class HarmonyWindow(FloatingPane):
     def note_properties(self,nid):
         n=next((n for n in self.roll.notes if n.id==nid),None)
         if not n:return
-        dialog=NoteDialog(n,self.owner.project,self);dialog.setWindowTitle(tr('和弦音符'))
+        dialog=NoteDialog(n,self.owner.project,self);dialog.setWindowTitle(tr('编辑和弦音符'))
         if dialog.exec()==QDialog.DialogCode.Accepted:self.change_note(dialog.value())
 
     def choose_candidate(self):
         c=self.current();candidate=self.candidates.currentData()
-        if not c or not candidate:return
+        if not c or c.recognition_disabled or not candidate:return
         cid=c.id
         def op(p):
             chord=next(c for c in p.chords if c.id==cid);chord.materialize()
@@ -159,5 +165,5 @@ class HarmonyWindow(FloatingPane):
         if not c:return
         cid=c.id
         def op(p):
-            chord=next(c for c in p.chords if c.id==cid);chord.notes=[];chord.recognized=False
+            chord=next(c for c in p.chords if c.id==cid);chord.notes=[];chord.recognized=chord.marked
         self.owner.mutate(tr('已清空当前和弦音符，可自由绘制；Ctrl+Z 可撤销'),op)

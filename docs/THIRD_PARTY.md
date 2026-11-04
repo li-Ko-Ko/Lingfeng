@@ -12,7 +12,7 @@ Lingfeng's original code is MIT. Dependencies, synth packs and runtimes retain t
 | PySide6 Essentials / Shiboken6 | 6.9.2 | 本包使用 LGPL-3.0 适用组件；[对应源码](https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.9.2-src/) |
 | Qt Core / Gui / Widgets / Network / Svg 及平台、图像格式插件 | 6.9.2 | LGPL-3.0 及内置第三方条款；[对应源码](https://download.qt.io/archive/qt/6.9/6.9.2/submodules/) |
 | PyInstaller bootloader | 6.20.0 | GPL-2.0 及 bootloader 分发例外；[源码与许可](https://github.com/pyinstaller/pyinstaller/tree/v6.20.0) |
-| PyChord | 1.4.1 | MIT；和弦组成校验与移调；[源码与许可](https://github.com/yuma-m/pychord) |
+| PyChord | 1.4.2 | MIT；和弦性质目录、组成校验与移调；[固定发行](https://pypi.org/project/pychord/1.4.2/)、[源码与许可](https://github.com/yuma-m/pychord) |
 | SoundCard | 0.4.5 | BSD-3-Clause；WASAPI 输出与回录；[源码](https://github.com/bastibe/SoundCard) |
 | lameenc / LAME | 1.8.1 / 3.100 | LGPL-3.0 / LGPL-2.0-or-later；[对应源码、哈希与替换说明](../licenses/audio-source/README.md) |
 | NumPy | 2.2.6 | BSD-3-Clause 及随附 OpenBLAS、GCC Runtime Exception 等条款；[源码](https://github.com/numpy/numpy/tree/v2.2.6) |
@@ -22,6 +22,10 @@ Lingfeng's original code is MIT. Dependencies, synth packs and runtimes retain t
 | Microsoft VC/UCRT | 见实际二进制 | Microsoft 可再分发运行库条款；不是开源组件，不纳入应用 MIT |
 
 各 wheel 的完整许可随包复制。NumPy 的完整 LICENSE.txt 包含其捆绑运行库条款，不能将整套内容统一标为 BSD。Qt 内置 FreeType、HarfBuzz、libpng、libjpeg-turbo、PCRE2、zlib、WebP、TIFF 等组件的许可与 attribution 保留在 `licenses/qt-6.9.2/`。
+
+0.56 的和弦目录通过 PyChord 1.4.2 的公开 `QualityManager.get_qualities()` API 核对了全部 104 个名称（含同义符号），保留原有 21 项的顺序与音程，另包含本应用原有的密集排列 `add2 = 1 2 3 5`，合计 105 项。上游 `add9 = 1 3 5 9` 与 `add2` 分别保存；0.56 以前工程中的旧 `add9` 仍兼容迁移为 `add2`，不会改动显式 MIDI。`music/quality_catalog.py` 保存可重现的静态音程事实，使版本查询与工程模型导入无需先加载外部库。节奏、MIDI 保留、标记与候选排序仍由应用实现。
+
+Version 0.56 checks all 104 upstream names and aliases against PyChord 1.4.2's public quality API, retaining legacy ordering and Lingfeng's separate close-position `add2`, for 105 supported choices. Upstream `add9` keeps its ninth voicing. Older documents retain the legacy `add9` to `add2` migration without rewriting explicit MIDI. A static degree catalogue allows dependency-free model/version imports; rhythm, annotation and candidate ranking remain original application code.
 
 `licenses/qt-6.9.2/manifest.json` 记录从固定上游标签收集的许可、版权、attribution 文件及其 SHA-256。这是许可集合，不表示所有上游模块均被编入。当前包未引入 Qt Charts 等仅 GPL 的 Qt 模块；光栅绘制不分发未使用的 Mesa/LLVM `opengl32sw.dll`。
 

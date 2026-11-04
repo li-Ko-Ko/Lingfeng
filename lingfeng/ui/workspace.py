@@ -114,13 +114,15 @@ class WorkspaceMixin:
         self.logic_panel=LogicPanel(self);self.logic_panel.setParent(body);self.logic_panel.setEnabled(False);self.logic_panel.hide()
         from lingfeng.ui.lyric_panel import LyricsPanel
         self.lyric_panel=LyricsPanel(self);self.score_tabs.addTab(self.lyric_panel,tr('歌词'));box.addWidget(self.score_tabs)
-        self.score_pages=dict(melody=self.score_melody_page,harmony=self.score_harmony_page,lyrics=self.lyric_panel)
-        self.score_labels=dict(melody='旋律卷帘',harmony='和弦卷帘',lyrics='歌词')
-        self.score_panel_state={key:dict(visible=True,floating=False) for key in self.score_pages}
+        from lingfeng.ui.annotation_panel import AnnotationPanel
+        self.annotation_panel=AnnotationPanel(self)
+        self.score_pages=dict(melody=self.score_melody_page,harmony=self.score_harmony_page,lyrics=self.lyric_panel,annotations=self.annotation_panel)
+        self.score_labels=dict(melody='旋律卷帘',harmony='和弦卷帘',lyrics='歌词',annotations='标识')
+        self.score_panel_state={key:dict(visible=False,floating=False) for key in self.score_pages}
         self.score_floats={key:FloatingPane(tr(self.score_labels[key]),self,'score_'+key) for key in self.score_pages}
         self.score_view_actions={}
         for key in self.score_pages:
-            action=QAction(tr(self.score_labels[key]),self);action.setCheckable(True);action.setChecked(True)
+            action=QAction(tr(self.score_labels[key]),self);action.setCheckable(True);action.setChecked(False)
             action.toggled.connect(lambda value,k=key:self.set_score_panel_visible(k,value));self.score_view_actions[key]=action
         self.score_footer=RollVolumeControls(self);box.addWidget(self.score_footer)
         self.score_tools.setMinimumHeight(100)
@@ -155,6 +157,7 @@ class WorkspaceMixin:
             r.chordAudition.connect(self.audition_chord);r.chordAuditionReleased.connect(lambda:self.transport.end_audition(True));r.chordAuditionHeld.connect(self.hold_chord)
             r.viewChanged.connect(self.update_shared_views)
         self.score_view.canvas.selectionChanged.connect(self.logic_panel.refresh)
+        self.score_view.canvas.selectionChanged.connect(self.annotation_panel.refresh)
         self.score_view.canvas.editorRequested.connect(self.open_score_roll)
         self.score_view.navigationRequested.connect(lambda:self.cancel_follow(self.score_view))
         for roll in (self.roll,self.harmony_window.roll):
@@ -560,6 +563,24 @@ class WorkspaceMixin:
     def chord_command(self,command,payload,source=None):
         from lingfeng.music.chord_operations import blank_chord, change_chords, split_chords, merge_chords, move_chords, ChordClipboard
         source=source or self.active_roll()
+        if command=='mark':
+            from PySide6.QtWidgets import QDialog
+            from lingfeng.ui.dialogs import ChordMarkerDialog
+            from lingfeng.music.recognition import set_marker
+            chord=next((c for c in self.project.chords if c.id==payload),None)
+            if chord is None:return
+            parent=source.window();dialog=ChordMarkerDialog(chord,self.project,parent)
+            if dialog.exec()==QDialog.DialogCode.Accepted:
+                value=dialog.value()
+                self.mutate(tr('已标记和弦'),lambda p:set_marker(next(c for c in p.chords if c.id==payload),**value),source=source)
+            self.restore_dialog_origin(parent,source);return
+        if command.startswith('recognition:'):
+            from lingfeng.music.recognition import set_recognition_disabled
+            disabled=command.endswith(':1')
+            def recognition(p):
+                for chord in p.chords:
+                    if chord.id in payload:set_recognition_disabled(chord,disabled,p)
+            self.mutate(tr('已更新和弦识别设置'),recognition,source=source);return
         if command=='progression':self.apply_progression(payload,source);return
         if command=='capture_progression':self.capture_progression(payload);return
         if command=='search_progressions':self.search_progressions(payload,source);return
@@ -581,7 +602,7 @@ class WorkspaceMixin:
             self.status_message(tr('已复制 {0} 个和弦；粘贴时按时间顺序相邻排列。',len(payload)))
         elif command in ('paste','split','merge'):
             if command=='paste' and not self.chord_clipboard:return
-            if command=='paste' and not self.chord_clipboard.can_paste(self.project,payload):self.status_message(tr('粘贴范围必须完整位于匹配的拍号区间内。'));return
+            if command=='paste' and (not self.chord_clipboard.can_paste(self.project,payload) or payload==self.project.end):return
             result=set()
             def edit(p):
                 result.update(self.chord_clipboard.paste(p,payload) if command=='paste' else (split_chords if command=='split' else merge_chords)(p,set(payload)))
@@ -589,11 +610,10 @@ class WorkspaceMixin:
         elif command.startswith('velocity:'):
             value=max(1,min(127,int(command.split(':')[1])))
             def velocity(p):
+                from lingfeng.music.chord_operations import set_chord_velocity
                 for chord in p.chords:
                     if chord.id in payload:
-                        chord.velocity=value
-                        if chord.notes is not None:
-                            for note in chord.notes:note.velocity=value
+                        set_chord_velocity(chord,value)
             self.mutate(tr('已更新和弦力度'),velocity,source=source)
         elif command=='audition':
             if payload:
