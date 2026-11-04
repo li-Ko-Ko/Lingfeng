@@ -6,9 +6,9 @@ Lingfeng is a personally maintained Windows desktop project. Reproducible bug re
 
 ## 1. 开发环境 / Development environment
 
-从全新检出开始执行以下 PowerShell 命令，使用 Windows x64 的 Python 3.13 和独立虚拟环境。当前源码为 0.57；最近生成的发行归档为 0.55，源码版本更新不表示已有同版本便携下载。
+从全新检出开始执行以下 PowerShell 命令，使用 Windows x64 的 Python 3.13 和独立虚拟环境。
 
-Start from a fresh checkout using Windows x64, Python 3.13 and a dedicated virtual environment. The current source is 0.57 and the most recently generated release archive is 0.55. A source version update does not imply a matching portable download.
+Start from a fresh checkout using Windows x64, Python 3.13 and a dedicated virtual environment.
 
 ```powershell
 git clone https://github.com/li-Ko-Ko/Lingfeng.git

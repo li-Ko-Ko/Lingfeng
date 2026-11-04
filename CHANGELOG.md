@@ -6,6 +6,22 @@ Versions with generated release archives only; local work is recorded in `CHANGE
 
 ## 0.5 系列 / 0.5 family
 
+### 0.57 — 段落导航与全局节奏型识别 / Section navigation and global rhythm recognition
+
+日期 / Date: 2026-11-05；基于 / Based on: 0.56.6；GitHub 上一发布版 / Previous GitHub release: 0.55
+
+- 小节右键保留段落标识设置，新增按标识名与所在小节跳转；导航器以无文字边界提示段落起点，保留选区、循环与音乐内容。
+- 设置 → 和弦新增全局节奏型识别开关。关闭时停止自动分析、隐藏和弦轨节奏型，属性、移动、伸缩、分割合并及拍号编辑按实际 MIDI 处理；重新开启沿用各和弦的独立设置。手动指定节奏型与重新生成继续可用。
+- 同时包含 0.56–0.56.6 的完整和弦目录、默认力度、快速性质与右键菜单设置、手动和弦标记、自定义卷帘音域、谱面标识及歌词连音改进。
+- 立体／紧凑简谱支持多声部，传统简谱仅用于单声部；手动标记参与旋律高亮与谱面弦内音圈。歌词自动连音优先于冲突手动弧，保留原标识条目。
+- 复制粘贴保留实际配器、时序、逐音力度与副本独立事件标识；和弦粘贴按目标拍号区间或工程末尾裁切。和弦音符撤销／重做保留当前镜头，移动快捷键固定使用方向键及修饰组合。
+- 精简项目主页并更新中英帮助、工程格式和构建说明。便携 ZIP 包含四组轻量音源、复现源码及第三方许可，附 SHA-256 校验文件。
+- 验证：117 模块／1336 项回归通过，源码和实际 EXE 各 414 项自检通过；独立公开副本完成 53 项针对性回归、干净构建及源码／重建 EXE 各 414 项自检。
+
+Bar menus add jumps to marked measures, and navigators show unlabeled section boundaries. A global rhythm-recognition switch pauses automatic analysis and hides chord-lane patterns while preserving performed MIDI and per-chord settings. Explicit pattern generation remains available.
+
+This release also includes the completed 0.56–0.56.6 chord catalogue, saved editing preferences, manual labels, polyphonic spatial/compact scores, lyric slurs, MIDI-preserving cropped pastes and stable undo views. The portable ZIP includes four lightweight sound packs, reproducible source, license notices and a SHA-256 sidecar. All 1336 regressions and both 414-check acceptance runs passed; an independent public checkout was also rebuilt and verified.
+
 ### 0.55 — 和弦力度菜单与按需分层建议 / Chord velocity menus and opt-in layer suggestions
 
 日期 / Date: 2026-11-02；基于 / Based on: 0.54.3；GitHub 上一发布版 / Previous GitHub release: 0.51

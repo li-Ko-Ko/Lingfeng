@@ -6,15 +6,13 @@
 
 A lightweight Windows app for songwriting and jianpu, with melody, chords, accompaniment and lyrics.
 
-**当前源码 0.57 · Windows x64 · Python 3.13 / PySide6**
+**0.57 · Windows x64 · 便携免安装 / Portable**
 
-**Current source: 0.57 · Windows x64 · Python 3.13 / PySide6**
+[下载 / Download](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
-[下载已发布版本 / Download a published release](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
+下载后完整解压，运行 `Lingfeng.exe`，保留同级的 `_internal/` 和 `synths/` 文件夹。
 
-0.57 是当前源码及本地独立程序版本，最近生成的发行归档为 0.55。本次源码更新未生成 0.57 发行 ZIP；下载版本以 Releases 页面为准。使用便携包时完整解压，运行其中的 `Lingfeng.exe`，保留 `_internal/` 和 `synths/`。
-
-The current source and local standalone version is 0.57; the most recently generated release archive is 0.55. This source update does not include a 0.57 release ZIP. Check Releases for available downloads. Extract a portable package completely, then run `Lingfeng.exe` while keeping `_internal/` and `synths/`.
+Extract the download completely, then run `Lingfeng.exe`. Keep the `_internal/` and `synths/` folders beside it.
 
 独立程序无需安装 Python，附带免费钢琴、电钢琴及 37 个合成音色，大型钢琴与键盘音源可按需下载。
 
@@ -22,13 +20,13 @@ The standalone application needs no Python installation. Free piano, electric pi
 
 ## 主要功能 / Features
 
-- 旋律与和弦钢琴卷帘，支持选择、移动、量化、复制、分割合并及撤销；可停靠或独立悬浮 / Melody and chord piano rolls with editing, quantization, copying, split/join and undo, docked or floating.
-- 伴奏节奏型与和弦进行库；全局“设置 → 和弦 → 节奏型识别”可暂停全部自动节奏分析并隐藏和弦轨节奏型，保留实际 MIDI 和各和弦的独立开关 / Accompaniment patterns and progression library; Settings → Chords → Rhythm recognition pauses automatic analysis and hides lane patterns while retaining performed MIDI and per-chord settings.
-- 小节右键设置段落标识或按已有标识跳转；导航器仅显示段落边界，不显示标识文字 / Assign sections or jump to marked bars from bar menus; navigators show section boundaries without section text.
-- 旋律与和弦默认力度、常用力度及快速和弦性质可保存；和弦默认力度统一全部声部，卷帘逐音编辑可保留不同力度 / Saved note/chord defaults, velocity presets and quick chord qualities; chord velocity applies to every voice while individual note edits can retain different dynamics.
-- 手动和弦标记同步旋律卷帘高亮及谱面弦内音圈，保留实际 MIDI；复制粘贴保留实际配器、时序与逐音力度 / Manual chord labels guide melody highlights and score chord-tone circles without changing MIDI; copies preserve performed voicing, timing and note velocities.
-- 立体／紧凑简谱支持多声部，传统简谱用于单声部；歌词、Rap、连音弧与排版共用屏幕和 PDF 呈现 / Spatial and compact jianpu support polyphony, traditional jianpu uses monophony, with lyrics, rap, slurs and shared screen/PDF engraving.
-- MIDI 导入，PDF、MIDI、MP3 导出；工程保存为 `.lfs`，支持中英界面与浅深主题 / MIDI import; PDF, MIDI and MP3 export; `.lfs` projects, Chinese/English UI and light/dark themes.
+- 旋律与和弦钢琴卷帘，支持量化、复制、分割合并、撤销及独立悬浮 / Melody and chord piano rolls with quantization, copying, split/join, undo and floating windows.
+- 伴奏节奏型与和弦进行库；设置中可全局开关节奏型识别 / Accompaniment patterns and progression library, with a global rhythm-recognition switch.
+- 按段落标识跳转小节，导航器显示无文字段落边界 / Jump to marked sections; navigators show section boundaries without text.
+- 可保存旋律／和弦默认力度、常用力度及快速和弦性质 / Saved note/chord velocity defaults, velocity presets and quick chord qualities.
+- 手动和弦标记同步卷帘高亮及谱面圈音；复制粘贴保留实际配器、时序与力度 / Manual chord labels guide highlights and score circles; copies preserve performed voicing, timing and dynamics.
+- 立体／紧凑简谱支持多声部，传统简谱用于单声部；支持歌词、Rap 与连音弧 / Spatial and compact polyphonic jianpu, traditional monophonic jianpu, lyrics, rap and slurs.
+- MIDI 导入，PDF、MIDI、MP3 导出；`.lfs` 工程、中英界面及浅深主题 / MIDI import; PDF, MIDI and MP3 export; `.lfs` projects, Chinese/English UI and light/dark themes.
 
 ## 精选截图 / Featured
 
@@ -43,31 +41,19 @@ The standalone application needs no Python installation. Free piano, electric pi
   </tr>
 </table>
 
-## 从源码运行与构建 / Run and build from source
+## 从源码运行 / Run from source
 
-在 Windows x64 安装 Python 3.13 和 Git 后，使用 PowerShell 执行。固定直接依赖版本的 `requirements-build.txt` 同时包含运行与构建所需包。
+需要 Windows x64 和 Python 3.13。在仓库根目录使用 PowerShell 执行：
 
-On Windows x64 with Python 3.13 and Git installed, run these PowerShell commands. `requirements-build.txt` pins the direct runtime and build dependencies.
+Requires Windows x64 and Python 3.13. Run these PowerShell commands from the repository root:
 
 ```powershell
-git clone https://github.com/li-Ko-Ko/Lingfeng.git
-Set-Location Lingfeng
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 .\.venv\Scripts\python.exe main.py
 ```
 
-生成本地独立程序：
-
-Build the local standalone application:
-
-```powershell
-.\build.ps1 -Python '.\.venv\Scripts\python.exe'
-```
-
-当前输出为 `dist/0.57/Lingfeng/Lingfeng.exe`。默认构建只更新独立程序文件夹，不生成发行 ZIP 或校验文件。仓库保留应用源码、构建脚本、验证用例、示例、四组随附音源及其重建输入和许可；无需本机构建目录或个人设置。依赖安装需联网，安装后的随附音源可离线使用。完整环境、验证及音源重建步骤见 [CONTRIBUTING](CONTRIBUTING.md)。
-
-The current output is `dist/0.57/Lingfeng/Lingfeng.exe`. The default build updates the standalone folder without creating a release ZIP or checksum. The repository includes application source, build scripts, regression tests, examples and four bundled sound packs with rebuild inputs and licenses. Local build folders and personal settings are unnecessary. Dependency installation needs network access; installed bundled sounds work offline. See [CONTRIBUTING](CONTRIBUTING.md) for environment, validation and sound rebuild steps.
+构建、测试及音源重建见 [CONTRIBUTING / Build, test and sound rebuild instructions](CONTRIBUTING.md)。
 
 ## 文档 / Documentation
 
