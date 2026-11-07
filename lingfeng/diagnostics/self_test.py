@@ -24,8 +24,8 @@ def self_test(folder):
     folder=Path(folder).resolve();folder.mkdir(parents=True,exist_ok=True)
     app=QApplication.instance() or QApplication([]);app.setStyle('Fusion');app.setStyleSheet(STYLE)
     app.setApplicationName('Lingfeng')
-    p=demo_project();p.volumes={'melody':84,'chords':68}
-    p.audio['melody']['program']=5
+    p=demo_project();p.volumes={'melody':84,'chords':68,'instrument':84}
+    p.audio['melody']=dict(device='synth:piano-electric',program=5)
     c=p.chords[2];c.start+=480;c.duration-=480;c.pattern='up'
     p.validate();p.save(folder/'test.lfs');q=Project.load(folder/'test.lfs')
     assert q.to_dict()==p.to_dict()
@@ -34,7 +34,6 @@ def self_test(folder):
     assert recognize([52,55,60])[0].name=='C/E'
     window=MainWindow(q);window.save_preferences=lambda:None
     assert window.roll.row_height==window.harmony_window.roll.row_height==20
-    assert Project().audio['melody']['program']==1
     assert window.length.currentData()==window.harmony_window.length.currentData()==-1
     assert window.roll.previous_duration is None and window.roll.note_duration(0)==240
     assert not window.visibility_actions['harmony'].isChecked();window.show();app.processEvents();window.roll.center_pitch(60)
@@ -106,7 +105,10 @@ def self_test(folder):
     window.melody_window.setFloating(True);window.harmony_window.setFloating(True);app.processEvents()
     assert window.roll.lane.isVisible() and window.harmony_window.top_lane.isVisible()
     assert window.melody_sync.isVisible() and window.melody_float.kind==window.harmony_window.float_button.kind=='dock'
+    assert {item[0] for item in window.navigator.segments()}=={0}
+    window.navigator.set_visible_tracks(['vocal','instrument','chords'])
     assert {item[0] for item in window.navigator.segments()}=={0,1}
+    window.navigator.set_visible_tracks(window.navigator_tracks)
     window.play_anchor=480;window.playhead=2000;window.replay();assert window.playhead==480 and not window.transport.playing and window.roll.anchor_tick is None
     window.melody_window.setFloating(False);window.harmony_window.setFloating(False)
     window.switch_workspace('score');window.open_score_roll('chords',0);app.processEvents()
@@ -326,11 +328,14 @@ def self_test(folder):
     probe.notes=[Note(0,480,60)];probe.chords.append(Chord(3840,3840));window.replace_project(probe)
     r=window.roll;r.selected_ids={probe.notes[0].id};r.refresh();lane=window.chord_lane
     menu=lane.context_menu(QPoint(round(lane.x_at(480)),25));assert not r.selected_ids and r.selected_chords=={c.id}
-    single=[a.text() for a in menu.actions()];lane.selection_event({x.id for x in probe.chords});menu=lane.context_menu(QPoint(round(lane.x_at(480)),25))
+    assert hasattr(menu,'recognition_names_menu')
+    single=[a.text() for a in menu.actions() if a.menu() is not menu.recognition_names_menu]
+    lane.selection_event({x.id for x in probe.chords});menu=lane.context_menu(QPoint(round(lane.x_at(480)),25))
     assert [a.text() for a in menu.actions()]==single and not menu.root_menu.isEnabled()
     r.selected_ids={probe.notes[0].id};r.refresh();assert not r.selected_chords
-    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==8
+    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==9
     assert timeline.section_action.text()==tr('段落标识') and timeline.section_jump_action.text()==tr('跳转小节')
+    assert timeline.section_selection_action.text()==tr('选中此段落')
     window.switch_workspace('score');window.show_score_panel('logic');head=window.playhead
     window.open_score_roll('chords',3840);app.processEvents();assert window.score_tabs.currentWidget() is window.score_harmony_page and window.playhead==head
     window.audition_chord(probe.chords[1].id);assert window.transport.audition_notes[3]==probe.chords[1].pitches
@@ -435,8 +440,12 @@ def self_test(folder):
     assert all(a.isEnabled() and not a.isCheckable() for a in menu.inversion_menu.actions())
     menu.inversion_menu.actions()[4].trigger();assert window.project.chords[0].bass==2
     menu.bass_menu.actions()[1].trigger();assert window.project.chords[0].bass==1
-    window.melody_hide.activated.emit();assert not window.visibility_actions['melody'].isChecked()
-    window.visibility_actions['melody'].setChecked(True);window.harmony_window.hide_button.activated.emit();assert not window.visibility_actions['harmony'].isChecked()
+    track=window.roll.melody_track
+    window.melody_hide.activated.emit()
+    assert not window.melody_view_actions[track].isChecked() and window.melody_view_actions[1-track].isChecked()
+    assert window.melody_tabs.isHidden() and window.melody_window.isVisible()
+    window.melody_view_actions[track].setChecked(True)
+    window.harmony_window.hide_button.activated.emit();assert not window.visibility_actions['harmony'].isChecked()
     from lingfeng.ui.dialogs import MarkerDialog
     dialog=MarkerDialog(window.project,1,window,True);dialog.count.setValue(3);assert dialog.count.value()==3;dialog.close()
     original=window.project.end;window.project.insert_measures(1,3);assert window.project.end==original+11520;window.refresh()
@@ -597,7 +606,7 @@ def self_test(folder):
     import soundcard  # Loads the packaged WASAPI CFFI header, without recording.
     probe=Project();probe.fill_chord_gaps();assert len(probe.chords)==8 and not probe.harmony_notes()
     probe.measures[0].section='verse';probe.measures[2].section='verse'
-    assert probe.sections()[:2]==[('Verse',0,2),('Verse',2,8)] and bounds(probe,'section',section=0)==(0,7680)
+    assert probe.sections()[:2]==[('verse',0,2),('verse',2,8)] and bounds(probe,'section',section=0)==(0,7680)
     probe.overwrite_harmony(Note(3000,6000,60,85));assert [(n.start,n.duration) for n in probe.harmony_notes()]==[(3000,6000)]
     probe.save(folder/'continuous.lfs');assert [(n.start,n.duration) for n in Project.load(folder/'continuous.lfs').harmony_notes()]==[(3000,6000)]
     split_at_position(probe,3400);assert [(n.start,n.duration) for n in probe.harmony_notes()]==[(3000,400),(3400,5600)]
@@ -606,7 +615,7 @@ def self_test(folder):
     # This acceptance check verifies STK's export credits even when new
     # projects prefer the separately bundled sampled piano pack.
     from lingfeng.audio.soundbanks import DEFAULT_DEVICE
-    probe.audio={role:dict(device=DEFAULT_DEVICE,program=program) for role,program in (('melody',1),('chords',0))}
+    probe.audio={role:dict(device=DEFAULT_DEVICE,program=program) for role,program in (('melody',1),('chords',0),('instrument',1))}
     export_mp3(probe,folder/'offline.mp3',end=960);assert (folder/'offline.mp3').stat().st_size>10000
     export_midi(probe,folder/'range.mid','chords',960,1920)
     window.replace_project(probe)
@@ -636,7 +645,7 @@ def self_test(folder):
     assert analyze(unknown,probe) is None and analyze_performed(unknown,probe) is None and rhythm_label(unknown,probe)==tr('未知节奏型')
     hint=chord_details(probe,Chord(0,3840,53,'maj7'),compact=True)
     assert all(item in hint for item in ('1: F','3: A','5: C','7: E')) and 'F4' not in hint
-    assert Measure(section='VERSE').section=='Verse'
+    assert Measure(section='VERSE').section=='verse'
     r=window.harmony_window.roll;window.switch_workspace('compose');window.visibility_actions['harmony'].setChecked(True);window.harmony_window.setFloating(True);window.harmony_window.activateWindow();r.setFocus();app.processEvents()
     parent,origin=window.edit_dialog_origin();assert parent is window.harmony_window and origin is r
     # 0.36: View controls the main page; navigation retains existing floats.
@@ -690,7 +699,7 @@ def self_test(folder):
     assert [min(n.pitch for n in c.render_notes())%12 for c in target.chords if c.id in result_ids]==[4,9]
     from lingfeng.music.model import Measure
     probe=Project();probe.measures[0]=Measure(section='chorus');probe.measures[2]=Measure(section='CHORUS')
-    assert Project.from_dict(probe.to_dict()).sections()==[('Chorus',0,2),('Chorus',2,8)]
+    assert Project.from_dict(probe.to_dict()).sections()==[('chorus',0,2),('chorus',2,8)]
     for quality,pcs in [('mM7',{0,3,7,11}),('add2',{0,2,4,7})]:
         c=Chord(0,PPQ,48,quality);probe.chords=[c]
         assert c.pcs==pcs and any(x.quality==quality and x.root==0 for x in recognize(c.pitches))
@@ -786,19 +795,26 @@ def self_test(folder):
     dialog.reject();dialog.deleteLater()
     credits=(folder/'offline.mp3.licenses.txt').read_text('utf-8')
     assert 'STK' in credits and 'Perry R. Cook' in credits and 'Source:' in credits
-    assert len(pack(DEFAULT_DEVICE)['presets'])==15
+    assert len(pack(DEFAULT_DEVICE)['presets'])==16
     # 0.44: shipped packs, GM labels and tonicized recipes in the actual runtime.
     from lingfeng.audio.soundbanks import installed_packs, rescan
     from lingfeng.audio.gm_instruments import NAMES
     from lingfeng.ui.progression_dialogs import CaptureProgressionDialog
     from lingfeng.music.progressions import search_recipe
     rescan();shipped=[pack('synth:'+ident) for ident in ('stk-essentials','stk-colors','stk-acoustic')]
-    assert sum(len(p['presets']) for p in shipped)==37 and len(NAMES)==128
+    assert sum(len(p['presets']) for p in shipped)==38 and len(NAMES)==128
     for info in shipped:
         for item in info['presets']:
             engine=SynthEngine('synth:'+info['id']);engine.send(0xc0,item['program']);engine.send(0x90,60,85)
             data=engine.render(8192);assert np.isfinite(data).all() and abs(data).max()>1e-5 and abs(data).max()<.951
             engine.send(0x80,60);engine.render(8192);assert not engine.render(512).any();engine.close()
+    engine=SynthEngine(channel_devices={1:'synth:stk-essentials'},offline=True)
+    try:
+        engine.send(0xc1,49)
+        for pitch in (48,55,64):engine.send(0x91,pitch,88)
+        strings=engine.render(16384)
+        assert np.isfinite(strings).all() and .001<abs(strings[-4096:]).max()<.95
+    finally:engine.close()
     probe=Project();probe.chords=[Chord(i*3840,3840,r,q) for i,(r,q) in enumerate([(55,'m'),(48,''),(53,'')])]
     ids={c.id for c in probe.chords};dialog=CaptureProgressionDialog(probe,ids)
     assert dialog.value()['sequence']=='v I IV';dialog.tonic.setCurrentIndex(5)
@@ -915,7 +931,7 @@ def self_test(folder):
     probe=Project();probe.notes=[Note(i*480,480,60+i,80) for i in range(8)]
     probe.notation.update(style='traditional',font_size=12,font_layout_version=45)
     original_midi=midi_events(probe);window.replace_project(probe);window.show_score_panel('lyrics')
-    panel=window.lyric_panel;panel.start.setValue(1);panel.count.setValue(1);panel.text.setPlainText('/x{我是一个rapper}/s唱')
+    panel=window.lyric_panel;panel.start.setValue(1);panel.count.setValue(1);panel.text.setPlainText(r'\x{我是一个rapper}*唱')
     assert panel.check();panel.commit();assert len(lyric_events(window.project))==7
     assert midi_events(window.project)==original_midi
     for style in ('traditional','spatial','compact'):
@@ -939,21 +955,21 @@ def self_test(folder):
     probe.notes=[n for n in probe.notes if n.pitch!=60];original_midi=midi_events(probe)
     window.replace_project(probe);window.show_score_panel('lyrics');panel=window.lyric_panel
     window.score_view.canvas.selected_bars={0,1};panel.use_selection()
-    assert panel.text.toPlainText()=='长/s/x{音}\n新词' and panel.check()
+    assert panel.text.toPlainText()=='长*\\x{音}\n新词' and panel.check()
     assert [panel.rhythm.topLevelItem(i).text(3) for i in range(2)]==['3/3','2/2']
-    panel.count.setValue(1);assert panel.text.toPlainText()=='长/s/x{音}'
+    panel.count.setValue(1);assert panel.text.toPlainText()==r'长*\x{音}'
     outside=[e for e in lyric_events(window.project) if e['tick']>=3840]
     panel.text.setPlainText('改/s/x{音}');panel.commit()
     assert [e for e in lyric_events(window.project) if e['tick']>=3840]==outside
     assert midi_events(window.project)==original_midi
-    window.undo();assert panel.text.toPlainText()=='长/s/x{音}'
-    window.redo();assert panel.text.toPlainText()=='改/s/x{音}'
+    window.undo();assert panel.text.toPlainText()==r'长*\x{音}'
+    window.redo();assert panel.text.toPlainText()==r'改*\x{音}'
     window.score_view.canvas.selected_bars={0,1};panel.use_selection();app.processEvents()
     window.grab().save(str(folder/'lyric-range-autofill.png'))
     # 0.49.2: valid example labels, mixed text and tightly fitted symbols.
     from lingfeng.music.model import SECTIONS, Measure
     from lingfeng.engraving.lyrics import range_source, tokenize
-    assert [(i,m.section) for i,m in enumerate(demo_project().measures) if m.section]==[(0,'Verse'),(8,'Chorus')]
+    assert [(i,m.section) for i,m in enumerate(demo_project().measures) if m.section]==[(0,'verse'),(8,'chorus')]
     assert all(not m.section or m.section in SECTIONS for m in demo_project().measures)
     mixed="我love你，I'm ready一起sing"
     assert len(tokenize(mixed))==8
@@ -987,9 +1003,9 @@ def self_test(folder):
     example_root=application_root()
     probe=Project.load(example_root/'examples/lingfeng-rap.lfs');original_midi=midi_events(probe)
     window.replace_project(probe);window.show_score_panel('lyrics');panel=window.lyric_panel
-    assert panel.text.toPlainText().startswith('先唱旋律，/s/s跟上') and panel.check()
+    assert panel.text.toPlainText().startswith('先唱旋律，**跟上') and panel.check()
     panel.count.setValue(4)
-    expected='先唱旋律，/s/s跟上\n/x{我们跟着节奏走吧\nLet us rap in English now/s/s}\n回到旋律，唱完这句。'
+    expected='先唱旋律，**跟上\n\\x{我们跟着节奏走吧\nLet us rap in English now**}\n回到旋律，唱完这句。'
     assert panel.text.toPlainText()==expected and panel.check()
     panel.commit();assert panel.text.toPlainText()==expected and midi_events(window.project)==original_midi
     assert len(tokenize('我，爱。你,hello world!/s/s'))==7
@@ -1029,8 +1045,8 @@ def self_test(folder):
         painter=QPainter(image);layout.draw(painter,0);painter.end()
         assert [(a,b,k) for a,b,k,_ in layout.melisma_paths if b<3840]==[(0,480,'continuous'),(480,960,'continuous')]
         assert export_midi(window.project,None)==plain_midi
-    window.undo();assert panel.text.toPlainText()=='我/s/s'
-    window.redo();assert panel.text.toPlainText()=='我/-/-'
+    window.undo();assert panel.text.toPlainText()=='我**'
+    window.redo();assert panel.text.toPlainText()=='我__'
     window.replace_project(probe);window.batch_lyrics();panel.count.setValue(4);assert panel.check()
     app.processEvents();window.grab().save(str(folder/'melisma-example-editor.png'))
     for style in ('traditional','spatial','compact'):
@@ -1322,28 +1338,38 @@ def self_test(folder):
         assert midi_events(same_music)==original_events
     layered=copy.deepcopy(beat_song);layered.notes=[Note(0,PPQ,60),Note(0,PPQ,64)]
     assert len(set(ScoreLayout(layered).systems[0].voices.values()))==2
-    # The installed acceptance path exercises all actual sample mappings and
-    # their native runtime rather than substituting the legacy STK piano.
-    small=pack('synth:piano-small');piano_programs=available_programs('synth:piano-small')
-    assert small['engine']=='sfz' and set(piano_programs)=={0,1,2,4,5,6} and len(small['presets'])==6
-    fresh=Project();assert fresh.audio=={'melody':dict(device='synth:piano-small',program=1),'chords':dict(device='synth:piano-small',program=0)}
-    piano_peaks={};engine=SynthEngine('synth:piano-small',offline=True)
-    try:
-        for program in piano_programs:
-            engine.stop();engine.send(0xc0,program);engine.send(0x90,60,96);data=engine.render(16384)
-            peak=float(abs(data).max());assert np.isfinite(data).all() and 1e-5<peak<=.950001
-            piano_peaks[str(program)]=peak
-            engine.stop();assert not engine.render(512).any()
-    finally:engine.close()
+    # Exercise every bundled piano preset with its actual sample engine.
+    electric=pack('synth:piano-electric')
+    fresh=Project()
+    assert fresh.audio=={role:dict(device='synth:ydp-grand',program=0) for role in ('melody','chords','instrument')}
+    piano_peaks={}
+    for device,renderer,programs in (('synth:piano-electric','sfz',{2,5,6}),('synth:ydp-grand','sf2',{0})):
+        assert pack(device)['engine']==renderer and set(available_programs(device))==programs
+        engine=SynthEngine(device,offline=True)
+        try:
+            for program in sorted(programs):
+                engine.send(0xc0,program);engine.send(0x90,60,96);data=engine.render(16384)
+                peak=float(abs(data).max());assert np.isfinite(data).all() and 1e-5<peak<=.950001
+                piano_peaks[f'{device}:{program}']=peak
+                engine.stop();assert not engine.render(512).any()
+        finally:engine.close()
     from lingfeng.audio.piano_catalog import DOWNLOADS
     from lingfeng.ui.sound_library import SoundLibraryDialog
     assert DOWNLOADS
     grand=next(entry for entry in DOWNLOADS if entry['id']=='piano-grand')
     assert grand['sha256']=='92cca7681e487976932cc9f143333ac5f4cac5c6a24fb377853a1077a15aa0fc'
     assert grand['archive_bytes']==190560219 and '/8432465f1fea83016635836c9850ac2b6398ffd3' in grand['url']
-    assert grand['manifest']['sha256']==small['sha256']
+    assert grand['manifest']['sha256']==electric['sha256']
     from urllib.parse import urlsplit
     import lingfeng.audio.soundbanks as banks
+    measured={}
+    if getattr(sys,'frozen',False):
+        from lingfeng.audio.calibration import calibrate_pack
+        measured=calibrate_pack(Path(electric['path']),electric)
+        assert set(measured)=={'2','5','6'}
+        for program,db in measured.items():
+            shipped=banks.preset_calibration_db(int(program),'synth:piano-electric')
+            assert shipped is not None and abs(db-shipped)<=.3
     assert len({entry['id'] for entry in DOWNLOADS})==len(DOWNLOADS)
     for entry in DOWNLOADS:
         assets=entry.get('assets') or [entry]
@@ -1354,7 +1380,7 @@ def self_test(folder):
             assert address.scheme=='https' and address.hostname and not address.hostname.endswith('.invalid')
             assert len(digest)==64 and all(c in '0123456789abcdef' for c in digest) and 0<asset['archive_bytes']<=1024**3
         assert entry['manifest']['id']==entry['id']
-        banks._validate(entry['manifest'],Path(small['path']),verify_files=False)
+        banks._validate(entry['manifest'],Path(electric['path']),verify_files=False)
         assert all(entry.get(key) for key in ('name','name_en','description','description_en'))
     language_before=window.language
     for language in ('zh','en'):
@@ -1365,7 +1391,7 @@ def self_test(folder):
         assert dialog.description.text()==grand['description_en' if language=='en' else 'description']
         assert 'CC-BY-3.0' in dialog.license.text() and dialog.source_url().startswith('https://')
         assert '181.7 MiB'==dialog.size.text()
-        dialog.installed.emit(str(Path(small['path'])));assert received==[str(Path(small['path']))]
+        dialog.installed.emit(str(Path(electric['path'])));assert received==[str(Path(electric['path']))]
         dialog.grab().save(str(folder/f'v52-sound-library-{language}.png'));dialog.close();dialog.deleteLater()
     window.change_language(language_before,False)
     # Exercise the actual modal loading UI with a delayed, cancellable local
@@ -1409,15 +1435,18 @@ def self_test(folder):
         else:raise AssertionError('Audio loading cancellation was ignored')
     assert cancelled==[True] and cancel_ui==[True]
     app.processEvents()
-    # Polyphonic melodies can be scored; only traditional notation is unavailable.
+    # Polyphonic melodies can be scored; traditional notation stays selectable
+    # and reports incompatible selected tracks without changing the document.
     from lingfeng.music.onsets import group_onsets,overlap_conflicts
     window.switch_workspace('compose');blocking=Project();blocking.notes=[Note(0,961,60),Note(960,960,64)]
     window.replace_project(blocking);notes_before=copy.deepcopy(window.project.notes);events_before=midi_events(window.project)
     assert window.switch_workspace('score') and window.workspace=='score'
     traditional=window.score_style.findData('traditional')
-    assert not window.score_style.model().item(traditional).isEnabled()
+    assert window.score_style.model().item(traditional).isEnabled()
     before=copy.deepcopy(window.project.to_dict());history=len(window.undo_history)
-    window.set_notation('style','traditional')
+    with patch('lingfeng.ui.score_compatibility_dialog.show_traditional_compatibility') as compatibility_report:
+        window.set_notation('style','traditional')
+        compatibility_report.assert_called_once_with(window,window.project)
     assert window.project.to_dict()==before and len(window.undo_history)==history
     for style in ('spatial','compact'):
         window.set_notation('style',style)
@@ -1430,7 +1459,7 @@ def self_test(folder):
     window.set_notation('style','traditional')
     assert window.project.notation['style']=='traditional' and window.score_view.canvas.project.notes[0].duration==960
     window.set_notation('style','spatial')
-    assert window.switch_workspace('score') and set(window.score_pages)=={'melody','harmony','lyrics','annotations'}
+    assert window.switch_workspace('score') and set(window.score_pages)=={'melody','harmony','lyrics','instrument_lyrics','annotations'}
     # 0.56: creation preferences and display-only symbols in the installed app.
     from lingfeng.platform import chord_preferences
     from lingfeng.music.recognition import set_marker, set_recognition_disabled
@@ -1635,7 +1664,7 @@ def self_test(folder):
     assert analyze(probe.chords[0],probe).pattern=='quarters'
     window.replace_project(probe);menu=window.main_roll.timeline_menu(QPoint(KEY_W+1,10))
     assert [a.data() for a in menu.section_jump_menu.actions()]==[0,3,5]
-    assert [a.text() for a in menu.section_jump_menu.actions()]==[tr('{0} · 第 {1} 小节',name,bar+1) for name,bar in [('Intro',0),('Verse',3),('Verse',5)]]
+    assert [a.text() for a in menu.section_jump_menu.actions()]==[tr('{0} · 第 {1} 小节',name,bar+1) for name,bar in [('intro',0),('verse',3),('verse',5)]]
     selection=copy.deepcopy(window.main_roll.selection);snapshot=probe.to_dict()
     menu.section_jump_menu.actions()[1].trigger()
     assert window.playhead==probe.starts[3] and window.main_roll.selection==selection and probe.to_dict()==snapshot
@@ -1658,10 +1687,70 @@ def self_test(folder):
     assert r.horizontalScrollBar().value()==240 and r.verticalScrollBar().value()==420
     assert r.layer_allocations==allocations and window.navigator.cache_renders==overview_renders
     assert window.project.to_dict()==snapshot and r.selection==selection
+    # 0.58: the instrument roll can contribute pitches across chord boundaries.
+    probe=Project(measures=[Measure(),Measure()],contexts=[Context(0,7680)],
+                  chords=[Chord(0,1920),Chord(1920,1920),Chord(3840,3840)],
+                  instrument_notes=[Note(1440,2400,71)])
+    window.replace_project(probe);setting=window.instrument_recognition_action;original=setting.isChecked()
+    setting.setChecked(False);snapshot=window.project.to_dict();actual=midi_events(window.project)
+    assert [c.name for c in window.project.chords]==['C','C','C']
+    setting.setChecked(True)
+    assert [c.name for c in window.project.chords]==['Cmaj7','Cmaj7','C']
+    assert window.project.to_dict()==snapshot and midi_events(window.project)==actual
+    lane=window.chord_lane;lane.editor.selected_chords={c.id for c in window.project.chords[:2]}
+    menu=lane.context_menu(QPoint(round(lane.x_at(100)),18),preserve=True)
+    choices={a.data():a for a in menu.recognition_source_menu.actions()}
+    assert choices['default'].isChecked()
+    choices['0'].trigger()
+    assert [c.name for c in window.project.chords]==['C','C','C'] and midi_events(window.project)==actual
+    window.undo();assert [c.name for c in window.project.chords]==['Cmaj7','Cmaj7','C']
+    setting.setChecked(original);menu.deleteLater()
+    from lingfeng.music.abc_export import write_abc
+    from lingfeng.music.abc_import import read_abc, project_from_abc
+    probe=Project(notes=[Note(0,480,60)],instrument_notes=[Note(480,480,67)],chords=[Chord(0,3840)])
+    probe.measures[0].section='Link'
+    abc_path=folder/'v581-sheetsage2.abc'
+    write_abc(probe,abc_path,sheetsage=True)
+    abc=read_abc(abc_path);restored=project_from_abc(abc,**abc.defaults())
+    assert restored.measures[0].section=='interlude'
+    for track in (0,1):
+        assert [(n.start,n.duration,n.pitch) for n in restored.melody_notes(track)]==[(n.start,n.duration,n.pitch) for n in probe.melody_notes(track)]
+    window.replace_project(restored)
+    assert [window.melody_tabs.tabText(track) for track in (0,1)]==[restored.melody_name(track) for track in (0,1)]
+    assert set(window.audio_footer.sliders)=={'melody','instrument','chords'}
+    from lingfeng.ui.section_progression_dialog import section_progressions
+    before_insert=window.project.to_dict()
+    assert window.insert_import(probe,1,False,tr('已插入 ABC'))
+    assert len(window.project.measures)==len(restored.measures)+len(probe.measures)
+    assert window.playhead==window.project.starts[1]
+    assert [row.first_bar for row in section_progressions(window.project)][:2]==[0,1]
+    window.undo();assert window.project.to_dict()==before_insert
+    window.switch_melody_track(0)
+    source_note=window.project.notes[0]
+    window.roll.selected_ids={source_note.id}
+    window.note_command(window.roll,'cut')
+    assert not window.project.notes
+    window.switch_melody_track(1)
+    window.note_command(window.roll,'paste',1440)
+    assert [(note.start,note.pitch) for note in window.roll.selected_notes()]==[(1440,source_note.pitch)]
+    from lingfeng.music.musicxml_export import export_musicxml
+    from lingfeng.music.musicxml_import import read_musicxml, project_from_musicxml
+    xml_path=folder/'v59-roundtrip.mxl'
+    export_musicxml(probe,xml_path)
+    xml=read_musicxml(xml_path)
+    restored=project_from_musicxml(xml,xml.default_mapping())
+    for actual, expected in ((restored.notes,probe.notes),(restored.instrument_notes,probe.instrument_notes),
+                             (restored.harmony_notes(),probe.harmony_notes())):
+        assert sorted((n.start,n.duration,n.pitch) for n in actual)==sorted((n.start,n.duration,n.pitch) for n in expected)
+    assert [(c.start,c.end,c.name) for c in restored.chords if not c.empty]==[(c.start,c.end,c.name) for c in probe.chords]
     window.dirty=False;window.close();app.processEvents()
     report={'status':'passed','version':__version__,'frozen':bool(getattr(sys,'frozen',False)),
             'python':sys.version.split()[0],'pdf_pages':pages,'melody_notes':len(q.notes),
             'harmony_notes':len(q.harmony_notes()),'checks':['project v5 roundtrip','patterns','recognition','MIDI','sound program','DAW bundle','PDF','two windows','8-bar score','compact folded editor','polyphony','marker inheritance','measure insertion','dark theme','icon transport','zero system gap','automatic top-aligned score','return to beginning','English catalog','720px layout','docked chord editor','retrograde clipboard','continuous ties','Lingfeng About and help','LFS','repeat compression preserves MIDI','local systems','custom palettes','chord structure frames','v0.11 workspace','both rolls floating','shared score tabs','two-region repeat validation','stacked lyrics below grid','empty chord insertion','single bottom scrollbar','shared roll settings','three score tabs','actual bass tooltip','symbol hit delete restores score','symbol-first validation','multiple structure drafts','dual-track overview','unified float/dock controls','melody sync option','paused replay stays paused','cached score playback','continuous barline time mapping','independent duration and snap','exclusive dotted and triplet','previous note duration','MIDI track import','disjoint bar broadcast','suppressed duplicate markers','binary 64th triplet split','triplet-aware import quantization','structure preserves MIDI coverage','MIDI input device enumeration','synthetic keyboard recording','independent lyrics roundtrip','orphan lyric x rendering','WinMM callback decoding'],'midi_input_devices':devices(),'physical_keyboard_tested':False}
+    report['checks']+=['SheetSage2 dual melody ABC roundtrip','Link and interlude section mapping','three track mixer controls']
+    report['checks']+=['ABC bar insertion and undo','section progression previews follow inserted sections']
+    report['checks']+=['cut and paste across melody tabs selects the new note']
+    report['checks']+=['compressed MusicXML retains all three tracks and chord symbols','light chord strings synthesize a sustained chord']
     report['checks']=[item.replace('symbol hit delete restores score','saved structure remains visible with editor disabled').replace('symbol-first validation','retained structure backend validation').replace('multiple structure drafts','inactive structure editor preserves latent state').replace('orphan lyric x rendering','explicit rap x rendering') for item in report['checks']]+['one menu font and baseline','unique lyric onset validation','dotted rap duration','lyrics tab confirmation','centered unpitched rhythm','optional scale lines','glyphs fit time slots','root and inversion shortcuts','19 chord qualities','seek preserves playback state']
     report['checks']+=['edit undo redo preserve playback worker','composition has no lyric property','collapsed automatic score area','exact pitch spacing','uniform note rest rap fonts','bar onset template','bounded lyric coverage','rap range overflow validation']
     report['checks']+=['pointer anchored zoom to 2048','navigation outside the visible cursor disables following','independent pitch gap and font','propagate key and full meter']
@@ -1699,8 +1788,8 @@ def self_test(folder):
     report['checks']+=['complete shortcut settings registry','conflict confirm transfers and cancel restores','cleared binding persists without default resurrection','menus show current and alternate shortcuts']
     report['checks']=[item.replace('20 chord qualities','21 chord qualities') for item in report['checks']]
     report['checks']+=['last duration is default with temporary grid fallback','duration follows actual edits and undo','7b5 components and preferred recognition','7b5 progression and project roundtrip']
-    report['checks']+=['default 20 pixel piano keys','default GM 02 bright piano','variable measure widths and linear spatial time grid','score-wide proportional symbol fitting','15 native synthesis presets and stop','synth pack settings and project roundtrip','actual export attribution sidecar','synth licenses and complete preset catalog']
-    report['checks']+=['37 bundled calibrated synthesis presets and releases','128 distinct GM instrument names','chromatic tonic selector anchored at first chord','capture tonicization preserves Roman-only recipes','apply selected tonic and preview agree','literal chord query resolves against selected tonic']
+    report['checks']+=['default 20 pixel piano keys','variable measure widths and linear spatial time grid','score-wide proportional symbol fitting','16 native synthesis presets and stop','synth pack settings and project roundtrip','actual export attribution sidecar','synth licenses and complete preset catalog']
+    report['checks']+=['38 bundled calibrated synthesis presets and releases','128 distinct GM instrument names','chromatic tonic selector anchored at first chord','capture tonicization preserves Roman-only recipes','apply selected tonic and preview agree','literal chord query resolves against selected tonic']
     report['checks']+=['modal degree labels shared by root bass and three progression dialogs','scale tones retain modal accidentals in both preferences','chord editor starts with key tonic and matching bass','only quality pattern and gate remembered; velocity uses saved default','root changes move bass without reverse coupling','root bass stores no redundant slash']
     report['checks']+=['traditional notes and dashes use equal columns within beats','forced-row font ratio follows global size','unmerged systems share global font','forced-row original measure count roundtrip']
     report['checks']+=['traditional meter-beat whitespace','deferred score layout in compose','music snapshot refresh at score entry','engraving controls preserve frozen music','page zoom and width fit','measure visibility on both axes','viewport-sized bitmap cache','PDF snapshot with current MIDI export']
@@ -1708,7 +1797,7 @@ def self_test(folder):
     report['checks']+=['traditional rows reach both page margins','each traditional beat owns its visible columns without trailing beat space','visible advisory font limit can be exceeded','requested font matches project snapshot and rendering','font choices preserve measures per line']
     report['checks']+=['traditional row-wide common cells and uniform gaps across barlines','forced rows scale beat gaps with saved font ratio','traditional beat spacing preserves music and PDF']
     report['checks']+=['traditional short legato tails retain one melody row while true polyphony retains lanes','cross-beat syncopations and dotted values split into tied source fragments','aligned three-beat sustains retain extension dashes without augmentation dots','beat spelling preserves source notes lyric bindings and MIDI bytes on screen and PDF']
-    report['checks']+=['polyphonic melody enters spatial and compact Score without rewriting music','polyphonic spatial and compact scores export PDF','traditional style is disabled for polyphony and returns after correction','corrected adjacent source notes retain all four active editor panels','retired structure editor is inactive while pure compatibility APIs preserve stored notation','traditional global numeric cells and barline-side gaps retain the two-to-one gap ratio']
+    report['checks']+=['polyphonic melody enters spatial and compact Score without rewriting music','polyphonic spatial and compact scores export PDF','traditional style remains selectable and reports incompatible selected melody tracks','corrected adjacent source notes retain all four active editor panels','retired structure editor is inactive while pure compatibility APIs preserve stored notation','traditional global numeric cells and barline-side gaps retain the two-to-one gap ratio']
     report['checks']+=['numeric recommended font fills the heaviest row while sparse rows keep the same digit cells','spatial and compact cross-beat ties and integral sustain dashes preserve source music']
     report['checks']+=['traditional integer recommendation and circle-outline unit reserve remain consistent','actual traditional first second and third rhythm strokes align below the row lowest octave dots']
     report['checks']+=['symbol-budget recommended font fits A4 without whole-row transforms or MIDI changes','cross-beat triplets render one source-group bracket label in all three score styles']
@@ -1723,7 +1812,7 @@ def self_test(folder):
     report['checks']+=['live score title author undo redo and PDF','section command retained on timeline only','visible cursor browsing keeps follow without snapping back','offscreen browsing cancels shared follow','score selected chord tab follows main cursor','score floating roll follows independently']
     report['checks']+=['floating score melody exposes its timeline sync menu']
     report['checks']+=['score scrollbar owns camera while held','score measure leaving viewport cancels even with visible roll cursor','score browsing does not snap back after release','roll browsing ignores visible score and does not pin cursor at left edge']
-    report['checks']+=['busiest-beat 4:2 measure widths in all engraving styles','density layout preserves MIDI bytes and global glyph safety','six bundled acoustic and electric sample presets','sample piano presets render finite audible bounded audio and stop','fresh projects prefer bundled acoustic piano','optional grand download pinned by revision size and SHA-256','bilingual sound-library UI and installed signal without network']
+    report['checks']+=['busiest-beat 4:2 measure widths in all engraving styles','density layout preserves MIDI bytes and global glyph safety','bundled Greg Sullivan and YDP presets render finite audible bounded audio and stop','fresh projects prefer YDP Grand Piano','optional grand download pinned by revision size and SHA-256','bilingual sound-library UI and installed signal without network']
     report['checks']+=['2/4 and 4/4 equal-density beats allocate 1:2 measure widths in all styles','mixed-meter width correction preserves MIDI bytes','every optional catalog entry has pinned HTTPS metadata and a valid manifest without requiring bank installation','sound loading paints and processes GUI events before returning the ready router','sound loading cancel reaches its worker and waits for cleanup']
     report['checks']+=['independent melody and chord default velocities','chord edit velocity ignores last edit','selected ordered quick qualities','complete chord quality and degree preview','manual Roman and letter annotations preserve MIDI performance','disabled chords bypass chord and pattern recognition','resuming recognition removes annotations','recognition and annotation project roundtrip']
     report['checks']+=['first Score entry closes every tab','Score tabs preserve later visibility','cross-region adjacent notes merge as one sustained event','note velocity menus use saved defaults','unified generated chord velocity','common chord velocity project roundtrip','harmony creation follows chord velocity with blank-region default fallback','custom inclusive piano-roll pitch range preserves MIDI','annotation panel adds one multi-note slur without MIDI edits','manual slur renders in score','score annotation undo redo and persistent panel state']
@@ -1733,10 +1822,14 @@ def self_test(folder):
     report['checks']=[item.replace('three score tabs','four score panels initially hidden') for item in report['checks']]
     report['checks']+=['marked chords resume recognition via actual QAction trigger','recognition checkbox preserves MIDI and supports undo redo','marked chord appearance differs from automatic chords','copy paste split and merge stay at menu root','context-menu ordering and optional advanced grouping','context-menu settings offer all retained blocks','alternating bass labels consistently use 底五交替']
     report['piano_sample_peaks']=piano_peaks
+    if measured:
+        report['greg_loudness_compensation_db']=measured
+        report['checks'].append('frozen calibration worker reproduces bundled Greg preset gain')
     report['checks']+=['full-bar bass and full denominator-beat upper chords','copied actual voicing dynamics and timing are exact','copied cross-region sustains retain independent rearticulations','fixed movement arrows migrate old preferences and leave camera keys blank']
     report['checks']+=['different-meter chord pastes crop at destination boundaries','project-end chord pastes crop or safely do nothing','lyric slurs block conflicting new manual arcs and silently hide existing ones without deleting data']
     report['checks']+=['automatic lyric slurs continue across intervening rest rows in all three score styles']
     report['checks']+=['global rhythm switch bypasses both detectors and cached inferred rebuilds without changing music','reenabling rhythm recognition restores existing inference','section jump menu retains repeated names and exact measure destinations','section navigation preserves music and time selection']
     report['checks']+=['unchanged undo records share storage without changing restored music','middle-pan camera path bypasses MIDI and pitch-range rebuilding','camera frames reuse pixel allocations and overview music','camera navigation preserves music and selections']
+    report['checks']+=['section selection menu is present on the bar ruler','Melody 2 chord recognition respects overlapping ranges and preserves performed MIDI','chord recognition source can be overridden for multiple chords and undone']
     (folder/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     return 0

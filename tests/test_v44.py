@@ -109,9 +109,9 @@ class OwnershipTests(unittest.TestCase):
 class SoundTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):banks.rescan()
-    def test_37_presets_include_six_additional_models_and_tone_settings(self):
+    def test_38_presets_include_six_additional_models_and_tone_settings(self):
         packs=[banks.pack('synth:'+i) for i in ('stk-essentials','stk-colors','stk-acoustic')]
-        self.assertEqual(sum(len(p['presets']) for p in packs),37)
+        self.assertEqual(sum(len(p['presets']) for p in packs),38)
         self.assertTrue(set(range(12,18)).issubset({p['model'] for pack in packs for p in pack['presets']}))
         self.assertTrue(all(200<=p['cutoff_hz']<=16000 for pack in packs for p in pack['presets']))
     def test_sitar_retriggered_chromatic_sequence_has_no_feedback_burst(self):

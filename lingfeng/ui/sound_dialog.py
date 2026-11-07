@@ -2,14 +2,16 @@
 from pathlib import Path
 from PySide6.QtCore import QTimer,QUrl,Qt
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialog,QFormLayout,QComboBox,QLabel,QPushButton,QDialogButtonBox,QPlainTextEdit,QFileDialog,QMessageBox,QHBoxLayout
+from PySide6.QtWidgets import QDialog,QFormLayout,QComboBox,QLabel,QPushButton,QDialogButtonBox,QPlainTextEdit,QFileDialog,QMessageBox,QHBoxLayout,QTabWidget,QWidget,QDoubleSpinBox
+from lingfeng.audio.events import AUDITION_CHANNELS, MAX_SOURCE_GAIN_DB, MIN_SOURCE_GAIN_DB, TRACK_ROLES, complete_track_values, source_gain_db
+from lingfeng.music.model import MELODY_NAMES
 from lingfeng.platform.i18n import tr
 import lingfeng.audio.soundbanks as banks
 
 class SoundSettingsDialog(QDialog):
     def __init__(self,settings,parent=None):
         super().__init__(parent);self.setWindowTitle(tr('音源与音色'));self.setMinimumWidth(540)
-        self.fields={};self.preview_buttons={};self.preview_router=None;self.settings=settings
+        self.fields={};self.gain_fields={};self.calibration_labels={};self.preview_buttons={};self.preview_router=None;self.settings=complete_track_values(settings)
         self.preview_timer=QTimer(self);self.preview_timer.setSingleShot(True);self.preview_timer.timeout.connect(self.stop_preview)
         form=QFormLayout(self);form.setSpacing(12)
         path=QLabel(str(banks.default_root()));path.setWordWrap(True);path.setTextInteractionFlags(path.textInteractionFlags()|Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -22,18 +24,33 @@ class SoundSettingsDialog(QDialog):
         self.directories.setPlaceholderText(tr('额外扫描目录，每行一个；可填音源包文件夹或其上级目录。'))
         self.directories.setPlainText('\n'.join(p for p in banks.registry()['roots'] if Path(p)!=banks.default_root()))
         form.addRow(tr('额外目录'),self.directories)
-        for key,label in [('melody',tr('旋律轨')),('chords',tr('和弦轨'))]:
-            form.addRow(QLabel(label));device=QComboBox();program=QComboBox();self.fields[key]=(device,program)
+        self.track_tabs=QTabWidget();form.addRow(self.track_tabs)
+        self.track_tabs.currentChanged.connect(self.stop_preview)
+        project=getattr(parent,'project',None)
+        melody_labels=[project.melody_name(track) if project else tr(name) for track,name in enumerate(MELODY_NAMES)]
+        for key,label in (('melody',melody_labels[0]),('instrument',melody_labels[1]),('chords',tr('和弦轨'))):
+            page=QWidget();track_form=QFormLayout(page)
+            device=QComboBox();program=QComboBox();self.fields[key]=(device,program)
             device.currentIndexChanged.connect(lambda index,k=key:self.populate(k));device.currentIndexChanged.connect(self.stop_preview)
             program.currentIndexChanged.connect(self.stop_preview)
-            form.addRow(tr('音源'),device);form.addRow(tr('音色'),program)
-            preview=QPushButton(tr('试听音色'));preview.clicked.connect(lambda checked=False,k=key:self.preview(k));form.addRow(preview);self.preview_buttons[key]=preview
+            track_form.addRow(tr('音源'),device);track_form.addRow(tr('音色'),program)
+            calibration=QLabel('—');self.calibration_labels[key]=calibration
+            calibration.setToolTip(tr('按音色测得的自动响度补偿，叠加在下方的轨道音源增益上。'))
+            track_form.addRow(tr('预设响度补偿'),calibration)
+            program.currentIndexChanged.connect(lambda index,k=key:self.update_calibration(k))
+            gain=QDoubleSpinBox();self.gain_fields[key]=gain
+            gain.setDecimals(1);gain.setRange(MIN_SOURCE_GAIN_DB,MAX_SOURCE_GAIN_DB);gain.setSingleStep(.5);gain.setSuffix(' dB')
+            gain.setKeyboardTracking(False)
+            gain.setToolTip(tr('调节合成音源的输出电平，独立于轨道音量（CC7）。适用于播放、试听和离线 MP3 导出。'))
+            gain.valueChanged.connect(self.stop_preview);track_form.addRow(tr('音源增益'),gain)
+            preview=QPushButton(tr('试听音色'));preview.clicked.connect(lambda checked=False,k=key:self.preview(k));track_form.addRow(preview);self.preview_buttons[key]=preview
+            self.track_tabs.addTab(page,label)
         info=QLabel(tr('将完整音源文件夹复制到 synths 后点击重新扫描。扫描结果自动保存，下次启动直接读取。新音源需兼容伶风音源包格式；只复制 VST 插件不能加载。'))
         info.setWordWrap(True);form.addRow(info)
         self.notice=QLabel();self.notice.setWordWrap(True);form.addRow(self.notice)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
-        self.reload(settings)
+        self.reload(self.settings)
 
     def reload(self,settings):
         from lingfeng.audio.routing import midi_devices
@@ -48,6 +65,7 @@ class SoundSettingsDialog(QDialog):
             index=device.findData(wanted)
             if index<0:missing.append(str(wanted))
             device.setCurrentIndex(max(0,index));device.blockSignals(False);self.populate(key,spec['program'])
+            self.gain_fields[key].setValue(source_gain_db(spec) if index>=0 and banks.is_synth_source(wanted) else 0)
             if program.findData(spec['program'])<0:missing.append(str(wanted)+' / '+str(spec['program']+1))
         lines=[tr('已缓存 {0} 个合成音源包、{1} 个预设。',len(packs),sum(len(p['presets']) for p in packs))]
         if missing:lines.append(tr('以下音源或音色不可用：{0}。确认后使用当前所选项。','、'.join(missing)))
@@ -57,18 +75,28 @@ class SoundSettingsDialog(QDialog):
 
     def populate(self,key,initial=None):
         device,combo=self.fields[key];previous=combo.currentData() if initial is None else initial;combo.clear()
-        selected=device.currentData()
-        if banks.is_synth_source(selected):
+        selected=device.currentData();is_synth=banks.is_synth_source(selected);gain=self.gain_fields[key]
+        gain.setEnabled(is_synth)
+        if is_synth:
             from lingfeng.platform.i18n import LANGUAGE
             p=banks.pack(selected)
             for item in p['presets']:
                 number=item['program'];name=item['name_en' if LANGUAGE=='en' else 'name']
                 combo.addItem(f'{number+1:02} · '+name,number)
                 combo.setItemData(combo.count()-1,p['author']+' · '+p['license'],3)
-        elif selected is not None:
-            from lingfeng.audio.gm_instruments import label
-            for number in range(128):combo.addItem(label(number),number)
-        combo.setCurrentIndex(max(0,combo.findData(previous)));self.update_enabled()
+        else:
+            gain.setValue(0)
+            if selected is not None:
+                from lingfeng.audio.gm_instruments import label
+                for number in range(128):combo.addItem(label(number),number)
+        combo.setCurrentIndex(max(0,combo.findData(previous)));self.update_calibration(key);self.update_enabled()
+
+    def update_calibration(self,key):
+        device,program=self.fields[key];source=device.currentData();number=program.currentData()
+        db=banks.preset_calibration_db(number,source) if banks.is_synth_source(source) and number is not None else None
+        label='—'
+        if db is not None:label=f'{db:+.1f} dB' if db else '0.0 dB'
+        self.calibration_labels[key].setText(label)
 
     def update_enabled(self):
         for key,button in self.preview_buttons.items():button.setEnabled(self.fields[key][1].currentData() is not None)
@@ -102,7 +130,14 @@ class SoundSettingsDialog(QDialog):
         if transport:transport.close()
         dialog=SoundLibraryDialog(self);dialog.installed.connect(lambda path:self.scan());dialog.exec()
 
-    def value(self):return {key:dict(device=d.currentData(),program=p.currentData()) for key,(d,p) in self.fields.items()}
+    def value(self):
+        settings={}
+        for key,(device,program) in self.fields.items():
+            selected=device.currentData();gain=self.gain_fields[key].value()
+            spec=dict(device=selected,program=program.currentData())
+            if gain and banks.is_synth_source(selected):spec['gain_db']=gain
+            settings[key]=spec
+        return settings
 
     def accept(self):
         try:banks.save_defaults(self.value())
@@ -122,11 +157,12 @@ class SoundSettingsDialog(QDialog):
             # handle; give the modal audition exclusive use until it closes.
             transport=getattr(self.parent(),'transport',None)
             if transport:transport.close()
-            spec=self.value()[key];settings={role:dict(spec) for role in ('melody','chords')}
+            spec=self.value()[key];settings={role:dict(spec) for role in TRACK_ROLES}
             if banks.is_synth_source(spec['device']) and banks.pack(spec['device']).get('engine') in ('sfz','sf2'):
                 self.preview_router=AudioLoadingDialog.open_router(settings,self)
             else:self.preview_router=MidiRouter(settings)
-            for pitch in ((36,40,43) if spec['program'] in (32,33,43) else (60,64,67)):self.preview_router.send(0x90,pitch,75)
+            for pitch in ((36,40,43) if spec['program'] in (32,33,43) else (60,64,67)):
+                self.preview_router.send(0x90|AUDITION_CHANNELS[key],pitch,75)
             self.preview_timer.start(700)
         except AudioLoadCancelled:self.stop_preview()
         except Exception as exc:self.stop_preview();QMessageBox.warning(self,tr('音源与音色'),str(exc))

@@ -107,12 +107,27 @@ class InterfaceTests(unittest.TestCase):
         w.harmony_window.setFloating(False);self.assertEqual(w.harmony_window.windowType(),Qt.WindowType.Widget)
 
     def test_all_volume_and_mute_controls_sync_without_stopping_and_survive_language(self):
-        w=self.w;w.open_harmony();w.melody_window.setFloating(True);w.harmony_window.setFloating(True)
+        w=self.w;initial={role:w.project.volume_for(role) for role in ('melody','instrument','chords')}
+        w.open_harmony();w.melody_window.setFloating(True);w.harmony_window.setFloating(True)
         a,b=w.melody_volume,w.harmony_window.volume_controls
         a.sliders['melody'].setValue(42);self.assertEqual(w.project.volumes['melody'],42);self.assertEqual(b.sliders['melody'].value(),42)
         b.sliders['chords'].setValue(69);self.assertEqual(w.volume_sliders['chords'].value(),69);self.assertEqual(a.sliders['chords'].value(),69)
+        w.activateWindow();APP.processEvents()
+        field=w.audio_footer.values['instrument'];field.setFocus();field.selectAll()
+        QTest.keyClicks(field,'0');self.assertEqual(w.project.volume_for('instrument'),initial['instrument'])
+        QTest.keyClick(field,Qt.Key.Key_Return)
+        self.assertEqual(w.project.volume_for('instrument'),0)
+        for footer in w.shared_footers():
+            self.assertEqual(footer.values['instrument'].value(),0)
+            self.assertEqual(footer.sliders['instrument'].value(),0)
+        field=w.audio_footer.values['chords'];field.setFocus();field.selectAll();QTest.keyClicks(field,'127')
+        w.audio_footer.values['melody'].setFocus();self.assertEqual(w.project.volume_for('chords'),127)
         a.mutes['chords'].click();self.assertFalse(w.mute_buttons['chords'].isChecked());self.assertFalse(b.mutes['chords'].isChecked())
-        w.commit_volume();w.undo();self.assertEqual(a.sliders['melody'].value(),100);self.assertEqual(b.sliders['chords'].value(),90)
+        w.commit_volume();w.undo()
+        for footer in w.shared_footers():
+            for role,value in initial.items():
+                self.assertEqual(footer.values[role].value(),value)
+                self.assertEqual(footer.sliders[role].value(),value)
         w.change_language('en',False);APP.processEvents();self.assertFalse(w.melody_volume.mutes['chords'].isChecked())
 
     def test_melody_lane_option_independent_and_survives_mount_and_language(self):
@@ -130,6 +145,26 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(w.project.to_dict(),before);self.assertEqual(initial,'both')
         self.assertTrue(theme.ROLL_COLORING['harmony']['match']);w.change_language('en',False)
         self.assertFalse(w.coloring_actions['melody','scale'].isChecked())
+
+    def test_harmony_background_source_is_independent_of_note_colors(self):
+        w=self.w
+        w.project.instrument_notes=[Note(120,720,61)]
+        w.refresh()
+        before=w.project.to_dict()
+        roll=w.harmony_window.roll
+        self.assertFalse(w.melody_tabs.drawBase())
+        self.assertTrue(w.coloring_actions['harmony','vocal'].isChecked())
+        self.assertEqual(roll.category(61,0),'other')
+        w.coloring_actions['harmony','instrument'].trigger()
+        cache={}
+        self.assertEqual(roll.category(61,0,cache),'chord')
+        self.assertEqual(roll.category(61,0,cache,layer='note'),'other')
+        self.assertEqual(roll.category(60,0),'scale')
+        w.coloring_actions['harmony','both'].trigger()
+        self.assertEqual((roll.category(60,0),roll.category(61,0)),('both','chord'))
+        w.change_language('en',False)
+        self.assertTrue(w.coloring_actions['harmony','both'].isChecked())
+        self.assertEqual(w.project.to_dict(),before)
 
     def test_long_note_has_no_gap_at_color_and_bar_boundaries(self):
         w=self.w;r=w.roll;w.project.notes=[Note(960,5760,60)];w.refresh();r.center_pitch(60);r.selection=[];r.selected_note='';r.selected_ids.clear();r.refresh();APP.processEvents()

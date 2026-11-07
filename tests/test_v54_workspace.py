@@ -84,19 +84,19 @@ class ScoreEntryTests(unittest.TestCase):
                 w.project.notation['style']=style;w.refresh()
                 self.assertTrue(w.switch_workspace('score'));self.assertEqual(w.workspace,'score')
                 self.assertEqual(w.score_view.canvas.project.notes,notes)
-                self.assertFalse(w.score_style.model().item(w.score_style.findData('traditional')).isEnabled())
+                self.assertTrue(w.score_style.model().item(w.score_style.findData('traditional')).isEnabled())
                 self.assertEqual(export_midi(w.project,None),midi)
                 w.switch_workspace('compose')
         self.assertFalse(self.dialogs)
 
-    def test_simultaneous_attacks_and_humanized_legato_only_disable_traditional(self):
+    def test_simultaneous_attacks_and_humanized_legato_keep_traditional_selectable(self):
         for notes in ([Note(0,320,60),Note(240,720,57)],
                       [Note(0,480,60),Note(0,480,64)],
                       [Note(0,480,60),Note(479,480,64)]):
             with self.subTest(notes=[(n.start,n.duration)for n in notes]):
                 self.w.project.notes=notes;self.w.refresh()
                 self.assertTrue(self.w.switch_workspace('score'))
-                self.assertFalse(self.w.score_style.model().item(self.w.score_style.findData('traditional')).isEnabled())
+                self.assertTrue(self.w.score_style.model().item(self.w.score_style.findData('traditional')).isEnabled())
                 self.w.switch_workspace('compose')
         self.assertFalse(self.dialogs)
 
@@ -141,7 +141,7 @@ class ScoreEntryTests(unittest.TestCase):
 
     def test_structure_entry_points_stay_hidden_after_language_and_stale_panel_state(self):
         w=self.w;w.switch_workspace('score')
-        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics','annotations'});self.assertEqual(w.score_tabs.count(),0)
+        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics','instrument_lyrics','annotations'});self.assertEqual(w.score_tabs.count(),0)
         self.assertFalse(w.logic_panel.isVisible());self.assertFalse(w.logic_panel.isEnabled())
         self.assertIsNone(w.show_score_panel('logic'));w.toggle_score_panel_floating('logic');w.set_score_panel_visible('logic',True)
         w.score_panel_state['logic']=dict(visible=True,floating=True);w.change_language('en',False)

@@ -14,7 +14,7 @@ def set_quality_order(order):
     QUALITY_ORDER[:]=list(dict.fromkeys(q for q in order if isinstance(q,str) and q in QUALITIES))+[q for q in QUALITIES if q not in order]
 
 
-def quality_items():return [(q,({'':'M','maj7':'M7','maj9':'M9'}.get(q,q)+' · '+tr(QUALITY_LABELS[q]))) for q in QUALITY_ORDER]
+def quality_items():return [(q,(q or 'M')+' · '+tr(QUALITY_LABELS[q])) for q in QUALITY_ORDER]
 
 
 def _preserve_compact_notes(chord):
@@ -157,11 +157,12 @@ def roman_label(project,chord,flat=False):
 
 def contextual_chord_name(project,chord,context=None):
     from lingfeng.music.chord_spelling import tone_for
-    if chord.notes==[] and not chord.marked:return 'N.C.'
-    if not chord.recognized:return tr('未识别')
+    if chord.empty:return 'N.C.'
+    symbol=chord.display_symbol
+    if symbol is None:return tr('未识别')
     context=context or project.context_at(chord.start)
-    label=tone_for(chord.root,context,chord).name+chord.quality
-    if chord.bass is not None:label+='/'+tone_for(chord.bass,context,chord).name
+    label=tone_for(symbol.root,context,chord).name+symbol.quality
+    if symbol.bass is not None:label+='/'+tone_for(symbol.bass,context,chord).name
     return label
 
 
@@ -439,6 +440,13 @@ def set_chord_velocity(chord,value):
 
 def change_chords(project, ids, command):
     selected=[c for c in project.chords if c.id in ids]
+    if command.startswith('recognition_source:'):
+        value=command.split(':',1)[1]
+        sources={'default':None,'1':True,'0':False}
+        if value not in sources:raise ValueError(tr('和弦识别参数无效。'))
+        for c in selected:c.include_instrument_in_recognition=sources[value]
+        project.rescan_instrument_recognition(selected)
+        return
     if command.startswith('velocity:'):
         value=int(command.split(':',1)[1])
         for c in selected:set_chord_velocity(c,value)

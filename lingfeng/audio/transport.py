@@ -9,7 +9,9 @@ from PySide6.QtCore import QObject, Signal, QTimer
 from lingfeng.music.model import PPQ
 from lingfeng.audio.midi import event_list
 from lingfeng.audio.playback import ProcessRouter, ProcessRouter as _ProcessRouter
-from lingfeng.audio.events import window_events, silence_channels
+from lingfeng.audio.events import (AUDITION_CHANNELS, DEFAULT_VOLUMES, MONITOR_CHANNELS,
+                                   PLAYBACK_CHANNELS, PREVIEW_CHANNELS, ROUTED_CHANNELS,
+                                   TRACK_ROLES, complete_track_values, silence_channels, source_gain_db, window_events)
 
 
 class Transport(QObject):
@@ -31,7 +33,7 @@ class Transport(QObject):
         self.start_time = 0
         self.seconds_per_tick = 60 / 100 / PPQ
         self.loop = False;self.loop_events=[];self.loop_start=0;self.play_tracks=(True,True)
-        self.volumes = {'melody':100,'chords':90}
+        self.volumes = dict(DEFAULT_VOLUMES)
         from lingfeng.audio.soundbanks import default_audio
         self.settings=default_audio()
         self.finished.connect(self._finished)
@@ -44,12 +46,23 @@ class Transport(QObject):
             self.set_volumes(self.volumes)
 
     def configure(self,settings):
+        settings=complete_track_values(settings)
         if settings==self.settings:return
-        if all(settings[k]['device']==self.settings[k]['device'] for k in ('melody','chords')):
+        previous=complete_track_values(self.settings)
+        if all(settings[k]['device']==previous[k]['device'] for k in TRACK_ROLES):
             try:
                 if self.synth:
-                    for key,channels in [('melody',(0,2,4)),('chords',(1,3,5))]:
-                        for channel in channels:self.synth.send(0xC0|channel,settings[key]['program'])
+                    from lingfeng.audio.soundbanks import is_synth_source
+                    gains={}
+                    for key,channels in ROUTED_CHANNELS.items():
+                        spec=settings[key];old=previous[key];program=spec['program']
+                        if program!=old['program']:
+                            for channel in channels:self.synth.send(0xC0|channel,program)
+                        device=spec['device']
+                        if is_synth_source(device) or device in ('samples','builtin'):
+                            gain=source_gain_db(spec)
+                            if gain!=source_gain_db(old):gains[key]=gain
+                    if gains:self.synth.set_source_gains(gains)
             except Exception:
                 self.close();raise
             self.settings=copy.deepcopy(settings)
@@ -58,22 +71,22 @@ class Transport(QObject):
         self.settings=copy.deepcopy(settings)
 
     def set_volumes(self, volumes):
-        self.volumes=dict(volumes)
+        self.volumes=dict(complete_track_values(volumes))
         if self.synth:
             signature=(id(self.synth),tuple(sorted(self.volumes.items())))
             if signature==getattr(self,'_volume_signature',None):return
-            for channel,key in [(0,'melody'),(1,'chords'),(2,'melody'),(3,'chords'),(4,'melody'),(5,'chords')]:
-                self.synth.send(0xB0|channel,7,self.volumes[key])
+            for key,channels in ROUTED_CHANNELS.items():
+                for channel in channels:self.synth.send(0xB0|channel,7,self.volumes[key])
             self._volume_signature=signature
 
-    def audition(self,pitches,harmony=False,allow_during_playback=False):
-        self.begin_audition(pitches,harmony,allow_during_playback)
-        self.end_audition(harmony)
+    def audition(self,pitches,harmony=False,allow_during_playback=False,*,role=None):
+        self.begin_audition(pitches,harmony,allow_during_playback,role=role)
+        self.end_audition(harmony,role=role)
 
-    def begin_audition(self,pitches,harmony=False,allow_during_playback=True):
+    def begin_audition(self,pitches,harmony=False,allow_during_playback=True,*,role=None):
         if self.playing and not allow_during_playback:return
         try:
-            self.cancel_auditions();self.open();ch=3 if harmony else 2
+            self.cancel_auditions();self.open();ch=AUDITION_CHANNELS[role or ('chords' if harmony else 'melody')]
             self.audition_generations[ch]=self.audition_generations.get(ch,0)+1
             self._audition_off(ch,self.audition_notes.get(ch,[]))
             self.audition_notes[ch]=sorted(set(pitches))
@@ -82,7 +95,7 @@ class Transport(QObject):
         except Exception as exc:self.error.emit(str(exc))
 
     def cancel_auditions(self):
-        for channel in (2,3):
+        for channel in AUDITION_CHANNELS.values():
             self.audition_generations[channel]=self.audition_generations.get(channel,0)+1
             self._audition_off(channel,self.audition_notes.pop(channel,[]))
         self.audition_holds.clear()
@@ -123,8 +136,8 @@ class Transport(QObject):
         state=self.audition_holds.get(3 if harmony else 2)
         if state and state[2]:state[1]=max(state[1],seconds)
 
-    def end_audition(self,harmony=False,cancel=False):
-        ch=3 if harmony else 2;state=self.audition_holds.get(ch)
+    def end_audition(self,harmony=False,cancel=False,*,role=None):
+        ch=AUDITION_CHANNELS[role or ('chords' if harmony else 'melody')];state=self.audition_holds.get(ch)
         if not state:return
         state[2]=False;generation=self.audition_generations[ch]
         remaining=0 if cancel else max(0,state[1]-(time.monotonic()-state[0]))
@@ -135,13 +148,14 @@ class Transport(QObject):
         else:finish()
 
     def monitor(self,pitch,velocity,harmony=False):
+        role=harmony if isinstance(harmony,str) else ('chords' if harmony else 'melody')
         try:
-            self.open();self.synth.send((0x90 if velocity else 0x80)|(5 if harmony else 4),pitch,velocity)
+            self.open();self.synth.send((0x90 if velocity else 0x80)|MONITOR_CHANNELS[role],pitch,velocity)
         except Exception as exc:self.error.emit(str(exc))
 
     def stop_playback_notes(self):
         if self.synth:
-            silence_channels(self.synth,(0,1))
+            silence_channels(self.synth,PLAYBACK_CHANNELS)
 
     def _audition_off(self, channel, pitches):
         if self.synth:
@@ -299,11 +313,11 @@ class Transport(QObject):
         self.playing = False
         self.stop_playback_notes()
         if not preserve_auditions:
-            for ch in (2,3):
+            for ch in AUDITION_CHANNELS.values():
                 self.audition_generations[ch]=self.audition_generations.get(ch,0)+1
             self.audition_holds.clear();self.audition_notes.clear()
             if self.synth:
-                silence_channels(self.synth,(2,3,4,5))
+                silence_channels(self.synth,PREVIEW_CHANNELS)
 
     def _finished(self):
         if not self.thread or not self.thread.is_alive():

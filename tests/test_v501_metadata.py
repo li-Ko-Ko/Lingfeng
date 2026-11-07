@@ -103,8 +103,8 @@ class ScoreInformationTests(unittest.TestCase):
             try:
                 sections=menu.section_menu
                 self.assertEqual(sections.title(),i18n.tr('段落标识'))
-                next(a for a in sections.actions() if a.text()=='Verse').trigger()
-                self.assertEqual(w.project.measures[0].section,'Verse')
+                next(a for a in sections.actions() if a.text()=='verse').trigger()
+                self.assertEqual(w.project.measures[0].section,'verse')
                 sections.actions()[0].trigger();self.assertEqual(w.project.measures[0].section,'')
             finally:menu.deleteLater()
 

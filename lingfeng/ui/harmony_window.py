@@ -8,7 +8,7 @@ from lingfeng.ui.piano_roll import PianoRoll
 from lingfeng.ui.controls import DurationSelector, GridSelector, RollViewControls, IconButton
 from lingfeng.music.model import PPQ
 from lingfeng.ui.dialogs import NoteDialog
-from lingfeng.music.recognition import recognize
+from lingfeng.music.recognition import candidate_label, chord_candidates
 from lingfeng.music.rhythm import label as rhythm_label
 from lingfeng.music.chord_operations import contextual_chord_name
 from lingfeng.ui.flow_layout import FlowLayout
@@ -94,7 +94,7 @@ class HarmonyWindow(FloatingPane):
         # A delayed geometry event must never move the keyboard during a gesture.
         if self.roll.drag or self.owner.roll.drag:return
         roll=self.owner.roll;left=roll.tick_at(66);right=roll.tick_at(roll.viewport().width())
-        notes=roll.selected_notes() or [n for n in self.owner.project.notes if n.start<right and n.end>left] or self.owner.project.notes
+        notes=roll.selected_notes() or [n for n in roll.notes if n.start<right and n.end>left] or roll.notes
         pitches=sorted({n.pitch for n in notes})
         if pitches:roll.center_pitch(pitches[len(pitches)//2])
         self.roll.center_pitch(self.initial_pitch())
@@ -118,15 +118,23 @@ class HarmonyWindow(FloatingPane):
     def select_chord(self,cid,locate=True,select=True):
         self.current_id=cid
         if select:self.roll.selected_chord=cid
+        key=(self.roll.music_revision,cid)
+        if key==getattr(self,'inspector_key',None):
+            if locate:
+                chord=self.current()
+                if chord:self.roll.ensure_tick(chord.start)
+            self.roll.lane.update()
+            return
+        self.inspector_key=key
         c=self.current();self.candidates.clear()
         if c:
             if not self.owner.rolls_linked():self.roll.selection=[[c.start,c.end]]
-            for candidate in ([] if c.recognition_disabled else recognize([n.pitch for n in c.render_notes()],preferred=(c.root%12,c.quality))):
-                self.candidates.addItem(candidate.name,candidate)
+            for candidate in chord_candidates(c):
+                self.candidates.addItem(candidate_label(self.owner.project,c,candidate),candidate)
             if not self.candidates.count():self.candidates.addItem(tr('禁用和弦识别') if c.recognition_disabled else tr('未匹配 / 空区间'),None)
             if locate:self.roll.ensure_tick(c.start)
         self.refresh_summary()
-        self.roll.refresh()
+        self.roll.refresh_timeline()
 
     def refresh_summary(self):
         c=self.current()
@@ -154,11 +162,7 @@ class HarmonyWindow(FloatingPane):
     def choose_candidate(self):
         c=self.current();candidate=self.candidates.currentData()
         if not c or c.recognition_disabled or not candidate:return
-        cid=c.id
-        def op(p):
-            chord=next(c for c in p.chords if c.id==cid);chord.materialize()
-            chord.root=48+candidate.root;chord.quality=candidate.quality;chord.bass=candidate.bass;chord.recognized=True
-        self.owner.mutate(tr('已采用候选和弦标记；音符保持不变'),op)
+        self.owner.chord_command('recognition_name',(c.id,candidate),self.roll)
 
     def clear_notes(self):
         c=self.current()

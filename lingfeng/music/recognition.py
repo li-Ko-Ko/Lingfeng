@@ -5,7 +5,7 @@ tested against exact interval sets, then candidates are ranked by previous symbo
 and bass position. No guessed label is assigned to an unmatched set.
 See docs/THIRD_PARTY.md for upstream algorithm and license information.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from lingfeng.music.model import QUALITIES, Chord
 
 # Recognition always uses the complete fixed catalogue, independent of quick-menu
@@ -32,6 +32,84 @@ class Candidate:
         interval=0 if self.bass is None else (self.bass-self.root)%12
         tones=[x%12 for x in QUALITIES[self.quality]]
         return tones.index(interval) if interval in tones else None
+
+
+@dataclass(frozen=True)
+class InstrumentAnalysis:
+    pitch_classes: frozenset[int]
+    candidates: tuple[Candidate, ...]
+
+    @property
+    def symbol(self):
+        return self.candidates[0] if self.candidates else None
+
+
+def apply_instrument_recognition(project, chords):
+    """Derive the chord track's display without altering either roll's notes."""
+    from lingfeng.platform.chord_preferences import include_instrument_in_recognition
+
+    inherited = include_instrument_in_recognition()
+    eligible = []
+    for chord in chords:
+        if hasattr(chord, '_instrument_analysis'):
+            del chord._instrument_analysis
+        override = chord.include_instrument_in_recognition
+        if not chord.recognition_disabled and (inherited if override is None else override):
+            eligible.append(chord)
+    if not eligible or not project.instrument_notes:
+        return
+
+    notes = iter(sorted(project.instrument_notes, key=lambda note: note.start))
+    incoming = next(notes, None)
+    sounding = []
+    for chord in sorted(eligible, key=lambda chord: chord.start):
+        sounding = [note for note in sounding if note.end > chord.start]
+        while incoming is not None and incoming.start < chord.end:
+            if incoming.end > chord.start:
+                sounding.append(incoming)
+            incoming = next(notes, None)
+        if not sounding:
+            continue
+
+        performed = {note.pitch for note in chord.render_notes()}
+        pitches = performed | {note.pitch for note in sounding}
+        pitch_classes = frozenset(pitch % 12 for pitch in pitches)
+        if performed and {pitch % 12 for pitch in performed} == pitch_classes:
+            if min(performed) % 12 == min(pitches) % 12:
+                continue
+        preferred = chord.instrument_symbol_preference or (chord.root % 12, chord.quality)
+        chord._instrument_analysis = InstrumentAnalysis(pitch_classes, tuple(recognize(pitches, preferred)))
+
+
+def chord_candidates(chord):
+    """Return exact names from the recognition source currently in use."""
+    if chord.recognition_disabled:
+        return ()
+    analysis = chord.instrument_analysis
+    if analysis is not None:
+        return analysis.candidates
+    return tuple(recognize((note.pitch for note in chord.render_notes()),
+                           preferred=(chord.root % 12, chord.quality)))
+
+
+def candidate_label(project, chord, candidate):
+    from lingfeng.music.chord_operations import contextual_chord_name, roman_label
+
+    preview = replace(chord, root=48+candidate.root, quality=candidate.quality, bass=candidate.bass,
+                      recognized=True, marked=True)
+    return roman_label(project, preview, preview.flat) + ' · ' + contextual_chord_name(project, preview)
+
+
+def choose_chord_candidate(project, chord, candidate):
+    """Adopt an exact recognition name while retaining all performed notes."""
+    if candidate not in chord_candidates(chord):
+        raise ValueError('此和弦名称已不匹配当前识别结果。')
+    if chord.instrument_analysis is not None:
+        chord.instrument_symbol_preference = (candidate.root, candidate.quality)
+        project.rescan_instrument_recognition([chord])
+    else:
+        chord.materialize()
+        update_symbol(chord, (candidate,))
 
 
 def chord_inversion(chord):
@@ -76,10 +154,12 @@ def set_recognition_disabled(chord, disabled, project=None):
         chord.recognized=chord.marked
     else:
         chord.recognition_disabled=False;chord.marked=False
+        chord.instrument_symbol_preference=None
         update_symbol(chord,recognize([n.pitch for n in chord.render_notes()]))
         from lingfeng.music.rhythm import analyze
         match=analyze(chord,project)
         if match:chord.pattern=match.pattern;chord.gate=match.gate
+        if project is not None:project.rescan_instrument_recognition([chord])
     return chord
 
 

@@ -72,7 +72,7 @@ class ModuleSettingsTests(unittest.TestCase):
                 menu = action.menu(); self.assertIsNotNone(menu)
         return action
 
-    def test_all_settings_are_reachable_in_five_modules_in_both_languages(self):
+    def test_all_settings_are_reachable_in_both_languages(self):
         for language in ('zh', 'en'):
             with self.subTest(language=language):
                 window = self.window(language)
@@ -87,7 +87,8 @@ class ModuleSettingsTests(unittest.TestCase):
                 paths = [
                     ('音源与输入', '音源与音色…'), ('音源与输入', 'MIDI 键盘输入…'),
                     ('音符与力度…',), ('和弦', '和弦性质…'), ('和弦', '管理和弦进行…'),
-                    ('和弦', '节奏型识别'),
+                    ('和弦', '节奏型识别'), ('和弦', '和弦识别包含旋律 2'),
+                    ('卷帘显示', '和弦轨高度…'),
                     ('卷帘显示', '显示音符音级数字'),
                     ('界面与操作', '显示底部信息提示'), ('界面与操作', '右键菜单…'),
                     ('界面与操作', '快捷键设置…'),
@@ -98,6 +99,8 @@ class ModuleSettingsTests(unittest.TestCase):
                           for roll, labels in [('旋律卷帘', ('按和弦音染色', '按调内音染色')),
                                                ('和弦卷帘', ('按旋律音染色', '按调内音染色'))]
                           for label in labels]
+                paths += [('卷帘显示', '卷帘染色', '和弦卷帘', '背景颜色提示', label)
+                          for label in ('仅人声旋律', '仅乐器旋律', '人声与乐器旋律')]
                 paths += [('卷帘显示', '卷帘升降号偏好', label) for label in ('升号 #', '降号 b')]
                 paths += [('界面与操作', '外观', label) for label in ('浅色', '深色', '自定义色彩方案')]
                 paths += [('界面与操作', '语言 / Language', label) for label in ('简体中文', 'English')]
@@ -115,6 +118,21 @@ class ModuleSettingsTests(unittest.TestCase):
                     self.assertEqual(action.isChecked(), value == window.chord_ruler_scale)
                 window.close()
 
+    def test_chord_lane_height_setting_is_applied_and_saved(self):
+        window = self.window()
+        menus = window.findChildren(QMenu)
+        settings_action = self.action(window.title_bar.menu, '设置')
+        settings = settings_action.menu()
+        height_action = self.action(settings, '卷帘显示', '和弦轨高度…')
+        with patch('lingfeng.ui.main_window.QInputDialog.getInt', return_value=(88, True)):
+            height_action.trigger()
+        self.assertEqual(window.chord_lane_height, 88)
+        self.assertEqual(window.chord_lane.card_height(), 88)
+        self.assertEqual(load_preferences(self.user_data)['chord_lane_height'], 88)
+        reopened = self.window()
+        self.assertEqual(reopened.chord_lane_height, 88)
+        self.assertEqual(reopened.chord_lane.card_height(), 88)
+
     def test_combined_dialog_cancel_preserves_defaults_and_presets(self):
         chord_preferences.load_preferences({'default_velocities': {'melody': 41, 'harmony': 83},
                                             'quick_chord_qualities': ['m', 'maj9']})
@@ -125,7 +143,8 @@ class ModuleSettingsTests(unittest.TestCase):
             self.addCleanup(dialog.close)
             self.assertFalse(hasattr(dialog, 'bass_velocity'))
             self.assertEqual((dialog.melody_velocity.value(), dialog.chord_velocity.value()), (41, 83))
-            dialog.melody_velocity.setValue(27); dialog.chord_velocity.setValue(111)
+            self.assertEqual(dialog.instrument_velocity.value(), 41)
+            dialog.melody_velocity.setValue(27); dialog.instrument_velocity.setValue(56); dialog.chord_velocity.setValue(111)
             dialog.values.setText('32, 96, 127'); dialog.reject()
             detect.assert_not_called()
         self.assertEqual(chord_preferences.settings_dict(), before)
@@ -139,19 +158,19 @@ class ModuleSettingsTests(unittest.TestCase):
             window = self.window()
             dialog = DynamicsSettingsDialog(velocity.options(), window.project.audio['chords'])
             self.addCleanup(dialog.close)
-            dialog.melody_velocity.setValue(51); dialog.chord_velocity.setValue(103)
+            dialog.melody_velocity.setValue(51); dialog.instrument_velocity.setValue(68); dialog.chord_velocity.setValue(103)
             dialog.values.setText('35, 75, 115')
             with patch.object(dialog, 'exec', return_value=QDialog.DialogCode.Accepted), \
                     patch('lingfeng.ui.velocity_dialog.DynamicsSettingsDialog', return_value=dialog):
                 window.velocity_preferences()
             saved = load_preferences(self.user_data)
-            self.assertEqual(saved['default_velocities'], {'melody': 51, 'harmony': 103})
+            self.assertEqual(saved['default_velocities'], {'melody': 51, 'instrument': 68, 'harmony': 103})
             self.assertEqual(saved['chord_velocity_options'], [35, 75, 115])
             self.assertEqual(saved['quick_chord_qualities'], ['maj9', 'm', '7'])
             window.close(); chord_preferences.load_preferences({}); velocity.set_options(None)
             reopened = self.window()
         self.assertEqual(chord_preferences.settings_dict(), {
-            'default_velocities': {'melody': 51, 'harmony': 103},
+            'default_velocities': {'melody': 51, 'instrument': 68, 'harmony': 103},
             'quick_chord_qualities': ['maj9', 'm', '7']})
         self.assertEqual(velocity.options(), [35, 75, 115])
         dialog.values.setText('1, 2, 3'); dialog.chord_velocity.setValue(22)
@@ -193,7 +212,7 @@ class ModuleSettingsTests(unittest.TestCase):
         self.assertIsNotNone(dialog.buttons.button(QDialogButtonBox.StandardButton.Cancel))
 
     def test_quality_confirmation_does_not_reset_saved_dynamics(self):
-        save_preferences(self.user_data, {'default_velocities': {'melody': 39, 'harmony': 108},
+        save_preferences(self.user_data, {'default_velocities': {'melody': 39, 'instrument': 55, 'harmony': 108},
                                          'chord_velocity_options': [34, 71, 113]})
         window = self.window()
         dialog = ChordSettingsDialog(); self.addCleanup(dialog.close)
@@ -207,7 +226,7 @@ class ModuleSettingsTests(unittest.TestCase):
                 patch('lingfeng.ui.chord_settings_dialog.ChordSettingsDialog', return_value=dialog):
             window.chord_preferences()
         saved = load_preferences(self.user_data)
-        self.assertEqual(saved['default_velocities'], {'melody': 39, 'harmony': 108})
+        self.assertEqual(saved['default_velocities'], {'melody': 39, 'instrument': 55, 'harmony': 108})
         self.assertEqual(saved['chord_velocity_options'], [34, 71, 113])
         self.assertEqual(saved['quick_chord_qualities'], chosen)
 

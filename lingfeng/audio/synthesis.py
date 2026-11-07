@@ -3,6 +3,7 @@ import ctypes as C
 import hashlib,multiprocessing,threading,time
 from pathlib import Path
 import numpy as np
+from lingfeng.audio.events import source_gain_db
 from lingfeng.platform.i18n import tr
 import lingfeng.platform.i18n as i18n
 from lingfeng.audio.soundbanks import DEFAULT_DEVICE, instrument, pack
@@ -30,7 +31,11 @@ def write_output(player,data):
         player._render_release(count);offset+=count
 
 def library(device):
-    info=pack(device);path=(Path(info['path'])/info['library']).resolve()
+    return _library(pack(device))
+
+
+def _library(info):
+    path=(Path(info['path'])/info['library']).resolve()
     with _library_lock:
         key=(str(path),info['sha256'])
         if key in _libraries:return _libraries[key]
@@ -50,18 +55,23 @@ def library(device):
         if hasattr(lib,'lf_tone'):lib.lf_tone.argtypes=[P,C.c_double];lib.lf_tone.restype=I
         _libraries[key]=lib;return lib
 
-class SynthVoice:
-    def __new__(cls,program,device=DEFAULT_DEVICE,offline=False):
-        info=pack(device)
-        if info.get('engine')=='sfz':
-            from lingfeng.audio.sfz import SfzVoice
-            return SfzVoice(library(device),info,instrument(program,device),RATE,BLOCK,offline)
-        if info.get('engine')=='sf2':
-            from lingfeng.audio.sf2 import Sf2Voice
-            return Sf2Voice(library(device),info,instrument(program,device),RATE,BLOCK,offline)
-        return super().__new__(cls)
-    def __init__(self,program,device=DEFAULT_DEVICE,offline=False):
-        self.handle=None;self.api=library(device);item=instrument(program,device);self.gain=item['gain']
+def _voice_for_pack(api,info,item,offline=False):
+    if info.get('engine')=='sfz':
+        from lingfeng.audio.sfz import SfzVoice
+        return SfzVoice(api,info,item,RATE,BLOCK,offline)
+    if info.get('engine')=='sf2':
+        from lingfeng.audio.sf2 import Sf2Voice
+        return Sf2Voice(api,info,item,RATE,BLOCK,offline)
+    return _NativeVoice(api,item)
+
+
+def SynthVoice(program,device=DEFAULT_DEVICE,offline=False):
+    return _voice_for_pack(library(device),pack(device),instrument(program,device,apply_calibration=True),offline)
+
+
+class _NativeVoice:
+    def __init__(self,api,item):
+        self.handle=None;self.api=api;self.gain=item['gain']
         with _library_lock:self.handle=self.api.lf_create(RATE,item['model'],32)
         if not self.handle:raise RuntimeError((self.api.lf_error() or b'Cannot create synth').decode('utf-8','replace'))
         try:
@@ -85,6 +95,12 @@ class SynthEngine:
     """Independent channel voices with frame-exact scheduled events for export."""
     def __init__(self,device=DEFAULT_DEVICE,channel_devices=None,offline=False):
         self.device=device;self.channel_devices=channel_devices or {};self.offline=offline;self.channels={};self.programs={};self.events=[];self.sequence=0;self.volumes={};self.limiter_gain=1.0
+        self.source_gains={}
+
+    def set_source_gains(self, gains):
+        self.source_gains.update({channel: 10 ** (source_gain_db({'gain_db': value}) / 20)
+                                  for channel, value in gains.items()})
+
     def send(self,status,a=0,b=0,delay=0):
         if not all(type(v) is int for v in (status,a,b,delay)) or not 0<=a<=127 or not 0<=b<=127 or delay<0:raise ValueError('Invalid MIDI event')
         if delay:self.sequence+=1;self.events.append((delay,self.sequence,status,a,b));return
@@ -106,7 +122,11 @@ class SynthEngine:
         def fill(end):
             nonlocal cursor
             if end>cursor:
-                for voice in self.channels.values():out[cursor:end]+=voice.render(end-cursor)
+                for channel,voice in self.channels.items():
+                    samples=voice.render(end-cursor)
+                    gain=self.source_gains.get(channel,1.0)
+                    if gain!=1.0:samples*=gain
+                    out[cursor:end]+=samples
                 cursor=end
         for at,seq,status,a,b in sorted(self.events):
             if at>=count:future.append((at-count,seq,status,a,b));continue
@@ -140,10 +160,13 @@ def _synthesis_worker(connection,channel_devices,programs,language=None):
             import soundcard as sc
             speaker=sc.default_speaker()
             if speaker is None:raise RuntimeError(tr('没有可用的默认音频输出设备。'))
-            with speaker.player(samplerate=RATE,channels=2,blocksize=BLOCK) as player:
-                # A bounded 40 ms reservoir tolerates scheduling jitter. Refill
-                # in full blocks, never tiny fragments as padding fluctuates.
-                target=min(player.buffersize,max(4*BLOCK,round(RATE*.04),round(3*RATE*player.deviceperiod[0])))
+            # The requested WASAPI capacity and the synth's render quantum are
+            # independent. Give disk-streamed SFZ presets extra room for jitter.
+            streams_sfz=any(pack(device).get('engine')=='sfz' for device in set(channel_devices.values()))
+            reservoir=round(RATE*(.06 if streams_sfz else .04))
+            with speaker.player(samplerate=RATE,channels=2,blocksize=reservoir) as player:
+                # Refill in full render blocks as WASAPI padding fluctuates.
+                target=min(player.buffersize,max(4*BLOCK,reservoir,round(3*RATE*player.deviceperiod[0])))
                 block=min(BLOCK,target)
                 connection.send(('ready',None))
                 while True:
@@ -154,6 +177,9 @@ def _synthesis_worker(connection,channel_devices,programs,language=None):
                         if len(packet)>2:i18n.set_language(packet[2])
                         if command=='close':return
                         if command=='stop':engine.stop()
+                        elif command=='source_gains':
+                            engine.set_source_gains(*args)
+                            connection.send(('source_gains',None))
                         elif command=='midi':
                             engine.send(*args)
                             if args[0]&0xf0==0xc0:connection.send(('program',None))
@@ -211,6 +237,15 @@ class NativeSynth:
             try:self.connection.send(('midi',(status,a,b),i18n.LANGUAGE))
             except (BrokenPipeError,EOFError,OSError) as exc:raise RuntimeError(tr('音频输出进程已停止。')) from exc
             if program:self._reply('program',10);self.programs[status&15]=a
+
+    def set_source_gains(self, gains):
+        with self.lock:
+            if self.failure:raise RuntimeError(self.failure)
+            if self.connection is None or not self.process.is_alive():raise RuntimeError(tr('音频输出进程已停止。'))
+            if self.connection.poll():self._reply('error',0)
+            try:self.connection.send(('source_gains',(gains,),i18n.LANGUAGE))
+            except (BrokenPipeError,EOFError,OSError) as exc:raise RuntimeError(tr('音频输出进程已停止。')) from exc
+            self._reply('source_gains',10)
 
     def stop(self):
         with self.lock:

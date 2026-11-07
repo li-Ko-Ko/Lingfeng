@@ -2,32 +2,40 @@
 
 **为流行音乐而生 · For Pop Music**
 
-面向 Windows 的轻量音乐创作与简谱制谱软件，用于编写旋律、和弦、伴奏与歌词。
+面向 Windows 的轻量流行音乐创作与制谱软件。分别编写人声旋律、乐器旋律和和弦，加入歌词并排成简谱。
 
-A lightweight Windows app for songwriting and jianpu, with melody, chords, accompaniment and lyrics.
+A lightweight Windows app for pop songwriting and jianpu engraving. Write separate vocal and instrumental melodies, add chords and lyrics, and prepare a score.
 
-**0.57.1 · Windows x64 · 便携免安装 / Portable**
+**当前源码 0.60.1 · Windows x64 / Current source 0.60.1**
 
-[下载 / Download](https://github.com/li-Ko-Ko/Lingfeng/releases/latest) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
+[已发布的便携版 / Published portable builds](https://github.com/li-Ko-Ko/Lingfeng/releases) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
 下载后完整解压，运行 `Lingfeng.exe`，保留同级的 `_internal/` 和 `synths/` 文件夹。
 
 Extract the download completely, then run `Lingfeng.exe`. Keep the `_internal/` and `synths/` folders beside it.
 
-独立程序无需安装 Python，附带免费钢琴、电钢琴及 37 个合成音色，大型钢琴与键盘音源可按需下载。
+独立程序无需安装 Python。按当前源码构建的便携版随附 YDP 原声三角钢琴、Greg Sullivan 电钢琴和三组 STK 音源，共有 38 个 STK 音色。Salamander 音乐会钢琴和 FluidR3 GM 可按需下载。程序为可测量的音色提供响度补偿，并支持逐轨调整合成音源增益。
 
-The standalone application needs no Python installation. Free piano, electric pianos and 37 synth presets are included, with optional piano and keyboard downloads.
+The standalone application needs no Python installation. Portable builds from the current source include the YDP acoustic grand, Greg Sullivan electric pianos and three STK packs with 38 STK presets. Salamander Concert Grand and FluidR3 GM are optional downloads. Measurable presets receive loudness compensation, and each track has its own synth gain.
 
 ## 主要功能 / Features
 
-- 旋律与和弦钢琴卷帘，支持量化、复制、分割合并、撤销及独立悬浮 / Melody and chord piano rolls with quantization, copying, split/join, undo and floating windows.
-- 大工程拖屏更流畅，图像缓存与撤销历史更省内存 / Smoother panning in large projects, with lower memory use for image caches and undo history.
-- 伴奏节奏型与和弦进行库；设置中可全局开关节奏型识别 / Accompaniment patterns and progression library, with a global rhythm-recognition switch.
-- 按段落标识跳转小节，导航器显示无文字段落边界 / Jump to marked sections; navigators show section boundaries without text.
-- 可保存旋律／和弦默认力度、常用力度及快速和弦性质 / Saved note/chord velocity defaults, velocity presets and quick chord qualities.
-- 手动和弦标记同步卷帘高亮及谱面圈音；复制粘贴保留实际配器、时序与力度 / Manual chord labels guide highlights and score circles; copies preserve performed voicing, timing and dynamics.
-- 立体／紧凑简谱支持多声部，传统简谱用于单声部；支持歌词、Rap 与连音弧 / Spatial and compact polyphonic jianpu, traditional monophonic jianpu, lyrics, rap and slurs.
-- MIDI 导入，PDF、MIDI、MP3 导出；`.lfs` 工程、中英界面及浅深主题 / MIDI import; PDF, MIDI and MP3 export; `.lfs` projects, Chinese/English UI and light/dark themes.
+- **创作 / Compose.** 人声、乐器和和弦分轨编辑，支持独立悬浮卷帘、量化、复制粘贴、剪切和撤销。剪切和弦在原处留下保有原区间与节奏设置的 N.C. / Edit separate vocal, instrumental and chord tracks in floating piano rolls with quantization, copy, paste, cut and undo. Cutting a chord leaves an N.C. region with the original span and rhythm settings.
+- **导航 / Navigate.** 按段落跳转、选择音符并定位到对应卷帘。导航器可按轨显示、自动隐藏空轨和调整高度。 / Jump to marked sections and reveal selected notes in the corresponding roll. Choose which tracks appear in the resizable navigator, which automatically hides empty tracks.
+- **制谱 / Engrave.** 立体与紧凑简谱支持多声部。传统简谱只检查已勾选的旋律是否为单声部。支持两轨歌词、说唱、连音弧与 PDF 导出。 / Spatial and compact jianpu support polyphony. Traditional jianpu checks only the selected melody tracks for monophony. Engrave lyrics on both tracks, rap and slurs, and export to PDF.
+- **乐谱交换 / Exchange scores.** 按小节导入 MIDI、ABC 和 MusicXML，选择轨道导出 ABC、MusicXML/MXL、MIDI 或 DAW 迁移包。 / Import MIDI, ABC and MusicXML at a selected bar. Choose tracks to export as ABC, MusicXML/MXL, MIDI or a DAW transfer bundle.
+- **伴奏与音频 / Accompaniment and audio.** 使用和弦进行库和伴奏节奏型，单独调整三轨的音色、音量与合成增益，并离线渲染 MP3。 / Use the chord progression library and accompaniment patterns, control each track’s sound, volume and synth gain, and render MP3 offline.
+- **本地工程 / Local projects.** 用 `.lfs` 保存创作和制谱内容，可切换中英文与浅深主题。 / Save composition and engraving in `.lfs` projects, with a Chinese or English interface and light or dark themes.
+
+## ABC 与 YuE2 / ABC and YuE2
+
+在「文件 → 导出 → ABC」可选择完整 ABC 或 YuE2 兼容版。完整版可保留实际和弦音符与首段唱词。兼容版写入同步的 `Vocal`、`Ins` 声部、段落和和弦符号。导出前可以检查调式、复音与节奏格点，并预览和弦替换。
+
+Choose Full ABC or YuE2-compatible ABC under File → Export → ABC. Full ABC can include performed chord notes and the first sung verse. The compatible format writes synchronized `Vocal` and `Ins` parts with section markers and chord symbols. Check key modes, polyphony and timing, and review chord substitutions before exporting.
+
+在单独配置的 ComfyUI 中，把导出的 ABC 接到 **YuE2 Generate Song** 的 `score_abc` 输入，填写歌词和风格，并在 **YuE2 Options** 中将 `cot` 设为 `full`。已用原创片段验证从伶风导出、YuE2 解析到音频生成的交接。[ABC 与 YuE2 操作帮助](docs/HELP.md#topic-8-2)
+
+In a separately configured ComfyUI setup, connect the exported ABC to `score_abc` on **YuE2 Generate Song**, supply the lyrics and style, and set `cot` to `full` in **YuE2 Options**. An original draft was used to verify the handoff from Lingfeng export through YuE2 parsing and audio generation. [ABC and YuE2 user guide](docs/HELP.md#topic-8-2)
 
 ## 精选截图 / Featured
 

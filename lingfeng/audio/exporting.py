@@ -1,11 +1,12 @@
 """Export selection and audio rendering. Never modify the source project."""
-import copy
 import math
 import os
 import threading
 import time
 from pathlib import Path
 from lingfeng.audio.com_runtime import com_apartment as _com_apartment
+from lingfeng.audio.events import source_gain_db
+from lingfeng.audio.midi import export_tracks, track_events
 from lingfeng.music.note_operations import window_notes
 from lingfeng.music.model import PPQ
 from lingfeng.platform.i18n import tr
@@ -31,9 +32,8 @@ def bounds(project,kind='all',first=1,last=None,loop=None,section=0):
 def audio_notes(project,which,start,end):
     notes=[]
     seconds=60/project.bpm/PPQ
-    for role,source in (('melody',project.notes),('chords',project.harmony_notes())):
-        if which not in ('both',role):continue
-        for n in window_notes(source,start,end):notes.append((n.start*seconds,n.end*seconds,n.pitch,n.velocity/127*project.volumes[role]/127,role))
+    for _,role,source in export_tracks(project,which):
+        for n in window_notes(source,start,end):notes.append((n.start*seconds,n.end*seconds,n.pitch,n.velocity/127*project.volume_for(role)/127,role))
     return sorted(notes)
 
 def offline_pcm(project,which,start,end,cancel,progress,block=4096):
@@ -42,13 +42,17 @@ def offline_pcm(project,which,start,end,cancel,progress,block=4096):
     from lingfeng.audio.synthesis import SynthEngine, BLOCK
     from lingfeng.audio.soundbanks import export_instruments
     export_instruments(project,which,start,end)  # Reject unsupported voices before writing audio.
-    seconds=60/project.bpm/PPQ;events=[];engine=SynthEngine(channel_devices={i:project.audio[role]['device'] for i,role in enumerate(('melody','chords'))},offline=True)
+    tracks=list(export_tracks(project,which))
+    seconds=60/project.bpm/PPQ;events=[];engine=SynthEngine(channel_devices={channel:project.audio_for(role)['device'] for channel,role,_ in tracks},offline=True)
     try:
-        for channel,(role,source) in enumerate((('melody',project.notes),('chords',project.harmony_notes()))):
-            notes=window_notes(source,start,end) if which in ('both',role) else []
+        for channel,role,source in tracks:
+            notes=window_notes(source,start,end)
             if not notes:continue
             if cancel.is_set():raise InterruptedError()
-            engine.send(0xc0|channel,project.audio[role]['program']);engine.send(0xb0|channel,7,project.volumes[role])
+            spec=project.audio_for(role)
+            engine.send(0xc0|channel,spec['program']);engine.send(0xb0|channel,7,project.volume_for(role))
+            gain=source_gain_db(spec)
+            if gain:engine.set_source_gains({channel:gain})
             for n in notes:
                 events.extend([(round(n.start*seconds*RATE),1,channel,n.pitch,n.velocity),
                                (round(n.end*seconds*RATE),0,channel,n.pitch,0)])
@@ -79,17 +83,16 @@ def _capture_pcm(project,which,start,end,cancel,progress):
     import numpy as np
     import soundcard as sc
     from lingfeng.audio.routing import MidiRouter
-    from lingfeng.audio.midi import event_list
     from lingfeng.audio.transport import Transport
     speaker=sc.default_speaker()
     if speaker is None:raise RuntimeError(tr('没有可用于录制的默认音频输出设备。'))
     capture=sc.get_microphone(speaker.id,include_loopback=True)
     if not capture.isloopback:raise RuntimeError(tr('无法打开系统输出回录设备。'))
+    tracks=list(export_tracks(project,which))
+    seconds=60/project.bpm/PPQ;duration=(end-start)*seconds
+    events=Transport.window_events(track_events(tracks),start,end)
     settings={role:dict(value,device='default') for role,value in project.audio.items()}
     router=MidiRouter(settings)
-    for channel,role in ((0,'melody'),(1,'chords')):router.send(0xB0|channel,7,project.volumes[role])
-    seconds=60/project.bpm/PPQ;duration=(end-start)*seconds
-    events=Transport.window_events(event_list(project,which in ('both','melody'),which in ('both','chords')),start,end)
     stop=threading.Event();errors=[];worker=None
     def play(origin):
         try:
@@ -102,6 +105,7 @@ def _capture_pcm(project,which,start,end,cancel,progress):
         except Exception as exc:errors.append(exc)
         finally:router.stop()
     try:
+        for channel,role,_ in tracks:router.send(0xB0|channel,7,project.volume_for(role))
         # WASAPI needs both channels; mono loopback has platform-specific issues.
         with capture.recorder(samplerate=RATE,channels=2,blocksize=512) as recorder:
             recorder.record(numframes=512)
@@ -121,7 +125,7 @@ def _capture_pcm(project,which,start,end,cancel,progress):
 def export_mp3(project,path,which='both',start=0,end=None,mode='offline',cancel=None,progress=lambda value:None):
     import lameenc
     end=project.end if end is None else end
-    if which not in ('both','melody','chords') or not 0<=start<end<=project.end:raise ValueError(tr('导出范围无效。'))
+    if not 0<=start<end<=project.end:raise ValueError(tr('导出范围无效。'))
     if mode not in ('offline','windows'):raise ValueError(tr('无效的音频渲染方式。'))
     cancel=cancel or threading.Event();target=Path(path);temp=target.with_name(target.name+'.part')
     encoder=lameenc.Encoder();encoder.set_bit_rate(192);encoder.set_in_sample_rate(RATE);encoder.set_channels(2);encoder.set_quality(2)

@@ -8,7 +8,7 @@ import sys
 import threading
 
 from lingfeng.platform.i18n import tr
-from lingfeng.audio.events import silence_channels
+from lingfeng.audio.events import silence_channels, ROUTED_CHANNELS, complete_track_values, source_gain_db
 
 
 def midi_devices():
@@ -76,20 +76,23 @@ class Synth:
 class MidiRouter:
     def __init__(self,settings,native_thread=False):
         self.outputs={};self.routes={}
+        settings=complete_track_values(settings)
         from lingfeng.audio.soundbanks import is_synth_source, DEFAULT_DEVICE
         available={name:index for index,name in midi_devices()}
         default=default_midi_device() if any(s['device']=='default' for s in settings.values()) else -1
         try:
-            native_devices={};native_programs={}
-            for key,channels in [('melody',(0,2,4)),('chords',(1,3,5))]:
+            native_devices={};native_programs={};native_gains={}
+            for key,channels in ROUTED_CHANNELS.items():
                 spec=settings[key];device=spec['device']
                 if device in ('samples','builtin'):device=DEFAULT_DEVICE
                 if is_synth_source(device):
+                    gain=source_gain_db(spec)
+                    if gain:native_gains[key]=gain
                     for channel in channels:native_devices[channel]=device;native_programs[channel]=spec['program']
             if native_devices:
                 from lingfeng.audio.synthesis import NativeSynth
                 self.outputs['native']=NativeSynth(native_devices,native_programs,threaded=True) if native_thread else NativeSynth(native_devices,native_programs)
-            for key,channels in [('melody',(0,2,4)),('chords',(1,3,5))]:
+            for key,channels in ROUTED_CHANNELS.items():
                 spec=settings[key];device=spec['device']
                 if device in ('samples','builtin'):device=DEFAULT_DEVICE
                 if device!='default' and not is_synth_source(device) and device not in available:
@@ -107,10 +110,19 @@ class MidiRouter:
                         silence_channels(self,(channel,))
                         self.send(0xe0|channel,0,64)
                     self.send(0xC0|channel,spec['program'])
+            self.set_source_gains(native_gains)
         except Exception:
             self.close();raise
 
     def send(self,status,a=0,b=0):self.routes[status&15].send(status,a,b)
+
+    def set_source_gains(self,gains):
+        native=self.outputs.get('native')
+        if native is None:return
+        channels={channel:value for key,value in gains.items() for channel in ROUTED_CHANNELS[key]
+                  if self.routes[channel] is native}
+        if channels:native.set_source_gains(channels)
+
     def stop(self):
         for output in self.outputs.values():output.stop()
     def close(self):

@@ -50,14 +50,14 @@ class ProgressionEntryDialog(QDialog):
         super().accept()
 
 class CaptureProgressionDialog(ProgressionEntryDialog):
-    def __init__(self,project,ids,parent=None):
-        text=capture(project,ids)
+    def __init__(self,project,ids,parent=None,*,context_tick=None):
+        text=capture(project,ids,context_tick=context_tick)
         super().__init__(dict(sequence=text),parent)
         self.setWindowTitle(tr('保存和弦进行'))
-        start=min(c.start for c in project.chords if c.id in ids)
+        start=min(c.start for c in project.chords if c.id in ids) if context_tick is None else context_tick
         context=project.context_at(start);self.tonic=tonic_selector(context.tonic,context.mode)
         self.form.insertRow(0,tr('主音'),self.tonic);self.sequence.setReadOnly(True)
-        self.tonic.currentIndexChanged.connect(lambda:self.sequence.setText(progression_label(capture(project,ids,self.tonic.currentData()))))
+        self.tonic.currentIndexChanged.connect(lambda:self.sequence.setText(progression_label(capture(project,ids,self.tonic.currentData(),context_tick=context_tick))))
 
 class ProgressionManagerDialog(QDialog):
     def __init__(self,values,parent=None,query='',tonic=0,query_factory=None,mode='Ionian'):
@@ -147,7 +147,8 @@ class ProgressionDialog(QDialog):
         self.preset.currentIndexChanged.connect(lambda:self.sequence.setText(self.preset.currentData() or ''))
         self.keep=QComboBox();self.keep.addItem(tr('保留已识别节奏型；其它使用下方节奏型'),True);self.keep.addItem(tr('全部使用下方节奏型'),False);form.addRow(tr('节奏型策略'),self.keep)
         self.pattern=QComboBox();form.addRow(tr('统一／备用节奏型'),self.pattern)
-        self.velocity_check=QCheckBox(tr('统一力度'));self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(72);form.addRow(self.velocity_check,self.velocity)
+        from lingfeng.platform.chord_preferences import default_velocity
+        self.velocity_check=QCheckBox(tr('统一力度'));self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(default_velocity('harmony'));form.addRow(self.velocity_check,self.velocity)
         self.gate_check=QCheckBox(tr('统一发音长度'));self.gate=QSpinBox();self.gate.setRange(5,100);self.gate.setValue(90);self.gate.setSuffix('%');form.addRow(self.gate_check,self.gate)
         self.info=QLabel();self.info.setWordWrap(True);layout.addWidget(self.info)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);layout.addWidget(self.buttons);self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject)

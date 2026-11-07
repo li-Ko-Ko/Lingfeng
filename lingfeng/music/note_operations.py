@@ -53,7 +53,17 @@ class NoteClipboard:
             n.pitch=old.pitch if self.kind=='direct' else scale_pitch(degree,project.context_at(n.start))
             if not 21<=n.pitch<=108:raise ValueError(tr('变换后的音符超出 88 键范围。'))
             result.append(n)
-        return sorted(result,key=lambda n:(n.start,n.pitch))
+        ordered=sorted(result,key=lambda n:(n.start,n.pitch))
+        if self.kind=='direct':return ordered
+        # A change of key can map previously different pitches to the same row.
+        # Resolve collisions within the clipboard first so all pasted fragments
+        # have stable, selectable identities before overwriting the target.
+        rows={}
+        for note in ordered:
+            row=rows.setdefault(note.pitch,[])
+            if row and row[-1].end>note.start:rows[note.pitch]=overwrite_note(note,row)
+            else:row.append(note)
+        return sorted((note for row in rows.values() for note in row),key=lambda n:(n.start,n.pitch))
 
 
 def shift_in_scale(notes,project,steps):

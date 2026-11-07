@@ -1,5 +1,6 @@
 from lingfeng.platform.i18n import tr
 import copy
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog,QFormLayout,QComboBox,QSpinBox,QDoubleSpinBox,QLineEdit,QDialogButtonBox,QLabel,QVBoxLayout,QHBoxLayout,QPlainTextEdit,QCheckBox,QListWidget,QListWidgetItem,QAbstractItemView,QPushButton,QMessageBox
 from lingfeng.music.model import Note, Chord, PPQ, QUALITIES, PATTERNS, SHARP, MODES, pitch_name, degree_text
 
@@ -93,10 +94,19 @@ class ChordDialog(QDialog):
         from lingfeng.music.chord_operations import quality_items
         from lingfeng.platform.chord_preferences import quick_qualities
         labels=dict(quality_items())
+        from lingfeng.music.quality_catalog import yue2_lossless_quality
         codes=quick_qualities()
+        legacy_quality=yue2_lossless_quality(chord.quality) is None
+        if legacy_quality and not codes:codes=['']
         if chord.quality not in codes:codes=codes+[chord.quality]
         for code in codes:self.quality.addItem(labels[code],code)
-        self.quality.setCurrentIndex(self.quality.findData(chord.quality));form.addRow(tr('和弦性质'),self.quality)
+        current=self.quality.findData(chord.quality)
+        self.quality.setCurrentIndex(current)
+        if legacy_quality:
+            item=self.quality.model().item(current)
+            item.setEnabled(False)
+            item.setToolTip(tr('工程原有和弦，导出 YuE2 时可确认替换。'))
+        form.addRow(tr('和弦性质'),self.quality)
         self.bass=QComboBox()
         for pc,name in enumerate(SHARP):self.bass.addItem(name,pc)
         self.bass.setCurrentIndex(self.bass.findData(tonic));form.addRow(tr('指定低音 / 转位'),self.bass)
@@ -167,6 +177,8 @@ class ChordDialog(QDialog):
         chord.root=48+root;chord.quality=quality;chord.bass=bass;chord.start=round(self.start.value()*PPQ);chord.duration=round(self.duration.value()*PPQ)
         chord.gate=self.gate.value()/100;chord.velocity=self.velocity.value();chord.octave=self.octave.value();chord.recognized=True
         chord.recognition_disabled=False;chord.marked=False
+        if rebuild or (root,quality,bass)!=(self.chord.root%12,self.chord.quality,self.chord.bass):
+            chord.instrument_symbol_preference=None
         if rebuild:chord.pattern=self.pattern.currentData();chord.notes=None;chord.custom_rhythm=False
         if chord.notes is not None:
             chord.notes=[n for n in chord.notes if n.start<chord.duration]
@@ -183,7 +195,9 @@ class ChordDialog(QDialog):
 
     def update_preview(self):
         from lingfeng.music.chord_operations import roman_label, contextual_chord_name
+        if self.quality.currentIndex()<0:return
         chord=self.value()
+        if hasattr(chord,'_instrument_analysis'):del chord._instrument_analysis
         self.preview.setText(roman_label(self.project,chord)+'   '+contextual_chord_name(self.project,chord))
 
     def update_patterns(self):
@@ -206,9 +220,10 @@ class ChordMarkerDialog(QDialog):
         for label,pc in pitch_class_choices(context.tonic,context.mode):
             self.root.addItem(label,pc);self.bass.addItem(label,pc)
         for code,label in quality_items():self.quality.addItem(label,code)
-        self.root.setCurrentIndex(self.root.findData(chord.root%12))
-        self.quality.setCurrentIndex(self.quality.findData(chord.quality))
-        self.bass.setCurrentIndex(self.bass.findData(chord.bass))
+        symbol=chord.display_symbol or chord
+        self.root.setCurrentIndex(self.root.findData(symbol.root%12))
+        self.quality.setCurrentIndex(self.quality.findData(symbol.quality))
+        self.bass.setCurrentIndex(self.bass.findData(symbol.bass))
         form.addRow(tr('根音'),self.root);form.addRow(tr('和弦性质'),self.quality);form.addRow(tr('指定低音 / 转位'),self.bass)
         self.preview=QLabel();self.preview.setWordWrap(True);form.addRow(tr('罗马数字 / 和弦名称'),self.preview)
         info=QLabel(tr('仅修改罗马数字与字母标识，不改变 MIDI；确认后同时禁用和弦及节奏型识别。取消禁用和弦识别将移除标记并恢复自动识别。'))

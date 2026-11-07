@@ -19,6 +19,7 @@ COMMANDS={
     'left':('向左移动音符／和弦','Left'),'right':('向右移动音符／和弦','Right'),
     'view_left':('向左浏览时间轴',''),'view_right':('向右浏览时间轴',''),
     'toggle_tool':('切换智能／绘制工具','Q'),'switch_input':('切换旋律／和弦输入位置','E'),
+    'cycle_roll':('在已打开的卷帘间切换','Ctrl+Tab'),
     'grid_triplet':('切换吸附格点三连音','Shift+3'),
     'smart':('选择智能工具',''),'draw':('选择绘制工具',''),
     'play':('播放／暂停','Space'),'replay':('回到定位线','R'),
@@ -116,10 +117,16 @@ class EditorKeys(QObject):
         if not getattr(w,'workspace_ready',False) or QApplication.activeModalWidget() or QApplication.activePopupWidget():return False
         focus=QApplication.focusWidget()
         window=focus.window() if focus else QApplication.activeWindow()
-        if window not in (w,w.melody_window,w.harmony_window,w.score_tools,*w.score_floats.values()):return False
+        if window not in (w,w.melody_window,w.harmony_window,w.score_tools,*w.score_floats.values(),*w.melody_floats.values()):return False
         if event.type()==QEvent.Type.FocusIn:
             surface=w.edit_surface(obj)
             if window is w and w.workspace=='compose' and surface in ('melody','harmony','chords','timeline'):w.last_main_surface=surface
+            if w.workspace=='compose' and surface=='melody' and w.midi_input.target!='chords':
+                track=window.track if window in w.melody_floats.values() else w.roll.melody_track
+                role='instrument' if track else 'melody'
+                if w.midi_input.target!=role:
+                    w.midi_input.reset()
+                    w.midi_input.target=role
             return False
         for target in (focus,obj):
             current=target

@@ -6,7 +6,11 @@ notices are public. Local design notes and maintenance records stay local.
 from pathlib import Path
 import shutil
 
-APPROVED_PACKS=('stk-essentials','stk-colors','stk-acoustic','piano-small')
+STK_PACKS=('stk-essentials','stk-colors','stk-acoustic')
+APPROVED_PACKS=(*STK_PACKS,'piano-electric','ydp-grand')
+# The source tree retains its existing packs. Greg and YDP are reproduced from
+# the pinned downloads in build_piano_packs.py before building a release.
+REPOSITORY_PACKS=(*STK_PACKS,'piano-small')
 SOURCE_ROOT_FILES=('README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE',
                    'main.py','requirements.txt','requirements-build.txt','build.ps1',
                    '.gitignore','.gitattributes')
@@ -88,10 +92,10 @@ def source_files(root):
 
 
 def repository_files(root):
-    """Exact public repository candidates: rebuild inputs plus approved packs."""
+    """Exact public repository candidates: rebuild inputs plus checked-in packs."""
     root=Path(root)
     files=source_files(root)
-    for ident in APPROVED_PACKS:
+    for ident in REPOSITORY_PACKS:
         folder=root/'synths'/ident
         if not (folder/'synth.json').is_file():raise RuntimeError('Approved synth manifest missing: '+ident)
         files.extend(path for path in folder.rglob('*') if path.is_file() and

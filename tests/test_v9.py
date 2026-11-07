@@ -60,7 +60,7 @@ class UIRegressionTests(unittest.TestCase):
         self.w.dirty=False;self.w.close();self.w.deleteLater();QToolTip.hideText();APP.processEvents()
     def test_menu_order_and_resize_exclusions(self):
         w=self.w;menu=w.findChild(QMenuBar)
-        self.assertEqual([a.text() for a in menu.actions()],['伶风','文件','编辑','视图','设置','帮助'])
+        self.assertEqual([a.text() for a in menu.actions()],['伶风','文件','编辑','视图','工具','设置','帮助'])
         for child in [*w.title_bar.window_buttons,w.chord_lane,w.shared_scroll,menu]:
             self.assertEqual(w.resize_hit(child.mapTo(w,child.rect().center())),0)
         self.assertEqual(w.resize_hit(QPoint(0,w.height()//2)),10)

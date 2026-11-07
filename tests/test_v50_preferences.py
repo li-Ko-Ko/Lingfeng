@@ -113,13 +113,14 @@ class SoundUpgradeTests(unittest.TestCase):
         for item in self.patches:item.start();self.addCleanup(item.stop)
         banks._state=None;self.addCleanup(setattr,banks,'_state',None)
         self.saved={'melody':dict(device=banks.DEFAULT_DEVICE,program=24),'chords':dict(device=banks.DEFAULT_DEVICE,program=33)}
+        self.expected={**self.saved,'instrument':dict(self.saved['melody'])}
 
     def test_legacy_index_migrates_choices_and_extra_roots_but_rescans_dlls(self):
         extra=self.base/'external';extra.mkdir()
         legacy=dict(schema=1,roots=[str(self.oldroot),str(extra)],packs={'untrusted':{'path':'Z:/old.dll'}},defaults=self.saved)
         atomic_json(self.cache.parent/'old.json',legacy)
         state=banks.registry()
-        self.assertEqual(banks.default_audio(),self.saved)
+        self.assertEqual(banks.default_audio(),self.expected)
         self.assertEqual(state['roots'],[str(self.newroot.resolve()),str(extra.resolve())])
         self.assertNotIn('untrusted',state['packs']);self.assertTrue(banks.profile_path().exists())
         self.assertEqual(state['packs']['stk-essentials']['path'],str((self.newroot/'stk-essentials').resolve()))
@@ -128,7 +129,7 @@ class SoundUpgradeTests(unittest.TestCase):
         banks.registry();banks.save_defaults(self.saved)
         second=self.base/'next'/'synths';shutil.copytree(self.newroot,second)
         with patch.object(banks,'default_root',return_value=second),patch.object(banks,'cache_path',return_value=self.cache.parent/'next.json'):
-            banks._state=None;self.assertEqual(banks.default_audio(),self.saved)
+            banks._state=None;self.assertEqual(banks.default_audio(),self.expected)
             self.assertEqual(banks.registry()['packs']['stk-essentials']['path'],str((second/'stk-essentials').resolve()))
 
     def test_explicit_project_audio_is_not_replaced_by_new_defaults(self):

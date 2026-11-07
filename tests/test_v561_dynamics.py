@@ -178,20 +178,20 @@ class ChordPreferenceTests(unittest.TestCase):
         for old_bass in (True,0,128,'61',57,None):
             with self.subTest(old_bass=old_bass):
                 preferences.load_preferences({'default_velocities':{'melody':41,'harmony':109,'bass':old_bass}})
-                self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':41,'harmony':109})
+                self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':41,'instrument':41,'harmony':109})
 
-    def test_settings_confirm_and_cancel_save_only_melody_and_chord_defaults(self):
+    def test_settings_confirm_and_cancel_save_independent_track_defaults(self):
         dialog=DynamicsSettingsDialog([48,72,96],{});self.addCleanup(dialog.close)
-        dialog.melody_velocity.setValue(53);dialog.chord_velocity.setValue(104)
+        dialog.melody_velocity.setValue(53);dialog.instrument_velocity.setValue(61);dialog.chord_velocity.setValue(104)
         self.assertEqual(preferences.default_velocity('harmony'),72)
         values=dialog.value();dialog.reject()
         self.assertEqual(preferences.default_velocity('harmony'),72)
         preferences.set_preferences(values)
-        self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':53,'harmony':104})
+        self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':53,'instrument':61,'harmony':104})
         with tempfile.TemporaryDirectory(dir=ROOT/'tmp') as directory:
             save_preferences(directory,preferences.settings_dict())
             preferences.load_preferences(load_preferences(directory))
-            self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':53,'harmony':104})
+            self.assertEqual(preferences.settings_dict()['default_velocities'],{'melody':53,'instrument':61,'harmony':104})
 
 
 class CrossRegionJoinTests(unittest.TestCase):

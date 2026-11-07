@@ -59,7 +59,7 @@ class DataTests(unittest.TestCase):
 
     def test_sections_preserve_repeated_names_and_export_bounds(self):
         p=Project();p.measures[0].section='verse';p.measures[2].section='verse';p.measures[5].section='Outro'
-        self.assertEqual(p.sections(),[('Verse',0,2),('Verse',2,5),('Outro',5,8)])
+        self.assertEqual(p.sections(),[('verse',0,2),('verse',2,5),('outro',5,8)])
         self.assertEqual(bounds(p,'section',section=1),(7680,19200));self.assertEqual(bounds(p,'bars',2,4),(3840,15360))
         with self.assertRaises(ValueError):bounds(p,'loop')
 
@@ -234,9 +234,9 @@ class InterfaceTests(unittest.TestCase):
         from types import SimpleNamespace
         from PySide6.QtCore import QPoint
         w=self.w;r=w.main_roll;r.grid=240
-        w.set_section([0,2],'verse');self.assertEqual(w.project.sections(),[('Verse',0,2),('Verse',2,8)])
+        w.set_section([0,2],'verse');self.assertEqual(w.project.sections(),[('verse',0,2),('verse',2,8)])
         menu=r.timeline_menu(QPoint(round(r.x_at(960)),10))
-        section=next(a.menu() for a in menu.actions() if a.text()=='段落标识');self.assertIn('Prechorus',[a.text() for a in section.actions()]);menu.deleteLater()
+        section=next(a.menu() for a in menu.actions() if a.text()=='段落标识');self.assertIn('pre-chorus',[a.text() for a in section.actions()]);menu.deleteLater()
         heard=[];r.playheadChanged.connect(heard.append);gesture=TimelineGesture(w.timeline,lambda:r)
         gesture.state=dict(upper=False,moved=False,button=Qt.MouseButton.LeftButton)
         event=SimpleNamespace(button=lambda:Qt.MouseButton.LeftButton,position=lambda:QPointF(r.x_at(w.project.end-1),r.bar_ruler_height+12))

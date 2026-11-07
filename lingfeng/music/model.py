@@ -22,6 +22,7 @@ MODES = {
     'Aeolian': (0, 2, 3, 5, 7, 8, 10),
 }
 from lingfeng.music.quality_catalog import QUALITIES, QUALITY_RELATIONS
+from lingfeng.audio.events import DEFAULT_VOLUMES, TRACK_ROLES, complete_track_values, source_gain_db
 PATTERNS = {'block':'持续柱式', 'quarters':'四分柱式', 'eighths':'八分柱式',
             'sustained_bass_beats':'持续低音 + 每拍和弦',
             'up':'上行琶音', 'down':'下行琶音', 'alberti':'阿尔贝蒂低音',
@@ -31,10 +32,15 @@ PATTERNS = {'block':'持续柱式', 'quarters':'四分柱式', 'eighths':'八分
             'alternating_offbeat':'底五交替 · 反拍柱式'}
 SHARP = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 FLAT = ('C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B')
-SECTIONS = ('Intro','Verse','Prechorus','Chorus','Link','Solo','Refrain','Tag','Postchorus','Superchorus','Coda','Outro')
+SECTIONS = ('intro','verse','pre-chorus','chorus','interlude','link','bridge','solo','refrain','tag','post-chorus','super-chorus','coda','outro')
+MELODY_NAMES = ('人声旋律', '乐器旋律')
 
 def section_name(value):
-    return next((name for name in SECTIONS if name.casefold()==value.casefold()),value)
+    import re
+    label=value.strip().casefold().replace('_','-')
+    label=re.sub(r'^(pre|post|super)[ -]?chorus',r'\1-chorus',label)
+    base=re.sub(r'[ -]+\d+$','',label)
+    return label if base in SECTIONS else value
 COLORS = {'both':'#247F70','scale':'#456DB1','chord':'#B27632','other':'#A84E62'}
 # Background emphasis decreases; note contrast increases in the same category order.
 BACKGROUND_COLORS = {'both':'#BBDDD3','scale':'#D3DFF3','chord':'#EEE3D2','other':'#F7F8FA'}
@@ -110,6 +116,8 @@ class Chord:
     bar_aligned: bool = False  # Meter-edited/generated events recognize against real bars.
     recognition_disabled: bool = False  # Also bypasses automatic pattern recognition.
     marked: bool = False  # Root/quality/bass are display-only annotations of explicit MIDI.
+    include_instrument_in_recognition: bool | None = None  # None follows the user preference.
+    instrument_symbol_preference: tuple[int, str] | None = None
 
     @property
     def end(self):
@@ -131,8 +139,28 @@ class Chord:
     @property
     def highlight_pcs(self):
         """Roll matching and score circles follow marks, otherwise actual MIDI."""
+        analysis = self.instrument_analysis
+        if analysis is not None:
+            return analysis.pitch_classes
         return ({p % 12 for p in self.pitches} if self.marked
                 else {n.pitch % 12 for n in self.render_notes()})
+
+    @property
+    def instrument_analysis(self):
+        # Derived from both rolls under the current preference. Kept outside
+        # the dataclass fields so LFS and history store only the performed music.
+        return None if self.recognition_disabled else getattr(self, '_instrument_analysis', None)
+
+    @property
+    def display_symbol(self):
+        analysis = self.instrument_analysis
+        if analysis is not None:
+            return analysis.symbol
+        return self if self.recognized else None
+
+    @property
+    def empty(self):
+        return self.notes == [] and not self.marked and self.instrument_analysis is None
 
     def velocity_for_pitch(self, pitch, pitches=None):
         """Every generated voice follows the common chord velocity."""
@@ -140,24 +168,26 @@ class Chord:
 
     @property
     def name(self):
-        if self.notes == [] and not self.marked:return 'N.C.'
-        if not self.recognized:return '未识别'
-        return SHARP[self.root % 12] + self.quality + (f'/{SHARP[self.bass % 12]}' if self.bass is not None else '')
+        if self.empty:return 'N.C.'
+        symbol=self.display_symbol
+        if symbol is None:return '未识别'
+        return SHARP[symbol.root % 12] + symbol.quality + (f'/{SHARP[symbol.bass % 12]}' if symbol.bass is not None else '')
 
     def roman(self, tonic, flat=False, mode=None):
-        if self.notes == [] and not self.marked:return 'N.C.'
-        if not self.recognized:return '?'
-        d, a, _ = spelling(self.root, tonic, flat, mode)
+        if self.empty:return 'N.C.'
+        symbol=self.display_symbol
+        if symbol is None:return '?'
+        d, a, _ = spelling(symbol.root, tonic, flat, mode)
         r = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII')[d - 1]
-        suffix = self.quality
+        suffix = symbol.quality
         minor='b3' in QUALITY_RELATIONS[suffix]
         if minor:
             r = r.lower()
         suffix = {'m': '', 'min':'', '-':'', 'dim': '°', 'dim7':'°7', 'm7b5': 'ø7', 'aug': '+'}.get(suffix,
                  suffix[1:] if minor and suffix.startswith('m') else suffix)
         label = ('♯' if a > 0 else '♭' if a < 0 else '') + r + suffix
-        if self.bass is not None:
-            label += '/' + degree_text(self.bass, tonic, flat, mode=mode)
+        if symbol.bass is not None:
+            label += '/' + degree_text(symbol.bass, tonic, flat, mode=mode)
         return label
 
     def render_notes(self, *, pitches=None):
@@ -245,10 +275,36 @@ class Project:
     contexts: list[Context] = field(default_factory=lambda: [Context(0, 8 * 3840)])
     groups: dict = field(default_factory=dict)
     notation: dict = field(default_factory=lambda: {'style': 'spatial', 'per_line': 4, 'circles': True, 'color': True, 'lyrics': True, 'row_gap': 15, 'system_gap':12, 'font_size':15, 'show_scale_lines':False})
-    volumes: dict = field(default_factory=lambda: {'melody':100, 'chords':90})
+    volumes: dict = field(default_factory=lambda: dict(DEFAULT_VOLUMES))
     audio: dict = field(default_factory=_default_audio)
     marks: list[int] = field(default_factory=lambda:[0])
     schema_version: int = 6
+    instrument_notes: list[Note] = field(default_factory=list)
+    melody_names: list[str] = field(default_factory=lambda: list(MELODY_NAMES))
+
+    def __post_init__(self):
+        self.audio = complete_track_values(self.audio)
+        self.volumes = complete_track_values(self.volumes)
+
+    def audio_for(self, role):
+        return self.audio['melody' if role == 'instrument' and role not in self.audio else role]
+
+    def volume_for(self, role):
+        return self.volumes['melody' if role == 'instrument' and role not in self.volumes else role]
+
+    def melody_notes(self, track=0):
+        return self.instrument_notes if track else self.notes
+
+    def melody_name(self, track):
+        from lingfeng.platform.i18n import tr
+        name = self.melody_names[track]
+        return tr(name) if name in MELODY_NAMES else name
+
+    def set_melody_notes(self, track, notes):
+        if track:
+            self.instrument_notes = notes
+        else:
+            self.notes = notes
 
     @property
     def starts(self):
@@ -283,7 +339,8 @@ class Project:
                 if current is not None and current.end==n.start and (current.pitch,current.velocity)==(n.pitch,n.velocity):current.duration+=n.duration
                 else:
                     first=current is None
-                    current=copy.deepcopy(n);current.id=identity if first else n.id;current.event_id='';result.append(current)
+                    # render_notes() already supplies independent absolute events.
+                    current=n;current.id=identity if first else n.id;current.event_id='';result.append(current)
         return sorted(result,key=lambda n:(n.start,n.pitch))
 
     def harmony_owner(self, nid):
@@ -314,13 +371,33 @@ class Project:
     def rescan_harmony(self):
         from lingfeng.music.meter import rescan_chord
         for c in self.chords:rescan_chord(self,c)
+        self.rescan_instrument_recognition()
+
+    def rescan_instrument_recognition(self, chords=None):
+        from lingfeng.music.recognition import apply_instrument_recognition
+        apply_instrument_recognition(self, self.chords if chords is None else chords)
 
     def rescan_changed_harmony(self,before):
         from lingfeng.music.meter import rescan_chord
         old={c['id']:c for c in before.get('chords',[])}
         meter_changed=[(m.numerator,m.denominator) for m in self.measures]!=[(m['numerator'],m['denominator']) for m in before.get('measures',[])]
+        changed=[]
         for c in self.chords:
-            if meter_changed or asdict(c)!=old.get(c.id):rescan_chord(self,c)
+            previous=old.get(c.id);current=asdict(c)
+            if previous is not None:previous={'instrument_symbol_preference':None,**previous}
+            if not meter_changed and current==previous:continue
+            if previous is not None:
+                current['include_instrument_in_recognition']=previous.get('include_instrument_in_recognition')
+                current['instrument_symbol_preference']=previous['instrument_symbol_preference']
+            if meter_changed or current!=previous:rescan_chord(self,c)
+            changed.append(c)
+        old_instrument=before.get('instrument_notes',[])
+        if len(self.instrument_notes)!=len(old_instrument) or any(
+                (n.start,n.duration,n.pitch)!=(old_n['start'],old_n['duration'],old_n['pitch'])
+                for n,old_n in zip(self.instrument_notes,old_instrument)):
+            self.rescan_instrument_recognition()
+        elif changed:
+            self.rescan_instrument_recognition(changed)
 
     def sections(self):
         markers=[(i,section_name(m.section)) for i,m in enumerate(self.measures) if m.section]
@@ -345,22 +422,23 @@ class Project:
         self.edit_harmony(note,overwrite=True)
         return [note.id]
 
-    def category(self, pitch, tick, role='melody', pitch_sets=None):
+    def category(self, pitch, tick, role='melody', pitch_sets=None, *, melody_tracks=(0,)):
         c = self.context_at(tick)
         scale = (pitch - c.tonic) % 12 in MODES[c.mode]
         chord = self.chord_at(tick)
-        if role=='harmony':
-            if chord is None:pcs=set()
-            elif pitch_sets is not None and chord.id in pitch_sets:pcs=pitch_sets[chord.id]
-            else:
-                pcs={n.pitch%12 for n in self.notes if n.start<chord.end and n.end>chord.start}
-                if pitch_sets is not None:pitch_sets[chord.id]=pcs
+        if chord is None:
+            pcs=set()
         else:
-            if chord is None:pcs=set()
-            elif pitch_sets is not None and chord.id in pitch_sets:pcs=pitch_sets[chord.id]
+            cache_key=(chord.id,melody_tracks) if role=='harmony' else chord.id
+            if pitch_sets is not None and cache_key in pitch_sets:
+                pcs=pitch_sets[cache_key]
             else:
-                pcs=chord.highlight_pcs
-                if pitch_sets is not None:pitch_sets[chord.id]=pcs
+                if role=='harmony':
+                    pcs={note.pitch%12 for track in melody_tracks for note in self.melody_notes(track)
+                         if note.start<chord.end and note.end>chord.start}
+                else:
+                    pcs=chord.highlight_pcs
+                if pitch_sets is not None:pitch_sets[cache_key]=pcs
         inside=pitch%12 in pcs
         return 'both' if scale and inside else 'scale' if scale else 'chord' if inside else 'other'
 
@@ -385,22 +463,24 @@ class Project:
                 self.marks=sorted(set(self.marks+[starts.index(t) for t in (start,end) if t in starts]))
         self.validate()
 
-    def add_note(self, note, replace=False, merge=False, overwrite=False):
+    def add_note(self, note, replace=False, merge=False, overwrite=False, *, track=0):
         if note.end > self.end or note.start < 0 or not 21 <= note.pitch <= 108 or note.duration <= 0:
             raise ValueError('音符超出项目时间或88键范围。')
+        notes = self.melody_notes(track)
         if overwrite:
             from lingfeng.music.note_operations import overwrite_note
-            self.notes=overwrite_note(note,self.notes);return
+            self.set_melody_notes(track, overwrite_note(note, notes))
+            return
         if merge:
             from lingfeng.music.note_operations import union_note
-            note,consumed=union_note(note,self.notes)
-            self.notes=[n for n in self.notes if n.id not in consumed]
-        overlap = [n for n in self.notes if n.id != note.id and n.pitch==note.pitch and n.start < note.end and n.end > note.start]
+            note,consumed=union_note(note,notes)
+            notes=[n for n in notes if n.id not in consumed]
+        overlap = [n for n in notes if n.id != note.id and n.pitch==note.pitch and n.start < note.end and n.end > note.start]
         if overlap and not replace:
             raise ValueError('同音高音符不能重叠；不同音高可自由叠加为多声部。')
         if replace:
-            self.notes = [n for n in self.notes if n not in overlap]
-        self.notes = sorted([n for n in self.notes if n.id != note.id] + [note], key=lambda n:(n.start,n.pitch))
+            notes = [n for n in notes if n not in overlap]
+        self.set_melody_notes(track, sorted([n for n in notes if n.id != note.id] + [note], key=lambda n:(n.start,n.pitch)))
 
     def marker_value(self,index):
         c=self.context_at(self.starts[index]);m=self.measures[index]
@@ -463,26 +543,29 @@ class Project:
         t=self.starts[index];d=PPQ*4*numerator//denominator
         from lingfeng.engraving.presentation import shift_presentation
         shift_presentation(self,index,t,d)
-        continuations=[]
-        for event in self.notation.get('lyric_events',[]):
-            if event['tick']>=t:event['tick']+=d
-            elif event.get('kind')=='rap' and event['tick']+event['duration']>t:
-                right=copy.deepcopy(event);right.update(id=uid(),tick=t+d,duration=event['tick']+event['duration']-t,text='',continuation=True)
-                event['duration']=t-event['tick'];continuations.append(right)
-        if continuations:self.notation['lyric_events'].extend(continuations)
-        for section in self.notation.get('lyric_sections',[]):
-            if section['start']>=t:section['start']+=d
-            if section.get('end',0)>t:section['end']+=d
+        from lingfeng.engraving.lyrics import LYRIC_TRACK_KEYS
+        for event_key, section_key in LYRIC_TRACK_KEYS:
+            continuations=[]
+            for event in self.notation.get(event_key,[]):
+                if event['tick']>=t:event['tick']+=d
+                elif event.get('kind')=='rap' and event['tick']+event['duration']>t:
+                    right=copy.deepcopy(event);right.update(id=uid(),tick=t+d,duration=event['tick']+event['duration']-t,text='',continuation=True)
+                    event['duration']=t-event['tick'];continuations.append(right)
+            if continuations:self.notation[event_key].extend(continuations)
+            for section in self.notation.get(section_key,[]):
+                if section['start']>=t:section['start']+=d
+                if section.get('end',0)>t:section['end']+=d
         ref=self.context_at(min(t,self.end-1))
         fresh=Context(t,t+d,ref.tonic if tonic is None else tonic,ref.mode if mode is None else mode)
-        notes=[]
-        for n in self.notes:
-            if n.start>=t:n.start+=d;notes.append(n)
-            elif n.end>t:
-                right=copy.deepcopy(n);right.id=uid();right.start=t+d;right.duration=n.end-t;right.lyric=''
-                n.duration=t-n.start;notes.extend([n,right])
-            else:notes.append(n)
-        self.notes=sorted(notes,key=lambda n:(n.start,n.pitch))
+        for track in (0, 1):
+            notes=[]
+            for n in self.melody_notes(track):
+                if n.start>=t:n.start+=d;notes.append(n)
+                elif n.end>t:
+                    right=copy.deepcopy(n);right.id=uid();right.start=t+d;right.duration=n.end-t;right.lyric=''
+                    n.duration=t-n.start;notes.extend([n,right])
+                else:notes.append(n)
+            self.set_melody_notes(track, sorted(notes,key=lambda n:(n.start,n.pitch)))
         chords=[]
         for c in self.chords:
             if c.start>=t:c.start+=d;chords.append(c)
@@ -556,24 +639,27 @@ class Project:
         def shift(t):
             return t + delta if t >= old_end else min(t, new_end) if t > start else t
         self.notes=splice_events(self.notes,old_end,new_end)
+        self.instrument_notes=splice_events(self.instrument_notes,old_end,new_end)
         for c in self.contexts:
             c.start, c.end = shift(c.start), shift(c.end)
         self.contexts = [c for c in self.contexts if c.end > c.start]
         for name, ranges in self.groups.items():
             self.groups[name] = [[shift(a), shift(b)] for a, b in ranges if shift(b) > shift(a)]
-        lyric_events=[]
-        for event in self.notation.get('lyric_events',[]):
-            if event.get('kind')=='rap':
-                for n in splice_events([Note(event['tick'],event['duration'],60,id=event['id'])],old_end,new_end):
-                    e=copy.deepcopy(event);e.update(tick=n.start,duration=n.duration,id=n.id)
-                    if n.id!=event['id']:e.update(text='',continuation=True)
-                    lyric_events.append(e)
-            else:
-                event['tick']=min(self.end+delta-1,shift(event['tick']));lyric_events.append(event)
-        if 'lyric_events' in self.notation:self.notation['lyric_events']=lyric_events
-        for section in self.notation.get('lyric_sections',[]):
-            section['start']=min(self.end+delta-1,shift(section['start']))
-            if 'end' in section:section['end']=max(section['start']+1,shift(section['end']))
+        from lingfeng.engraving.lyrics import LYRIC_TRACK_KEYS
+        for event_key, section_key in LYRIC_TRACK_KEYS:
+            lyric_events=[]
+            for event in self.notation.get(event_key,[]):
+                if event.get('kind')=='rap':
+                    for n in splice_events([Note(event['tick'],event['duration'],60,id=event['id'])],old_end,new_end):
+                        e=copy.deepcopy(event);e.update(tick=n.start,duration=n.duration,id=n.id)
+                        if n.id!=event['id']:e.update(text='',continuation=True)
+                        lyric_events.append(e)
+                else:
+                    event['tick']=min(self.end+delta-1,shift(event['tick']));lyric_events.append(event)
+            if event_key in self.notation:self.notation[event_key]=lyric_events
+            for section in self.notation.get(section_key,[]):
+                section['start']=min(self.end+delta-1,shift(section['start']))
+                if 'end' in section:section['end']=max(section['start']+1,shift(section['end']))
         self.notation['symbols']=[dict(item,start=shift(item['start']),end=shift(item['end'])) for item in self.notation.get('symbols',[]) if shift(item['end'])>shift(item['start'])]
         self.measures[index].numerator = numerator
         self.measures[index].denominator = denominator
@@ -581,6 +667,10 @@ class Project:
         self.validate()
 
     def validate(self):
+        if (not isinstance(self.melody_names,list) or len(self.melody_names)!=2
+                or any(not isinstance(name,str) or not name.strip() or len(name)>48 or name.splitlines()!=[name]
+                       for name in self.melody_names)):
+            raise ValueError('旋律轨名称须为 1–48 个字符的单行文本。')
         from lingfeng.engraving.lyrics import validate
         validate(self)
         if self.schema_version != 6:
@@ -590,28 +680,33 @@ class Project:
         for m in self.measures:
             if m.numerator not in range(1, 17) or m.denominator not in (2, 4, 8, 16):
                 raise ValueError('拍号无效。')
+        end = self.end
         previous = 0
         for c in sorted(self.contexts, key=lambda c: c.start):
             if c.start != previous or c.end <= c.start or c.mode not in MODES or not 21 <= c.tonic <= 108:
                 raise ValueError('调性区间有缺口、重叠或无效参数。')
             previous = c.end
-        if previous != self.end:
+        if previous != end:
             raise ValueError('调性区间未覆盖整首曲子。')
         for events in (self.chords,):
             previous = 0
             for e in sorted(events, key=lambda e: e.start):
-                if not isinstance(e.start, int) or not isinstance(e.duration, int) or e.start < previous or e.duration <= 0 or e.end > self.end:
+                if not isinstance(e.start, int) or not isinstance(e.duration, int) or e.start < previous or e.duration <= 0 or e.end > end:
                     raise ValueError('音符／和弦的时间重叠或超出范围。')
                 previous = e.end
-        ends={}
-        for n in sorted(self.notes,key=lambda n:(n.start,n.pitch)):
-            if type(n.start) is not int or type(n.duration) is not int or n.start<0 or n.duration<=0 or n.end>self.end or n.start<ends.get(n.pitch,-1):
-                raise ValueError('旋律音符超出范围或同音高重叠。')
-            ends[n.pitch]=n.end
+        for notes in (self.notes, self.instrument_notes):
+            ends={}
+            for n in sorted(notes,key=lambda n:(n.start,n.pitch)):
+                if type(n.start) is not int or type(n.duration) is not int or n.start<0 or n.duration<=0 or n.end>end or n.start<ends.get(n.pitch,-1):
+                    raise ValueError('旋律音符超出范围或同音高重叠。')
+                ends[n.pitch]=n.end
         if not self.marks or self.marks[0]!=0 or sorted(set(self.marks))!=self.marks or any(type(m) is not int or not 0<=m<len(self.measures) for m in self.marks):
             raise ValueError('小节标记无效。')
-        if set(self.audio)!={'melody','chords'} or any(type(a.get('program')) is not int or not 0<=a['program']<=127 or not isinstance(a.get('device'),str) for a in self.audio.values()):
+        audio=complete_track_values(self.audio)
+        if not isinstance(audio,dict) or audio.keys()!=set(TRACK_ROLES) or any(not isinstance(a,dict) or type(a.get('program')) is not int or not 0<=a['program']<=127 or not isinstance(a.get('device'),str) for a in audio.values()):
             raise ValueError('音源或音色设置无效。')
+        for spec in audio.values():
+            source_gain_db(spec)
         # Asset availability is checked at playback/export, never when loading
         # a project: users may install a missing pack after opening their score.
         if type(self.notation['per_line']) is not int or not 1<=self.notation['per_line']<=16 or self.notation['style'] not in ('spatial','compact','traditional'):
@@ -619,15 +714,21 @@ class Project:
         if not .0001<=self.notation.get('font_size',15)<=FONT_SIZE_MAX or not isinstance(self.notation.get('show_scale_lines',False),bool):raise ValueError('谱面字号或谱线设置无效。')
         if not 4<=self.notation['row_gap']<=32 or not 0<=self.notation.get('system_gap',12)<=80:
             raise ValueError('谱面间距超出范围。')
-        if any(not 21 <= n.pitch <= 108 or not 1 <= n.velocity <= 127 for n in self.notes):
+        if any(not 21 <= n.pitch <= 108 or not 1 <= n.velocity <= 127 for n in self.notes + self.instrument_notes):
             raise ValueError('音高或力度无效。')
         if any(c.quality not in QUALITIES for c in self.chords):
             raise ValueError('不支持的和弦类型。')
-        if set(self.volumes)!={'melody','chords'} or any(type(v) is not int or not 0<=v<=127 for v in self.volumes.values()):
+        volumes=complete_track_values(self.volumes)
+        if not isinstance(volumes,dict) or volumes.keys()!=set(TRACK_ROLES) or any(type(v) is not int or not 0<=v<=127 for v in volumes.values()):
             raise ValueError('轨道音量必须为 0–127。')
-        ids=[n.id for n in self.notes]+[c.id for c in self.chords]
+        ids=[n.id for n in self.notes+self.instrument_notes]+[c.id for c in self.chords]
         for c in self.chords:
+            preference=c.instrument_symbol_preference
             if (not isinstance(c.recognition_disabled,bool) or not isinstance(c.marked,bool)
+                    or c.include_instrument_in_recognition is not None and type(c.include_instrument_in_recognition) is not bool
+                    or preference is not None and (not isinstance(preference,tuple) or len(preference)!=2
+                        or type(preference[0]) is not int or preference[0] not in range(12)
+                        or not isinstance(preference[1],str) or preference[1] not in QUALITIES)
                     or c.marked and (not c.recognition_disabled or not c.recognized)
                     or c.recognition_disabled and c.notes is None):
                 raise ValueError('和弦识别或标记参数无效。')
@@ -644,15 +745,26 @@ class Project:
         validate_presentation(self)
 
     def to_dict(self):
-        return asdict(self)
+        data=asdict(self)
+        for chord in data['chords']:
+            if chord['instrument_symbol_preference'] is None:chord.pop('instrument_symbol_preference')
+        for measure in data['measures']:
+            measure['section']=section_name(measure['section'])
+        data['audio']=complete_track_values(data['audio'])
+        data['volumes']=complete_track_values(data['volumes'])
+        return data
 
     @classmethod
     def from_dict(cls, data):
         data = copy.deepcopy(data)
-        for spec in data.get('audio',{}).values():
-            if spec.get('device') in ('builtin','samples'):spec['device']='synth:stk-essentials'
+        audio=data.get('audio')
+        if isinstance(audio,dict):
+            for spec in audio.values():
+                if isinstance(spec,dict) and spec.get('device') in ('builtin','samples'):spec['device']='synth:stk-essentials'
         if data.get('schema_version')==5:data['schema_version']=6
         for c in data.get('chords',[]):
+            if isinstance(c.get('instrument_symbol_preference'),list):
+                c['instrument_symbol_preference']=tuple(c['instrument_symbol_preference'])
             if c.get('quality')=='add9' and 'recognition_disabled' not in c and 'marked' not in c:
                 c['quality']='add2'
                 # Normalize the old close-position alias before materializing
@@ -676,9 +788,11 @@ class Project:
             if c.get('notes') is not None:c['notes']=[Note(**n) for n in c['notes']]
         for key, kind in [('measures', Measure), ('notes', Note), ('chords', Chord), ('contexts', Context)]:
             data[key] = [kind(**item) for item in data[key]]
+        data['instrument_notes'] = [Note(**item) for item in data.get('instrument_notes', [])]
         if 'notation' in data:data['notation'].setdefault('system_gap',12)
         project = cls(**data)
         project.validate()
+        project.rescan_instrument_recognition()
         return project
 
     def save(self, path):
@@ -754,8 +868,8 @@ def demo_project():
     p.notes = [n for n in p.notes if n.id == last.id or not (last.start < n.start < last.end)]
     for note, word in zip(p.notes, '远山映着微光晚风经过窗旁我们沿着河岸听见回声悠长'):
         note.lyric = word
-    p.measures[0].section = 'Verse'
-    p.measures[8].section = 'Chorus'
+    p.measures[0].section = 'verse'
+    p.measures[8].section = 'chorus'
     p.groups = {'主题': [[0, 8 * 3840]], '展开': [[8 * 3840, 16 * 3840]]}
     for c,pattern in zip(p.chords[8:],PATTERNS):c.pattern=pattern
     # Keep the original melody, adding a notation-only rap demonstration.

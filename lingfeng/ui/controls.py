@@ -7,6 +7,14 @@ from PySide6.QtWidgets import QApplication
 from lingfeng.ui.theme import color, is_dark
 
 
+def import_bar_control(project,bar_index):
+    bar=QSpinBox()
+    bar.setRange(1,len(project.measures)+1)
+    bar.setValue(bar_index+1)
+    bar.setToolTip(tr('选择工程中的插入点，最后一个编号表示追加到曲尾。'))
+    return bar
+
+
 class IconButton(QToolButton):
     activated=Signal()
     doubleActivated=Signal()

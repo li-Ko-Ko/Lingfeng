@@ -59,10 +59,10 @@ class MusicalTests(unittest.TestCase):
         self.assertIn('F#',full);self.assertIn('Lydian',full);self.assertIn('♯iv',roman_label(p,c,True))
         self.assertIn(' = ',full);self.assertNotIn('F#4',compact)
 
-    def test_section_migration_is_title_case_without_combining_equal_neighbors(self):
+    def test_section_migration_uses_abc_case_without_combining_equal_neighbors(self):
         p=Project();p.measures[0]=Measure(section='verse');p.measures[1]=Measure(section='VERSE')
-        q=Project.from_dict(p.to_dict());self.assertEqual(q.sections()[:2],[('Verse',0,1),('Verse',1,8)])
-        self.assertTrue(all(s[0].isupper() and s[1:].islower() for s in SECTIONS))
+        q=Project.from_dict(p.to_dict());self.assertEqual(q.sections()[:2],[('verse',0,1),('verse',1,8)])
+        self.assertTrue(all(s == s.lower() for s in SECTIONS))
         self.assertEqual(Measure(section='A · 主题').section,'A · 主题')
 
 class InterfaceTests(unittest.TestCase):

@@ -9,12 +9,12 @@ import copy
 BLOCKS = {
     'chord': (
         dict(id='edit', title='编辑与试听', labels=('编辑和弦…', '在和弦卷帘中编辑', '试听和弦'), groupable=False, grouped=False),
-        dict(id='clipboard', title='复制与粘贴', labels=('复制所选和弦', '在此和弦开头覆盖粘贴', '在此粘贴和弦', '在定位线处粘贴和弦'), groupable=False, grouped=False),
+        dict(id='clipboard', title='复制与粘贴', labels=('复制所选和弦', '剪切所选和弦', '在此和弦开头覆盖粘贴', '在此粘贴和弦', '在定位线处粘贴和弦'), groupable=False, grouped=False),
         dict(id='split_merge', title='分割与合并', labels=('在定位线处分割和弦', '二等分和弦', '合并相邻和弦'), groupable=False, grouped=False),
         dict(id='dynamics', title='力度', labels=('修改力度',), groupable=True, grouped=False),
         dict(id='properties', title='和弦属性', labels=('和弦根音', '和弦性质', '替换低音', '和弦转位', '节奏型'), groupable=True, grouped=True),
         dict(id='movement', title='和弦移动', labels=('和弦移动',), groupable=False, grouped=False),
-        dict(id='recognition', title='识别与标记', labels=('设置和弦标记…', '禁用和弦识别'), groupable=True, grouped=False),
+        dict(id='recognition', title='识别与标记', labels=('设置和弦标记…', '禁用和弦识别', '和弦识别来源'), groupable=True, grouped=False),
         dict(id='progressions', title='和弦进行', labels=('从此和弦开始应用和弦进行…', '按顺序保存为和弦进行…', '检索和弦进行…'), groupable=True, grouped=True),
         dict(id='insertion', title='插入', labels=('插入空白和弦', '在定位线处插入空白和弦'), groupable=True, grouped=True),
         dict(id='display', title='显示', labels=('和弦轨力度窗格',), groupable=True, grouped=False),
@@ -23,7 +23,7 @@ BLOCKS = {
     'note': (
         dict(id='edit', title='编辑', labels=('编辑音符…',), groupable=False, grouped=False),
         dict(id='dynamics', title='力度', labels=('修改力度',), groupable=True, grouped=False),
-        dict(id='clipboard', title='复制与粘贴', labels=('复制所选音符', '复制变换', '在此粘贴音符', '在定位线处粘贴音符'), groupable=False, grouped=False),
+        dict(id='clipboard', title='剪切、复制与粘贴', labels=('复制所选音符', '剪切所选音符', '复制变换', '在此粘贴音符', '在定位线处粘贴音符'), groupable=False, grouped=False),
         dict(id='split_merge', title='分割与合并', labels=('合并相邻音符', '二等分音符'), groupable=False, grouped=False),
         dict(id='pitch', title='音高变换', labels=('升高半音', '降低半音', '调内上移一级', '调内下移一级', '上移八度', '下移八度'), groupable=True, grouped=True),
         dict(id='quantize', title='量化', labels=('按当前格点量化',), groupable=False, grouped=False),

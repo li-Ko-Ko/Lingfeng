@@ -2,7 +2,7 @@
 from PySide6.QtCore import Qt, Signal, QEvent
 from PySide6.QtGui import QFont, QAction
 from PySide6.QtWidgets import (QWidget, QFrame, QHBoxLayout, QVBoxLayout, QPushButton,
-    QLabel, QToolButton, QMenu, QSizePolicy, QCheckBox, QSlider)
+    QLabel, QToolButton, QMenu, QSizePolicy, QCheckBox, QSlider, QSpinBox, QAbstractSpinBox)
 
 from lingfeng.platform.i18n import tr
 from lingfeng.ui.controls import SizeControl, IconButton
@@ -59,7 +59,7 @@ class FloatingPane(QFrame):
 class PaneTitleBar(QWidget):
     def __init__(self,pane,title):
         super().__init__(pane);self.pane=pane;row=QHBoxLayout(self);row.setContentsMargins(8,2,2,2);row.setSpacing(2)
-        label=QLabel(title);label.setStyleSheet('font-weight:600');row.addWidget(label);row.addStretch()
+        self.caption=QLabel(title);self.caption.setStyleSheet('font-weight:600');row.addWidget(self.caption);row.addStretch()
         self.dock=IconButton('dock');self.dock.activated.connect(lambda:pane.owner.toggle_roll_floating(pane));row.addWidget(self.dock)
         self.buttons=[]
         for kind,slot in [('minimize',pane.showMinimized),('maximize',self.maximize),('close',pane.close)]:
@@ -120,20 +120,33 @@ class StatusHint(QLabel):
 
 
 class RollVolumeControls(QWidget):
-    """Shared footer: concise status and two synchronized track controls."""
+    """Shared footer with synchronized track controls."""
     def __init__(self,owner):
-        super().__init__();self.owner=owner;self.sliders={};self.mutes={};self.labels={}
-        row=QHBoxLayout(self);row.setContentsMargins(8,2,8,2);row.setSpacing(10)
+        super().__init__();self.owner=owner;self.sliders={};self.mutes={};self.values={};self.titles={}
+        row=QHBoxLayout(self);row.setContentsMargins(8,2,8,2);row.setSpacing(8)
         self.hint=StatusHint();row.addWidget(self.hint,1);self.groups=[]
-        for key,title in [('melody','旋律'),('chords','和弦')]:
-            group=QWidget();layout=QHBoxLayout(group);layout.setContentsMargins(0,0,0,0);layout.setSpacing(6)
-            layout.addWidget(QLabel(tr(title)));mute=QPushButton(tr('静音'));mute.setCheckable(True);mute.setToolTip(tr('静音（试听状态，不改变导出 MIDI）'));layout.addWidget(mute)
-            slider=QSlider(Qt.Orientation.Horizontal);slider.setRange(0,127);slider.setFixedWidth(85);slider.setToolTip(tr('轨道音量 CC7，独立于音符力度'));layout.addWidget(slider)
-            label=QLabel();label.setFixedWidth(27);layout.addWidget(label);row.addWidget(group);self.groups.append(group)
-            self.sliders[key]=slider;self.mutes[key]=mute;self.labels[key]=label
-            slider.valueChanged.connect(owner.volume_sliders[key].setValue)
+        for key in ('melody','instrument','chords'):
+            group=QWidget();layout=QHBoxLayout(group);layout.setContentsMargins(0,0,0,0);layout.setSpacing(4)
+            title=QLabel();self.titles[key]=title;layout.addWidget(title)
+            mute=QPushButton(tr('静音'));mute.setCheckable(True);mute.setToolTip(tr('静音（试听状态，不改变导出 MIDI）'));layout.addWidget(mute)
+            source=owner.volume_sliders[key]
+            slider=QSlider(Qt.Orientation.Horizontal);slider.setRange(source.minimum(),source.maximum());slider.setMinimumWidth(27);slider.setMaximumWidth(55);slider.setToolTip(source.toolTip());layout.addWidget(slider)
+            value=QSpinBox()
+            value.setObjectName('trackVolumeValue')
+            value.setRange(source.minimum(),source.maximum())
+            value.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+            value.setKeyboardTracking(False)
+            value.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            value.setFixedWidth(46)
+            value.setToolTip(source.toolTip())
+            value.setValue(source.value())
+            layout.addWidget(value);row.addWidget(group);self.groups.append(group)
+            self.sliders[key]=slider;self.mutes[key]=mute;self.values[key]=value
+            slider.valueChanged.connect(source.setValue)
+            value.valueChanged.connect(source.setValue)
             mute.toggled.connect(owner.mute_buttons[key].setChecked);mute.clicked.connect(owner.update_audio)
-            owner.volume_sliders[key].valueChanged.connect(self.sync)
+            source.valueChanged.connect(value.setValue)
+            source.valueChanged.connect(self.sync)
             owner.mute_buttons[key].toggled.connect(self.sync)
         owner.statusBar().messageChanged.connect(self.set_status);self.set_status(owner.statusBar().currentMessage());self.sync()
 
@@ -145,6 +158,9 @@ class RollVolumeControls(QWidget):
 
     def sync(self,*args):
         for key in self.sliders:
+            title=self.titles[key];name=self.owner.track_name(key)
+            width=min(60,title.fontMetrics().horizontalAdvance(name)+2)
+            title.setFixedWidth(width);title.setText(title.fontMetrics().elidedText(name,Qt.TextElideMode.ElideRight,width));title.setToolTip(name)
             slider=self.sliders[key];blocked=slider.blockSignals(True);slider.setValue(self.owner.volume_sliders[key].value());slider.blockSignals(blocked)
-            self.labels[key].setText(str(slider.value()))
+            self.values[key].setAccessibleName(name+' · '+slider.toolTip())
             mute=self.mutes[key];blocked=mute.blockSignals(True);mute.setChecked(self.owner.mute_buttons[key].isChecked());mute.blockSignals(blocked)

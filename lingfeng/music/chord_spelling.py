@@ -40,10 +40,11 @@ def tone_for(pitch,context,chord=None):
     pcs=tuple((context.tonic+offset)%12 for offset in MODES[context.mode])
     tones=scale_tones(context.tonic%12,context.mode)
     if pitch%12 in pcs:return tones[pcs.index(pitch%12)]
-    if chord is not None and chord.recognized:
-        root=tone_for(chord.root,context) if chord.root%12 in pcs else fallback(chord.root,chord.flat)
-        interval=(pitch-chord.root)%12
-        for offset,degree in zip(QUALITIES[chord.quality],QUALITY_DEGREES[chord.quality]):
+    symbol=chord.display_symbol if chord is not None else None
+    if symbol is not None:
+        root=tone_for(symbol.root,context) if symbol.root%12 in pcs else fallback(symbol.root,chord.flat)
+        interval=(pitch-symbol.root)%12
+        for offset,degree in zip(QUALITIES[symbol.quality],QUALITY_DEGREES[symbol.quality]):
             if offset%12==interval:
                 letter=(root.letter+degree-1)%7
                 return Tone(letter,accidental(pitch%12,NATURALS[letter]))

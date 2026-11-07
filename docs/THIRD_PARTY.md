@@ -42,24 +42,25 @@ DLL/PYD files remain separate under `_internal/`. Compatible Python 3.13 / Windo
 
 ## 钢琴与电钢琴 / Piano and electric-piano packs
 
-0.53 增加可选的 Greg Sullivan 独立合集和 FluidR3 GM 包；前者使用与小型包相同的 CC BY 3.0 录音。FluidR3 soundfont 为 MIT，FluidSynth 2.6.1 与 libsndfile、mpg123、LAME 分别保留各自 LGPL 条款。可选包随附对应源码、原版权文本、构建资料与所需补丁，以及 FLAC/Ogg/Vorbis/Opus 等编入依赖的通知；引擎及依赖 DLL 独立可替换，未静态合并到原创应用代码。所有新大型音源均不进入主程序 ZIP。
+本地构建及后续发行包默认随附 Greg Sullivan 电钢琴、YDP 原声三角钢琴及下文的三组 STK。Greg 使用 sfizz 播放 SFZ，YDP 使用 FluidSynth 2.6.1 播放 FreePats 发布的原始 SF2。随附的 YDP 和可选的 FluidR3 GM 各自保留 FluidSynth、libsndfile、mpg123 和 LAME 的 LGPL 条款、对应源码、版权文本、构建资料和所需补丁，以及 FLAC、Ogg、Vorbis、Opus 等依赖的通知。引擎及依赖 DLL 独立可替换。
 
-Version 0.53 adds optional Greg Sullivan and FluidR3 GM packs. FluidR3 samples retain MIT terms. FluidSynth and its codec dependencies retain their respective LGPL or permissive licenses, complete corresponding source, notices, build information and patches in the optional pack. Runtime DLLs remain separate from the original application. See [FluidSynth](https://github.com/FluidSynth/fluidsynth), [FluidR3 Debian source](https://deb.debian.org/debian/pool/main/f/fluid-soundfont/) and each pack's `source.json`/`runtime/`.
+Local builds and future releases bundle Greg Sullivan electric pianos, the YDP acoustic grand and the three STK packs below. Greg uses sfizz for SFZ. YDP uses FluidSynth 2.6.1 to play the original FreePats SF2. The bundled YDP and optional FluidR3 GM each retain the applicable LGPL and permissive terms, complete corresponding source, notices, build information and patches for FluidSynth and its codec dependencies. The runtime DLLs are independently replaceable. See each pack's `source.json` and `runtime/` for details. [FluidSynth](https://github.com/FluidSynth/fluidsynth) · [FluidR3 Debian source](https://deb.debian.org/debian/pool/main/f/fluid-soundfont/)
 
-0.52 增加 `piano-small` 免费采样包，使用未修改的 sfizz 1.2.3 Windows x64 C API。sfizz 为 BSD-2-Clause；完整源码归档及依赖通知位于每包 `runtime/`，构建脚本固定官方二进制及源码哈希。原有 STK 继续保留。
+0.52 首次随附 `piano-small` 免费采样包，0.53 首次提供 Greg 与 FluidR3 GM 的可选下载。sfizz 1.2.3 Windows x64 C API 采用 BSD-2-Clause，完整源码归档和依赖通知位于 SFZ 音源包的 `runtime/`。构建脚本固定官方二进制与源码哈希。FluidR3 音色采用 MIT 许可。
 
-Version 0.52 adds the free `piano-small` pack using unmodified sfizz 1.2.3. The BSD-2-Clause engine's complete source archive and dependency notices are included under `runtime/`. Official binary/source hashes are pinned by the builder.
+Version 0.52 first bundled the free `piano-small` pack. Version 0.53 first offered Greg and FluidR3 GM as optional downloads. The BSD-2-Clause sfizz 1.2.3 runtime's complete source and dependency notices are included in each SFZ pack under `runtime/`. The builder pins official binary and source hashes. FluidR3 samples retain MIT terms.
 
 | 样本 / Samples | 来源 / Source | 许可 / License |
 | --- | --- | --- |
 | Kawai upright | [FreePats KW](https://github.com/freepats/upright-piano-KW) | CC0-1.0 |
 | Rhodes GM subset | [Jeff Learman / Discord GM](https://github.com/sfzinstruments/Discord-SFZ-GM-Bank) | CC0-1.0，仅这个独立 GM 子集 / This separately released GM subset only |
 | Wurlitzer, CP80, Pianet T | [Greg Sullivan / kinwie](https://github.com/sfzinstruments/GregSullivan.E-Pianos) | CC-BY-3.0 |
+| YDP Grand | [Zenph Studios and Mikhail Krishtal for OLPC (samples), Roberto / FreePats (SF2)](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html#ydp-grand-piano) | CC-BY-3.0 |
 | Optional Salamander grand | [Alexander Holm / Chisato Yamauchi / Jeff Learman](https://github.com/jlearman/zynthian-salamander-grand) | CC-BY-3.0 samples; CC0 SFZ |
 
-各包保留许可、署名、固定提交、修改和文件 SHA-256。修改仅涉及 SFZ／预设：明亮钢琴 EQ、电钢琴边缘音域、Rhodes 包络头和大钢琴最低力度；录音样本不重新编码。大钢琴独立下载／安装，不进入主程序 ZIP。引擎来源为 [sfizz 1.2.3](https://github.com/sfztools/sfizz/releases/tag/1.2.3)；上游已归档，本版固定并实测该版本。
+各包保留许可、署名、固定版本、修改和文件 SHA-256。SFZ 与预设的调整包括明亮钢琴 EQ、电钢琴边缘音域、Rhodes 包络头和 Salamander 最低力度。录音样本保持原始编码。Salamander 可独立下载和安装。SFZ 音源使用已固定版本的 [sfizz 1.2.3](https://github.com/sfztools/sfizz/releases/tag/1.2.3)。
 
-Packs retain licenses, attribution, revisions, mapping modifications and file hashes; recorded samples are not re-encoded. The optional grand stays outside the main ZIP. Sources, installation and reproduction are documented in [SOUNDBANKS](SOUNDBANKS.md) and `scripts/build_piano_packs.py`.
+Packs retain licenses, attribution, revisions, mapping changes and file hashes. Recordings retain their original encoding. Salamander is available as a separate download. See `scripts/build_piano_packs.py` and the sound pack guide for source and reproduction details. [SOUNDBANKS](SOUNDBANKS.md)
 
 ## 合成音源 / Synth packs
 

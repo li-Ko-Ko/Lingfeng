@@ -123,12 +123,15 @@ class EditingTests(unittest.TestCase):
 
     def test_import_dialog_defaults_and_real_menu_import_undo(self):
         w=self.w;data=payload([Note(0,240,70)])
-        dialog=MidiImportDialog(w.project,data,'melody',0,w);self.assertFalse(dialog.meter.isChecked());self.assertFalse(dialog.tempo.isChecked());self.assertEqual(dialog.indices(),[0]);dialog.close()
+        dialog=MidiImportDialog(w.project,data,parent=w,bar_index=0)
+        self.assertFalse(dialog.meter.isChecked());self.assertFalse(dialog.tempo.isChecked())
+        self.assertEqual(dialog.value()['mapping']['melody'],[0]);dialog.close()
         with tempfile.TemporaryDirectory(dir=Path("tmp").resolve()) as folder:
             source=Project();source.notes=[Note(0,240,70)];path=Path(folder)/'input.mid';export_midi(source,path);before=w.project.to_dict()
-            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Accepted):w.import_midi('melody')
+            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Accepted):w.import_midi()
+            self.assertGreater(len(w.project.measures),len(before['measures']))
             self.assertEqual(w.project.notes[0].pitch,70);w.undo();self.assertEqual(w.project.to_dict(),before)
-            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Rejected):w.import_midi('melody')
+            with patch('lingfeng.ui.main_window.QFileDialog.getOpenFileName',return_value=(str(path),'')),patch.object(MidiImportDialog,'exec',return_value=QDialog.DialogCode.Rejected):w.import_midi()
             self.assertEqual(w.project.to_dict(),before)
 
     def test_brand_aligns_menu_and_grid_is_at_right_in_both_languages(self):

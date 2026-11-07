@@ -30,7 +30,7 @@ class PackTests(unittest.TestCase):
         self.assertEqual(p.audio['chords']['device'],EXTRA)
     def test_copy_requires_scan_then_cache_survives_restart(self):
         banks.registry();self.install();self.assertFalse(banks.installed_packs());banks.rescan()
-        self.assertEqual(len(banks.available_programs()),15);banks._state=None
+        self.assertEqual(len(banks.available_programs()),16);banks._state=None
         with patch.object(banks,'rescan',side_effect=AssertionError('Do not rescan at startup')):self.assertEqual(len(banks.installed_packs()),1)
     def test_remove_and_reinstall_same_id(self):
         target=self.install();banks.rescan();p=Project();dest=self.base/'moved';target.rename(dest)
@@ -49,9 +49,19 @@ class PackTests(unittest.TestCase):
     def test_corrupt_index_recovers_from_directory(self):
         self.install();(self.base/'index.json').write_text('null','utf-8');self.assertEqual(len(banks.registry()['packs']),1)
     def test_defaults_persist_without_overwriting_explicit_project(self):
-        self.install();banks.rescan();saved={'melody':dict(device=CORE,program=24),'chords':dict(device=CORE,program=33)}
+        self.install();banks.rescan();saved={'melody':dict(device=CORE,program=24),'chords':dict(device=CORE,program=33),'instrument':dict(device=CORE,program=40)}
         banks.save_defaults(saved);banks._state=None;self.assertEqual(Project().audio,saved)
         data=Project().to_dict();data['audio']['melody']['program']=1;self.assertEqual(Project.from_dict(data).audio['melody']['program'],1)
+    def test_malformed_saved_source_gain_keeps_device_and_program(self):
+        self.install();banks.rescan()
+        saved={'melody':dict(device=CORE,program=24,gain_db='bad'),
+               'chords':dict(device=CORE,program=33,gain_db=-3.5),
+               'instrument':dict(device=CORE,program=40,gain_db=25)}
+        banks.save_defaults(saved)
+        defaults=banks.default_audio()
+        self.assertEqual(defaults,{'melody':dict(device=CORE,program=24),
+                                  'chords':saved['chords'],
+                                  'instrument':dict(device=CORE,program=40)})
     def test_legacy_migration_keeps_program_and_missing_reference(self):
         data=Project().to_dict();data['audio']['melody']=dict(device='samples',program=40);p=Project.from_dict(data)
         self.assertEqual(p.audio['melody'],dict(device=CORE,program=40));self.assertEqual(data['audio']['melody']['device'],'samples')
@@ -61,7 +71,7 @@ class PackTests(unittest.TestCase):
             try:
                 self.assertFalse(d.preview_buttons['melody'].isEnabled());self.install();d.scan()
                 self.assertTrue(d.preview_buttons['melody'].isEnabled());self.assertEqual(d.fields['melody'][0].currentData(),CORE)
-                self.assertEqual(d.fields['melody'][1].count(),15)
+                self.assertEqual(d.fields['melody'][1].count(),16)
             finally:d.reject()
 
 class SynthesisTests(unittest.TestCase):
@@ -85,6 +95,21 @@ class SynthesisTests(unittest.TestCase):
             for pitch in (21,48,60,84,108):
                 e.stop();e.send(0x90,pitch,80);out=e.render(16384)
                 self.assertTrue(np.isfinite(out).all());self.assertGreater(abs(out).max(),.00001,(program,pitch))
+    def test_light_strings_sustain_a_chord_and_stop(self):
+        e=SynthEngine(channel_devices={1:CORE},offline=True)
+        self.addCleanup(e.close)
+        e.send(0xc1,49)
+        e.send(0xb1,7,100)
+        for pitch in (48,55,64):
+            e.send(0x91,pitch,88)
+        out=e.render(16384)
+        self.assertTrue(np.isfinite(out).all())
+        self.assertGreater(float(abs(out[-4096:]).max()),.001)
+        self.assertLess(float(abs(out).max()),.95)
+        for pitch in (48,55,64):
+            e.send(0x81,pitch,0)
+        e.render(8192)
+        self.assertFalse(e.render(512).any())
     def test_volume_noteoff_and_sustain(self):
         e=self.engine();e.send(0x90,60,100);e.send(0xb0,7,0);self.assertFalse(e.render(512).any())
         e.send(0xb0,7,100);e.send(0xb0,64,127);e.send(0x80,60);self.assertGreater(abs(e.render(8192)).max(),.001)
@@ -108,6 +133,17 @@ class SynthesisTests(unittest.TestCase):
         e=self.engine();e.send(0xb0,7,p.volumes['melody']);e.send(0x90,60,90);off=round(137*60/p.bpm/960*RATE)
         e.send(0x80,60,0,delay=off);expected=(e.render(8192)*32767).astype('<i2')
         np.testing.assert_array_equal(pcm[:8192],expected)
+    def test_source_gain_scales_offline_output_before_limiter(self):
+        p=Project();p.audio['melody']=dict(device=CORE,program=1);p.notes=[Note(0,137,60,90)]
+        p.volumes['melody']=25
+        render=lambda:np.frombuffer(b''.join(offline_pcm(p,'melody',0,200,threading.Event(),lambda _:None)),dtype='<i2')
+        original=render()
+        self.assertGreater(np.max(np.abs(original)),100)
+        p.audio['melody']['gain_db']=6.0
+        boosted=render()
+        np.testing.assert_allclose(boosted,original*(10**(.3)),atol=2,rtol=0)
+        p.volumes['melody']=0
+        self.assertFalse(render().any())
     def test_export_preserves_chosen_pack_and_rejects_windows(self):
         p=Project();p.notes=[Note(0,240,60)];p.audio['melody']=dict(device=EXTRA,program=73)
         self.assertIn('stk-colors',banks.credits_text(p,'melody',0,240,'offline'));self.assertTrue(b''.join(offline_pcm(p,'melody',0,240,threading.Event(),lambda n:None)))

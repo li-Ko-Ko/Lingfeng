@@ -79,7 +79,8 @@ def build():
         (41,'柔和弓弦','Soft bowed string',4,{2:65,4:85,1:0},.28),
         (42,'大提琴模型','Cello model',4,{2:70,4:65,1:0},.34),
         (43,'弓弦低音','Bowed bass',4,{2:80,4:90,1:0},.34),
-        (48,'弦乐铺底','Bowed string pad',4,{2:72,4:55,1:6},.25)]
+        (48,'弦乐铺底','Bowed string pad',4,{2:72,4:55,1:6},.25),
+        (49,'轻弦和声','Light chord strings',4,{2:60,4:68,11:42,1:2},.18)]
     extra=[(11,'敲击条','Struck bar',11,{16:1},.54),(14,'管钟','Tubular bell',6,{},.2),
            (16,'拉杆风琴模型','Drawbar organ model',5,{},.18),(19,'柔和风琴','Soft organ',5,{2:20,4:25},.2),
            (56,'铜管模型','Brass model',7,{1:0},.18),(65,'萨克斯模型','Saxophone model',10,{1:0},.22),
@@ -104,7 +105,13 @@ def build():
         shutil.copy2(dll,pack/dll.name);shutil.copy2(stk/'LICENSE',pack/'LICENSE-STK.txt');shutil.copy2(ROOT/'LICENSE',pack/'LICENSE-Lingfeng.txt')
         for relative in ('LICENSE','lib/libcxx/LICENSE.TXT','lib/libcxxabi/LICENSE.TXT','lib/libunwind/LICENSE.TXT','lib/libc/mingw/COPYING'):
             notice=pack/'licenses'/'zig-runtime'/relative;notice.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(zig.parent/relative,notice)
-        presets=[dict(program=p,name=cn,name_en=en,model=m,controls=c,gain=g,cutoff_hz=5000 if m in (4,7,10,13,15,17) else 6500) for p,cn,en,m,c,g in rows]
+        presets=[]
+        for program, name, name_en, model, controls, gain in rows:
+            cutoff=5000 if model in (4,7,10,13,15,17) else 6500
+            if ident=='stk-essentials' and program==49:
+                cutoff=3200
+            presets.append(dict(program=program,name=name,name_en=name_en,model=model,
+                                controls=controls,gain=gain,cutoff_hz=cutoff))
         data=dict(schema=1,id=ident,name=label,name_en=en_label,version=__version__,abi=1,platform='windows-x64',library=dll.name,sha256=hashlib.sha256(dll.read_bytes()).hexdigest(),license='STK permissive license',license_file='LICENSE-STK.txt',source='https://github.com/thestk/stk/tree/5.0.1',author='Perry R. Cook, Gary P. Scavone and STK contributors',presets=presets)
         (pack/'synth.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),'utf-8')
         (pack/'README.txt').write_text('将整个 '+ident+' 文件夹放入 Lingfeng.exe 同级的 synths 目录，然后在 设置 → 音源与音色 点击“重新扫描并保存”。\nCopy this folder into synths next to Lingfeng.exe, then rescan in sound settings.\nSTK 5.0.1 native algorithms; no recorded instrument samples. FM uses two embedded single-cycle mathematical oscillator tables.\nOriginal STK terms in LICENSE-STK.txt; the host/bridge/preset files use MIT.\n','utf-8')

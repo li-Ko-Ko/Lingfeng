@@ -1,9 +1,10 @@
-"""Read Standard MIDI Files and replace a bounded part of one project track."""
+"""Read Standard MIDI Files and map source tracks to editable project music."""
 from dataclasses import dataclass,field
 from collections import defaultdict,deque
+from bisect import bisect_left,bisect_right
 from pathlib import Path
 import struct,copy
-from lingfeng.music.model import Note, Chord, Context, Measure, PPQ, uid
+from lingfeng.music.model import Note, Chord, Context, Measure, Project, PPQ, uid
 from lingfeng.music.note_operations import overwrite_note
 
 
@@ -21,6 +22,23 @@ class MidiData:
     meters:list
     def notes_for(self,indices):return [copy.deepcopy(n) for i in indices for n in self.tracks[i].notes]
     def end_for(self,indices):return max((self.tracks[i].end for i in indices),default=0)
+
+    def default_mapping(self):
+        usable=[i for i,track in enumerate(self.tracks) if track.notes]
+        mapping={'melody':[],'instrument':[],'chords':[]}
+        aliases=(('chords',('chord','harmony','和弦','伴奏')),
+                 ('melody',('vocal','voice','人声')),
+                 ('instrument',('instrument','ins ','lead','乐器','旋律2','旋律 2','旋律卷帘 2')),
+                 ('melody',('melody','旋律')))
+        unnamed=[]
+        for i in usable:
+            label=self.tracks[i].name.casefold().strip()
+            for role,words in aliases:
+                if (role=='instrument' and label=='ins') or any(word in label for word in words):
+                    mapping[role].append(i);break
+            else:unnamed.append(i)
+        if unnamed and not mapping['melody']:mapping['melody'].append(unnamed[0])
+        return mapping
 
 
 def read_midi(path):
@@ -94,6 +112,77 @@ def read_midi(path):
 from lingfeng.music.project_extent import extend_project
 
 
+def _fragment_measures(data,length,import_meter,meter):
+    changes={0:(4,4) if import_meter else meter}
+    if import_meter:changes.update({tick:(n,d) for tick,n,d in data.meters if tick<length})
+    boundaries=[]
+    for tick in sorted(changes):
+        if not boundaries or changes[tick]!=changes[boundaries[-1]]:boundaries.append(tick)
+    measures=[];tick=index=0
+    while tick<length:
+        if len(measures)>=1000:raise ValueError('导入后超过 1000 小节。')
+        if index+1<len(boundaries) and boundaries[index+1]==tick:index+=1
+        n,d=changes[boundaries[index]]
+        if n not in range(1,17) or d not in (2,4,8,16):
+            raise ValueError('MIDI 拍号超出支持范围：分子 1–16，分母 2／4／8／16。')
+        measure=Measure(n,d);tick+=measure.ticks
+        if index+1<len(boundaries) and boundaries[index+1]<tick:
+            raise ValueError('MIDI 拍号变化不在小节边界，请取消导入拍号后重试。')
+        measures.append(measure)
+    return measures
+
+
+def _mapped_notes(data,indices,quantization):
+    from lingfeng.music.quantization import quantize_notes
+    notes=data.notes_for(indices)
+    if any(not 21<=note.pitch<=108 for note in notes):
+        raise ValueError('选中音轨含 88 键范围之外的音符，请先在 DAW 中调整音域或选择其它音轨。')
+    if quantization:notes=quantize_notes(notes,**quantization)
+    rows=defaultdict(list)
+    for note in sorted(notes,key=lambda n:(n.start,n.pitch)):
+        note.id=uid();note.event_id='';note.lyric=''
+        row=rows[note.pitch]
+        if row and row[-1].end>note.start:
+            first=bisect_right(row,note.start,key=lambda event:event.end)
+            last=bisect_left(row,note.end,key=lambda event:event.start)
+            row[first:last]=overwrite_note(note,row[first:last])
+        else:row.append(note)
+    return sorted((note for row in rows.values() for note in row),key=lambda n:(n.start,n.pitch))
+
+
+def project_from_midi(data,mapping,*,import_meter=False,meter=(4,4),quantization=None,context=None,import_tempo=False):
+    """Create music at tick zero for the shared insert-at-bar operation."""
+    tracks={};length=0
+    for role in ('melody','instrument','chords'):
+        indices=tuple(mapping.get(role,()))
+        if any(type(i) is not int or not 0<=i<len(data.tracks) or not data.tracks[i].notes for i in indices):
+            raise ValueError('请选择包含音符的 MIDI 音轨。')
+        indices=sorted(set(indices))
+        notes=_mapped_notes(data,indices,quantization)
+        length=max(length,data.end_for(indices),max((note.end for note in notes),default=0))
+        tracks[role]=notes
+    if not any(tracks.values()):raise ValueError('请选择包含音符的 MIDI 音轨。')
+    measures=_fragment_measures(data,length,import_meter,meter)
+    bpm=round(data.tempos[0][1]) if import_tempo and data.tempos else 120
+    if not 20<=bpm<=300:raise ValueError('MIDI 速度超出 20–300 BPM 范围。')
+    end=sum(measure.ticks for measure in measures)
+    key=Context(0,end) if context is None else Context(0,end,context.tonic,context.mode,context.low,context.high)
+    project=Project(bpm=bpm,measures=measures,contexts=[key],notes=tracks['melody'],instrument_notes=tracks['instrument'])
+    if tracks['chords']:
+        project.fill_chord_gaps()
+        starts=project.starts
+        for note in tracks['chords']:
+            index=bisect_right(starts,note.start)-1
+            while index<len(project.chords) and project.chords[index].start<note.end:
+                chord=project.chords[index]
+                a,b=max(chord.start,note.start),min(chord.end,note.end)
+                chord.notes.append(Note(a-chord.start,b-a,note.pitch,note.velocity,id=note.id+'@'+chord.id,event_id=note.id))
+                index+=1
+        project.rescan_harmony()
+    project.validate()
+    return project
+
+
 def _meters(project,data,start,end):
     if start not in project.starts:raise ValueError('覆盖拍号时，请将导入起点放在小节开头。')
     imported={start:(4,4)}
@@ -138,8 +227,9 @@ def apply_midi(project,data,indices,target,start,overwrite_meter=False,overwrite
     indices=sorted(set(indices));notes=data.notes_for(indices);length=data.end_for(indices)
     if not notes or not length:raise ValueError('请选择包含音符的 MIDI 音轨。')
     if any(not 21<=n.pitch<=108 for n in notes):raise ValueError('选中音轨含 88 键范围之外的音符，请先在 DAW 中调整音域或选择其它音轨。')
-    from lingfeng.engraving.lyrics import detach
-    detach(project)
+    from lingfeng.engraving.lyrics import detach, edit_lyric_track
+    track=int(target=='instrument')
+    edit_lyric_track(project,track,detach)
     for n in notes:n.lyric=''
     if quantization:
         from lingfeng.music.quantization import quantize_notes
@@ -157,13 +247,13 @@ def apply_midi(project,data,indices,target,start,overwrite_meter=False,overwrite
         # Preserve rearticulation, including slightly overlapping legato notes.
         # A union erased these onsets and could misidentify the whole region as block.
         n.start+=start;n.id=uid();merged=overwrite_note(n,merged)
-    if target=='melody':
+    if target!='chords':
         remaining=[]
-        for n in project.notes:
+        for n in project.melody_notes(track):
             if n.end<=start or n.start>=end:remaining.append(n);continue
             for a,b in ((n.start,min(n.end,start)),(max(n.start,end),n.end)):
                 if b>a:piece=copy.deepcopy(n);piece.start=a;piece.duration=b-a;piece.id=uid();remaining.append(piece)
-        project.notes=sorted(remaining+merged,key=lambda n:(n.start,n.pitch))
+        project.set_melody_notes(track,sorted(remaining+merged,key=lambda n:(n.start,n.pitch)))
     else:
         remaining=[]
         for c in project.chords:

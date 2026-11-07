@@ -9,10 +9,10 @@ def contiguous(bars):
 
 
 def segment_signature(p, first, last):
-    """Compare the actual two-track performance, notation and harmonic context."""
+    """Compare the performed notes, notation and harmonic context."""
     a,b=p.starts[first],p.starts[last]
     events=[]
-    for track,notes in enumerate((p.notes,p.harmony_notes())):
+    for notes in (p.notes,p.instrument_notes,p.harmony_notes()):
         if any(n.start<a<n.end or n.start<b<n.end for n in notes):return None
         # Lyrics belong to verses. They may differ between identical performances.
         events.append(tuple(sorted((n.start-a,n.duration,n.pitch,n.velocity,n.flat) for n in notes if a<=n.start<b)))
@@ -22,14 +22,15 @@ def segment_signature(p, first, last):
             item=(max(a,c.start)-a,min(b,c.end)-a,c.tonic,c.mode)
             if contexts and contexts[-1][1]==item[0] and contexts[-1][2:]==item[2:]:contexts[-1]=(contexts[-1][0],item[1],*item[2:])
             else:contexts.append(item)
-    chords=tuple((max(a,c.start)-a,min(b,c.end)-a,c.root,c.quality,c.bass,c.flat,c.recognized) for c in p.chords if c.start<b and c.end>a)
+    chords=tuple((max(a,c.start)-a,min(b,c.end)-a,c.root,c.quality,c.bass,c.flat,c.recognized,c.instrument_analysis)
+                 for c in p.chords if c.start<b and c.end>a)
     measures=tuple((m.numerator,m.denominator,m.section) for m in p.measures[first:last])
     return b-a,tuple(events),tuple(contexts),chords,measures
 
 
 def same_segment(p,a,b,c,d):
     left=segment_signature(p,a,b)
-    return left is not None and left==segment_signature(p,c,d) and bool(left[1][0] or left[1][1])
+    return left is not None and left==segment_signature(p,c,d) and any(left[1])
 
 
 def compression_candidate(p,bars,kind='repeat'):
@@ -41,7 +42,7 @@ def compression_candidate(p,bars,kind='repeat'):
         # Prefix matches on onset fingerprints avoid quadratic full-MIDI comparisons
         # when a user selects a long, nonrepeating song.
         starts=p.starts;events=[[] for _ in bars];first_onset=None
-        for track,notes in enumerate((p.notes,p.harmony_notes())):
+        for track,notes in enumerate((p.notes,p.instrument_notes,p.harmony_notes())):
             for n in notes:
                 bar=bisect.bisect_right(starts,n.start)-1
                 if a<=bar<z:
@@ -67,7 +68,7 @@ def compression_candidate(p,bars,kind='repeat'):
     if kind in ('dc','dc_nr') and a!=0:return None
     if not same_segment(p,a,mid,mid,z):return None
     # A D.C./D.S. al Fine form can only end the performed piece.
-    if kind!='repeat' and any(n.end>p.starts[z] for n in p.notes+p.harmony_notes()):return None
+    if kind!='repeat' and any(n.end>p.starts[z] for n in p.notes+p.instrument_notes+p.harmony_notes()):return None
     return dict(kind=kind,start=a,first_end=mid,hidden_start=mid,hidden_end=z,end=z)
 
 
@@ -236,17 +237,17 @@ def add_slur(p,note_ids):
     p.notation['symbols']=items
 
 
-def shift_presentation(p,index,tick,duration):
+def shift_presentation(p,index,tick,duration,count=1):
     for row in p.notation.get('forced_rows',[]):
-        row[0]+=row[0]>=index;row[1]+=row[1]>index
+        row[0]+=count*(row[0]>=index);row[1]+=count*(row[1]>index)
     for row in p.notation.get('forced_row_fonts',[]):
-        row[0]+=row[0]>=index;row[1]+=row[1]>index
+        row[0]+=count*(row[0]>=index);row[1]+=count*(row[1]>index)
     for item in p.notation.get('compressions',[]):
         for key in ('start','first_end','hidden_start','hidden_end','end'):
-            item[key]+=item[key]>=index if key in ('start','hidden_start') else item[key]>index
+            item[key]+=count*(item[key]>=index if key in ('start','hidden_start') else item[key]>index)
     for item in p.notation.get('symbols',[]):
-        for key in ('start','end'):
-            if item[key]>=tick:item[key]+=duration
+        if item['start']>=tick:item['start']+=duration
+        if item['end']>tick:item['end']+=duration
 
 
 def validate_presentation(p):

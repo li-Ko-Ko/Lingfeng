@@ -80,7 +80,9 @@ class WorkspaceTests(unittest.TestCase):
         QTest.mouseClick(lane,Qt.MouseButton.LeftButton,pos=pos);self.assertEqual(len(self.heard),2)
         QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=pos);end=pos+QPoint(24,0);QTest.mouseMove(lane,end);QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end);self.assertEqual(len(self.heard),3)
     def test_overview_contains_both_tracks_and_sits_above_controls(self):
-        w=self.w;segments=w.navigator.segments();self.assertEqual(sum(s[0]==0 for s in segments),len(w.project.notes));self.assertEqual(sum(s[0]==1 for s in segments),len(w.project.harmony_notes()))
+        w=self.w;segments=w.navigator.segments();self.assertEqual(sum(s[0]==0 for s in segments),len(w.project.notes));self.assertFalse(any(s[0]==1 for s in segments))
+        w.navigator.set_visible_tracks(['vocal','instrument','chords'])
+        self.assertEqual(sum(s[0]==1 for s in w.navigator.segments()),len(w.project.harmony_notes()))
         self.assertGreater(w.navigator.mapTo(w,QPoint()).y(),w.play_button.mapTo(w,QPoint()).y()+w.play_button.height())
         self.assertLess(w.navigator.mapTo(w,QPoint()).y(),w.tool.mapTo(w,QPoint()).y())
         menu=w.title_bar.menu;self.assertLess(menu.actionGeometry(w.title_bar.brand).x(),menu.actionGeometry(menu.actions()[1]).x());self.assertEqual(w.title_bar.brand.text(),'伶风')

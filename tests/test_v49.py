@@ -1,14 +1,16 @@
 """Partial lyric entry, invisible skips, and notation-only rap over MIDI notes."""
 import copy,os,tempfile,unittest
 from pathlib import Path
+from zipfile import ZipFile
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QImage,QPainter
 from lingfeng.music.model import Project, Note
-from lingfeng.engraving.lyrics import tokenize, apply_range, plan_range, events, sections, matching_issues, delete_section
+from lingfeng.engraving.lyrics import tokenize, apply_range, plan_range, events, sections, matching_issues, delete_section, edit_lyric_track
 from lingfeng.engraving.notation import ScoreLayout, PAPER_W, PAPER_H
-from lingfeng.audio.midi import event_list, export_midi
+from lingfeng.audio.midi import event_list, export_daw_bundle, export_midi
 from lingfeng.ui.main_window import MainWindow
+from tests.test_music import read_midi
 
 APP=QApplication.instance() or QApplication([])
 
@@ -23,10 +25,11 @@ def draw(p):
     return layout,image
 
 class LyricRulesTests(unittest.TestCase):
-    def test_hyphens_consume_onsets_and_old_underscores_remain_compatible(self):
+    def test_abc_melisma_and_legacy_skips_consume_onsets(self):
         tokens=tokenize('我/s/s你 _ rapper')
         self.assertEqual([t.text for t in tokens],['我','','','你','','rapper'])
         self.assertEqual([t.skip for t in tokens],[False,True,True,False,True,False])
+        self.assertEqual([t.melisma for t in tokens],[False,False,False,False,True,False])
         self.assertFalse(any(t.join_next for t in tokens))
         p=song();apply_range(p,'我/s/s你',0,1)
         self.assertEqual([e['tick'] for e in events(p)],[0,480,960,1440])
@@ -63,10 +66,10 @@ class LyricRulesTests(unittest.TestCase):
         p=song();apply_range(p,'be fore/sdawn',0,1)
         section=p.notation['lyric_sections'][0];section.pop('syntax_version');section['text']='be-fore _ dawn'
         before=p.to_dict();loaded=sections(p)[0]
-        self.assertEqual(loaded['text'],'be fore/sdawn');self.assertEqual(p.to_dict(),before)
+        self.assertEqual(loaded['text'],'be fore*dawn');self.assertEqual(p.to_dict(),before)
         apply_range(p,loaded['text'],0,1,section_id=loaded['id'])
         self.assertEqual([(e['tick'],e['text']) for e in events(p)],[(0,'be'),(480,'fore'),(960,''),(1440,'dawn')])
-        self.assertEqual(sections(p)[0]['text'],'be fore/sdawn')
+        self.assertEqual(sections(p)[0]['text'],'be fore*dawn')
 
     def test_save_load_retains_new_syntax_and_rap_midi(self):
         p=song();apply_range(p,'/x{我/s你}唱',0,1)
@@ -74,17 +77,29 @@ class LyricRulesTests(unittest.TestCase):
             file=Path(folder)/'rap.lfs';p.save(file);q=Project.load(file)
         self.assertEqual(sections(q),sections(p));self.assertEqual(events(q),events(p));self.assertEqual(event_list(q),event_list(p))
 
-    def test_adding_rap_markup_to_same_lyrics_keeps_exported_midi_bytes(self):
-        p=song();ident=apply_range(p,'我是一个rapper/s唱',0,1)
+    def test_midi_and_daw_omit_both_rap_lyric_kinds_but_keep_pitches(self):
+        p=song();p.instrument_notes=[Note(0,480,72),Note(480,480,74)]
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             plain=Path(folder)/'plain.mid';rap=Path(folder)/'rap.mid';export_midi(p,plain)
-            apply_range(p,'/x{我是一个rapper}/s唱',0,1,section_id=ident);export_midi(p,rap)
-            self.assertEqual(plain.read_bytes(),rap.read_bytes())
+            apply_range(p,r'唱 \x{Rap} Timed/8 尾',0,1)
+            edit_lyric_track(p,1,lambda track:apply_range(track,r'\x{Speak} 器',0,1))
+            export_midi(p,rap)
+            before=read_midi(plain)[2];after=read_midi(rap)[2]
+            self.assertEqual([[e for e in track if e[1]!=255] for track in after],
+                             [[e for e in track if e[1]!=255] for track in before])
+            def lyrics(track):return [(e[0],e[3].decode()) for e in track if e[1:3]==(255,5)]
+            self.assertEqual([lyrics(track) for track in after],[[],[(0,'唱'),(1440,'尾')],[],[(480,'器')]])
+            bundle=Path(folder)/'daw.zip';export_daw_bundle(p,bundle)
+            with ZipFile(bundle) as archive:
+                self.assertEqual(archive.read('00_Full.mid'),rap.read_bytes())
+                for filename,expected in [('01_Melody.mid',[(0,'唱'),(1440,'尾')]),('03_Instrument.mid',[(480,'器')])]:
+                    rap.write_bytes(archive.read(filename))
+                    self.assertEqual(lyrics(read_midi(rap)[2][1]),expected)
 
 class LyricRenderingTests(unittest.TestCase):
     def test_skip_never_draws_text_or_melisma_lines_in_any_style(self):
         for style in ('traditional','spatial','compact'):
-            p=song();p.notation['style']=style;apply_range(p,'风 /s _',0,1)
+            p=song();p.notation['style']=style;apply_range(p,'风 /s *',0,1)
             layout,image=draw(p);q=copy.deepcopy(p)
             q.notation['lyric_events']=[e for e in events(q) if not e.get('skip')]
             plain,without_skips=draw(q)

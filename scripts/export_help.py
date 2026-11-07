@@ -11,13 +11,15 @@ from lingfeng.platform.help_content import HELP_CATEGORIES, TOPICS, ABOUT_ZH, AB
 def export(path=ROOT/'docs/HELP.md'):
     topics={topic[0]:topic for topic in TOPICS}
     parts=['# 伶风操作帮助 / Lingfeng user guide',
-           '本文由 `python scripts/export_help.py` 从程序内帮助生成。程序中的帮助支持分类浏览以及中英文全文搜索。移动快捷键固定使用方向键及其修饰组合；其它可配置键位可在设置中修改。',
-           'Generated from the in-app help with `python scripts/export_help.py`. In-app help provides categories and Chinese/English full-text search. Movement shortcuts use fixed arrows and modifier combinations; other configurable shortcuts can be changed in Settings.',
+           '首次使用可先读[从创作到导出](#topic-1-1)。下方按任务查找，也可在程序内搜索中英文标题和正文。',
+           'Start with [From composition to export](#topic-1-1). Browse by task below or search titles and text in either language from the app.',
            '## 目录 / Contents']
+    toc=[]
     for group,(zh,en,titles) in enumerate(HELP_CATEGORIES,1):
-        parts.append(f'{group}. [{zh} / {en}](#category-{group})')
+        toc.append(f'{group}. [{zh} / {en}](#category-{group})')
         for item,title in enumerate(titles,1):
-            topic=topics[title];parts.append(f'   - [{group}.{item} {title} / {topic[1]}](#topic-{group}-{item})')
+            topic=topics[title];toc.append(f'    - [{group}.{item} {title} / {topic[1]}](#topic-{group}-{item})')
+    parts.append('\n'.join(toc))
     for group,(zh,en,titles) in enumerate(HELP_CATEGORIES,1):
         parts.append(f'<a id="category-{group}"></a>\n\n## {group}. {zh} / {en}')
         if not titles:

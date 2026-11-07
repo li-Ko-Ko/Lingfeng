@@ -17,8 +17,8 @@ def song():
     return p
 
 class SyntaxTests(unittest.TestCase):
-    def test_slash_skips_punctuation_and_english_word_boundaries(self):
-        t=tokenize("我，爱。你,hello world!/s/s中—文。rock-and-roll")
+    def test_slash_skips_punctuation_and_escaped_word_boundaries(self):
+        t=tokenize(r"我，爱。你,hello world!/s/s中—文。rock\-and\-roll")
         self.assertEqual([x.text for x in t],['我，','爱。','你,','hello','world!','','','中—','文。','rock-and-roll'])
         self.assertEqual([i for i,x in enumerate(t) if x.skip],[5,6])
         self.assertEqual([t.text for t in tokenize('，我/s，你。')],['，我，','','你。'])
@@ -31,9 +31,9 @@ class SyntaxTests(unittest.TestCase):
         self.assertTrue(plan_range(p,'好\n多',0,1).issues)
 
     def test_compact_autofill_merges_rap_across_bars_and_keeps_internal_gaps(self):
-        p=song();text='春风，/s/s唱出心声\n/x{我们一起跟着节奏\nLet us rap in English now/s/s}\n你&好。'
+        p=song();text='春风，**唱出心声\n\\x{我们一起跟着节奏\nLet us rap in English now**}\n你&好。'
         apply_range(p,text,0,4);before=p.to_dict();loaded,valid=range_source(p,0,4)
-        self.assertTrue(valid);self.assertEqual(loaded,text);self.assertEqual(loaded.count('/x{'),1);self.assertNotIn('|',loaded)
+        self.assertTrue(valid);self.assertEqual(loaded,text);self.assertEqual(loaded.count(r'\x{'),1);self.assertNotIn('|',loaded)
         self.assertEqual(before,p.to_dict());midi=event_list(p);saved=[(e['tick'],e['text'],e['kind'],e['skip']) for e in events(p)]
         apply_range(p,loaded,0,4,replace=True)
         self.assertEqual(saved,[(e['tick'],e['text'],e['kind'],e['skip']) for e in events(p)]);self.assertEqual(event_list(p),midi)
@@ -45,12 +45,18 @@ class SyntaxTests(unittest.TestCase):
         p=song();ident=apply_range(p,'be fore/sdawn\n/x{说唱}',0,2)
         raw=p.notation['lyric_sections'][0];raw.update(text='be-fore _ dawn | /x{说}/x{唱}',syntax_version=1)
         before=p.to_dict();loaded=sections(p)[0]
-        self.assertEqual(loaded['text'],'be fore/sdawn\n/x{说唱}');self.assertEqual(before,p.to_dict())
+        self.assertEqual(loaded['text'],'be fore*dawn\n\\x{说唱}');self.assertEqual(before,p.to_dict())
         self.assertFalse(plan_range(p,loaded['text'],0,2,section_id=ident).issues)
+
+    def test_backslash_rap_starts_after_english_without_a_space(self):
+        for source in (r'sing\x{中文 flow}again', 'sing/x{中文 flow}again'):
+            with self.subTest(source=source):
+                self.assertEqual([(t.text,t.rap) for t in tokenize(source)],
+                                 [('sing',False),('中',True),('文',True),('flow',True),('again',False)])
 
     def test_unclosed_or_nested_multiline_rap_is_atomic(self):
         p=song();before=p.to_dict()
-        for text in ('/x{我\n你','/x{我\n/x{你}}','/x{}\n你'):
+        for text in ('\\x{我\n你','\\x{我\n/x{你}}','\\x{}\n你'):
             with self.assertRaises(ValueError):apply_range(p,text,0,2)
             self.assertEqual(p.to_dict(),before)
 

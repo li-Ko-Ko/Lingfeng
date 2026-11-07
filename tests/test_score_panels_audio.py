@@ -7,7 +7,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtCore import Qt
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.music.model import Project, Note
-from lingfeng.engraving.lyrics import events
+from lingfeng.engraving.lyrics import events, lyric_track
 
 APP=QApplication.instance() or QApplication([])
 
@@ -23,11 +23,12 @@ class ScorePanelsTests(unittest.TestCase):
         w=self.w
         self.assertEqual(w.score_tabs.count(),0);self.assertFalse(w.score_tools.isVisible())
         for key in w.score_pages:w.show_score_panel(key)
-        self.assertEqual([w.score_tabs.tabText(i) for i in range(4)],['旋律卷帘','和弦卷帘','歌词','标识'])
+        self.assertEqual([w.score_tabs.tabText(i) for i in range(w.score_tabs.count())],
+                         ['旋律卷帘','和弦卷帘','歌词 1 · 人声','歌词 2 · 乐器','标识'])
         self.assertTrue(w.score_tools.isVisible());self.assertFalse(w.edit_toggle.isVisible())
         self.assertEqual(w.view_menu.actions(),list(w.score_view_actions.values()))
         w.switch_workspace('compose');self.assertEqual(w.view_menu.actions(),w.compose_menu_actions)
-        w.switch_workspace('score');self.assertEqual(w.score_tabs.count(),4)
+        w.switch_workspace('score');self.assertEqual(w.score_tabs.count(),5)
 
     def test_float_close_and_reopen_affect_one_tab_and_restore_modes(self):
         w=self.w
@@ -45,7 +46,7 @@ class ScorePanelsTests(unittest.TestCase):
         lyrics.close();self.assertFalse(w.score_panel_state['lyrics']['visible']);self.assertTrue(w.score_floats['melody'].isVisible())
         w.score_view_actions['lyrics'].setChecked(True);self.assertTrue(lyrics.isVisible())
         lyrics.title_bar.dock.activated.emit();self.assertFalse(lyrics.isFloating());self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
-        self.assertIsNone(w.show_score_panel('logic'));self.assertEqual([w.score_tabs.tabText(i) for i in range(w.score_tabs.count())],['和弦卷帘','歌词'])
+        self.assertIsNone(w.show_score_panel('logic'));self.assertEqual([w.score_tabs.tabText(i) for i in range(w.score_tabs.count())],['和弦卷帘','歌词 1 · 人声'])
 
     def test_all_closed_and_restore_one_then_language_keeps_float_and_draft(self):
         w=self.w
@@ -66,6 +67,33 @@ class ScorePanelsTests(unittest.TestCase):
         w.undo();self.assertEqual([e['text'] for e in events(w.score_view.canvas.project)],['春','风'])
         w.redo();panel.delete();self.assertEqual(events(w.score_view.canvas.project),[])
         w.undo();self.assertEqual([e['text'] for e in events(w.score_view.canvas.project)],['秋','雨'])
+
+    def test_lyric_tabs_keep_independent_drafts_and_floating_state(self):
+        w=self.w;w.lyrics_action.trigger();self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
+        w.lyric_panel.text.setPlainText('人声草稿')
+        w.score_view_actions['instrument_lyrics'].setChecked(True)
+        instrument=w.lyric_panels['instrument_lyrics'];w.score_tabs.setCurrentWidget(instrument)
+        instrument.text.setPlainText('乐器草稿');w.toggle_score_panel_floating('instrument_lyrics')
+        self.assertIs(w.score_tabs.currentWidget(),w.lyric_panel)
+        self.assertTrue(w.score_floats['instrument_lyrics'].isVisible())
+        w.change_language('en',persist=False);APP.processEvents()
+        self.assertEqual(w.lyric_panel.text.toPlainText(),'人声草稿')
+        instrument=w.lyric_panels['instrument_lyrics'];self.assertEqual(instrument.text.toPlainText(),'乐器草稿')
+        w.score_floats['instrument_lyrics'].close();self.assertTrue(w.lyric_panel.isVisible())
+        self.assertFalse(w.score_panel_state['instrument_lyrics']['visible'])
+
+    def test_score_context_and_undo_reopen_instrument_lyrics(self):
+        w=self.w;start=w.project.starts[1]
+        w.project.instrument_notes=[Note(start,960,72)];w.score_view.canvas.rebuild(w.project)
+        w.open_score_roll('instrument_lyrics',start)
+        panel=w.lyric_panels['instrument_lyrics'];self.assertIs(w.score_tabs.currentWidget(),panel)
+        self.assertEqual(panel.start.value(),2)
+        panel.text.setPlainText('弦');panel.commit()
+        self.assertEqual(events(w.project),[])
+        self.assertEqual([e['text'] for e in events(lyric_track(w.score_view.canvas.project,1))],['弦'])
+        w.show_score_panel('lyrics');w.undo()
+        self.assertIs(w.score_tabs.currentWidget(),panel)
+        self.assertEqual(events(lyric_track(w.project,1)),[])
 
     def test_floating_roll_shortcuts_and_score_navigation(self):
         w=self.w;w.toggle_score_panel_floating('harmony');w.harmony_window.roll.setFocus();APP.processEvents()

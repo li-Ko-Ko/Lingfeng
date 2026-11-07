@@ -96,7 +96,7 @@ class ScorePanelTests(unittest.TestCase):
 
     def test_first_entry_hides_all_four_then_preserves_independent_visibility_and_floating(self):
         w=self.w;w.switch_workspace('score')
-        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics','annotations'})
+        self.assertEqual(set(w.score_pages),{'melody','harmony','lyrics','instrument_lyrics','annotations'})
         self.assertEqual(w.score_tabs.count(),0);self.assertFalse(w.score_tools.isVisible())
         self.assertTrue(all(not state['visible'] for state in w.score_panel_state.values()))
         w.show_score_panel('annotations');w.show_score_panel('melody');w.toggle_score_panel_floating('annotations')

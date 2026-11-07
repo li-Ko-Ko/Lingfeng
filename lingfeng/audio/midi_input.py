@@ -58,12 +58,14 @@ class WinMidiInput:
 
 def commit_notes(project,notes,target):
     """Preserve lyrics; chord input is split into existing structural regions."""
-    from lingfeng.engraving.lyrics import detach
+    from lingfeng.engraving.lyrics import detach, edit_lyric_track
     from lingfeng.music.project_extent import extend_project
-    detach(project);extend_project(project,max(n.end for n in notes))
-    if target=='melody':
-        for n in notes:project.add_note(n,overwrite=True)
-        project.notes.sort(key=lambda n:(n.start,n.pitch));return
+    extend_project(project,max(n.end for n in notes))
+    if target!='chords':
+        track=int(target=='instrument')
+        edit_lyric_track(project,track,detach)
+        for n in notes:project.add_note(n,overwrite=True,track=track)
+        return
     for n in notes:project.overwrite_harmony(n)
     project.chords.sort(key=lambda c:c.start)
 
@@ -99,7 +101,8 @@ class MidiInputController(QObject):
         if kind not in (0x80,0x90) or not 21<=pitch<=108:return
         if kind==0x90 and velocity:
             if key in self.held:self.finish(key,stamp)
-            owner=self.owner;roll=owner.roll if self.target=='melody' else owner.harmony_window.roll
+            owner=self.owner
+            roll=owner.harmony_window.roll if self.target=='chords' else owner.melody_roll_for(int(self.target=='instrument'))
             live=owner.transport.playing;step=roll.grid
             from lingfeng.music.timing import grid_points
             points=grid_points(owner.project,step,roll.grid_bars)
@@ -119,7 +122,7 @@ class MidiInputController(QObject):
             tick=max(0,tick);start=roll.snap_time(tick) if tick<=owner.project.end else nearest(tick,step,owner.project.end)
             origin=owner.project.starts[owner.project.measure_at(start)]
             self.held[key]=dict(points=points,bar_length=owner.project.measures[-1].ticks,bars=roll.grid_bars,start=start,raw_start=tick,stamp=stamp,step=step,origin=origin,velocity=velocity,live=live,target=self.target,bpm=owner.project.bpm)
-            owner.transport.monitor(pitch,velocity,self.target=='chords')
+            owner.transport.monitor(pitch,velocity,self.target)
         elif key in self.held:
             if channel in self.pedal:self.released.add(key)
             else:self.finish(key,stamp)
@@ -128,7 +131,7 @@ class MidiInputController(QObject):
         state=self.held.pop(key,None);self.released.discard(key)
         if state is None:return
         channel,pitch=key;owner=self.owner
-        owner.transport.monitor(pitch,0,state['target']=='chords')
+        owner.transport.monitor(pitch,0,state['target'])
         elapsed=max(0,stamp-state['stamp'])*state['bpm']*960/60
         points=state['points'];raw_end=state['raw_start']+elapsed
         while points[-1]<=max(raw_end,state['start']):
@@ -144,14 +147,14 @@ class MidiInputController(QObject):
             if not self.held:
                 pending=self.pending;self.pending=[];self.step_tick=None
                 def op(p):
-                    for target in ('melody','chords'):
+                    for target in ('melody','instrument','chords'):
                         notes=[n for n,t in pending if t==target]
                         if notes:commit_notes(p,notes,target)
                 if owner.mutate(tr('已录入 MIDI 音符'),op,source='harmony' if state['target']=='chords' else 'melody'):
                     owner.playhead=min(owner.project.end-1,max(n.end for n,t in pending));owner.show_cursor(owner.playhead)
 
     def reset(self):
-        for (_,pitch),state in self.held.items():self.owner.transport.monitor(pitch,0,state['target']=='chords')
+        for (_,pitch),state in self.held.items():self.owner.transport.monitor(pitch,0,state['target'])
         self.held.clear();self.pending=[];self.step_tick=None;self.pedal.clear();self.released.clear()
 
     def close(self):
@@ -171,6 +174,10 @@ class MidiInputDialog(QDialog):
             at=self.device.findText(controller.device_name)
             if at>=0:self.device.setCurrentIndex(at)
         refresh.clicked.connect(update);update()
-        self.target=QComboBox();self.target.addItem(tr('旋律'),'melody');self.target.addItem(tr('和弦'),'chords');self.target.setCurrentIndex(self.target.findData(controller.target));row=QHBoxLayout();row.addWidget(QLabel(tr('录入轨道')));row.addWidget(self.target,1);box.addLayout(row)
+        project=getattr(getattr(controller,'owner',None),'project',None)
+        self.target=QComboBox()
+        for track,role in enumerate(('melody','instrument')):
+            self.target.addItem(project.melody_name(track) if project else tr(f'旋律卷帘 {track+1}'),role)
+        self.target.addItem(tr('和弦'),'chords');self.target.setCurrentIndex(self.target.findData(controller.target));row=QHBoxLayout();row.addWidget(QLabel(tr('录入轨道')));row.addWidget(self.target,1);box.addLayout(row)
         self.enabled=QCheckBox(tr('启用 MIDI 键盘录入'));self.enabled.setChecked(controller.enabled);box.addWidget(self.enabled)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);box.addWidget(buttons)

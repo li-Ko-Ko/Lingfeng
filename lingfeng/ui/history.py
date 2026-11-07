@@ -56,9 +56,9 @@ class HistoryMixin:
         """Resolve the initiating editor before a modal dialog changes focus."""
         sender=self.sender()
         widget=sender if isinstance(sender,QWidget) else QApplication.focusWidget()
-        roll=sender if sender in (self.roll,self.main_roll,self.harmony_window.roll) else self.active_roll()
+        roll=sender if sender in self.editing_rolls() else self.active_roll()
         window=widget.window() if isinstance(widget,QWidget) else roll.window()
-        panes=(self.melody_window,self.harmony_window,self.score_tools,*self.score_floats.values())
+        panes=(self.melody_window,self.harmony_window,self.score_tools,*self.score_floats.values(),*self.melody_floats.values())
         if window not in (self,*panes):window=roll.window()
         if window not in (self,*panes):window=self
         return window,roll
@@ -75,6 +75,7 @@ class HistoryMixin:
         if within(self.timeline):return 'timeline'
         if within(self.harmony_window):return 'harmony'
         if within(self.melody_window):return 'melody'
+        if any(within(pane) for pane in self.melody_floats.values()):return 'melody'
         for key,page in self.score_pages.items():
             if within(page) or within(self.score_floats[key]):return key
         if within(self.score_tools):return self.current_score_panel()
@@ -88,17 +89,20 @@ class HistoryMixin:
             if source is self.main_roll:surface='chords' if source.edit_target=='chords' else 'timeline'
             elif surface not in ('chords','timeline') or source is not self.active_roll():surface='harmony' if source is self.harmony_window.roll else 'melody'
         surface=surface or ('score' if self.workspace=='score' else getattr(self,'last_main_surface','main'))
-        workspace='score' if surface in ('score','logic','lyrics') else self.workspace
+        workspace='score' if surface in ('score','logic') or surface in self.lyric_panels else self.workspace
         roll=self.harmony_window.roll if surface=='harmony' else self.docked_roll() if surface in ('chords','timeline') else self.roll
+        if surface=='melody':
+            editor=source if source in self.editing_rolls() else self.active_roll()
+            if editor.role=='melody':roll=editor
         notes=roll.selected_notes();chords=[c for c in self.project.chords if c.id in roll.selected_chords]
         tick=min((n.start for n in notes or chords),default=roll.position_tick())
         return dict(surface=surface,workspace=workspace,tick=tick,notes=set(roll.selected_ids),
-                    chords=set(roll.selected_chords),target=roll.edit_target)
+                    chords=set(roll.selected_chords),target=roll.edit_target,melody_track=roll.melody_track if surface=='melody' else self.roll.melody_track)
 
     def history_roll_view(self,location):
         """Music undo keeps the note editor's current time and keyboard view."""
         if not location or location.get('target')!='notes' or location.get('surface') not in ('melody','harmony'):return None
-        roll=self.harmony_window.roll if location['surface']=='harmony' else self.roll
+        roll=self.harmony_window.roll if location['surface']=='harmony' else self.melody_roll_for(location.get('melody_track',0))
         anchor=roll.vertical_anchor();index=max(0,min(len(roll.pitches)-1,int(anchor)))
         return roll,roll.horizontalScrollBar().value()/roll.zoom,roll.pitches[index],anchor-index
 
@@ -115,21 +119,25 @@ class HistoryMixin:
     def restore_history_location(self,location,preserve_view=False):
         if not location or not getattr(self,'workspace_ready',False):return
         surface=location['surface'];self.switch_workspace(location['workspace'])
+        melody=self.melody_roll_for(location.get('melody_track',0),reveal=True) if surface=='melody' else self.roll
         window=self;focus=self;roll=None
         if self.workspace=='score':
-            if surface in ('melody','harmony','logic','lyrics'):
+            canvas=self.score_view.canvas
+            if surface=='score' and (canvas.layout is None or canvas.project.starts!=self.project.starts):
+                canvas.rebuild(self.project)
+            if surface in ('melody','harmony','logic') or surface in self.lyric_panels:
                 window=self.show_score_panel(surface)
-                focus=self.logic_panel if surface=='logic' else self.lyric_panel if surface=='lyrics' else None
+                focus=self.logic_panel if surface=='logic' else self.lyric_panels.get(surface)
             else:focus=self.score_view.canvas
         elif surface in ('melody','harmony'):
-            pane=self.melody_window if surface=='melody' else self.harmony_window
+            pane=self.roll_pane(melody) if surface=='melody' else self.harmony_window
             self.show_roll_in_place(pane)
             window=pane if pane.isFloating() else self
         elif surface in ('chords','timeline'):
             self.visibility_actions[surface].setChecked(True)
             focus=self.chord_lane if surface=='chords' else self.timeline
         if surface in ('melody','harmony','chords','timeline'):
-            roll=self.harmony_window.roll if surface=='harmony' else self.docked_roll() if surface in ('chords','timeline') else self.roll
+            roll=self.harmony_window.roll if surface=='harmony' else self.docked_roll() if surface in ('chords','timeline') else melody
             if surface in ('melody','harmony'):focus=roll
             self.select_element(location['target'],roll)
             roll.selected_ids=location['notes']&{n.id for n in roll.notes};roll.selected_note=next(iter(roll.selected_ids),'')

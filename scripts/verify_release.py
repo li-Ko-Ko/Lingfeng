@@ -9,6 +9,8 @@ import zipfile
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
 from lingfeng import __version__
+from lingfeng.audio.calibration import CALIBRATION_FILE
+from lingfeng.audio.soundbanks import _load_calibration
 from scripts.release_policy import APPROVED_PACKS,verify_source_tree,verify_public_release_paths
 
 
@@ -51,7 +53,7 @@ def verify(destination=None,*,archive=False):
     folder=Path(destination).resolve() if destination is not None else ROOT/'dist'/__version__/'Lingfeng'
     info=json.loads((folder/'build-info.json').read_text('utf-8'))
     assert info['version']==__version__
-    assert set(info['bundled_packs'])==set(APPROVED_PACKS),'Standalone must include all approved lightweight packs'
+    assert sorted(info['bundled_packs'])==sorted(APPROVED_PACKS),'Standalone must include the default sound packs'
     assert (folder/'Lingfeng.exe').is_file() and (folder/'docs/HELP.md').is_file()
     verify_runtime_resources(ROOT,folder)
     verify_public_release_paths(path.relative_to(folder) for path in folder.rglob('*') if path.is_file())
@@ -72,14 +74,16 @@ def verify(destination=None,*,archive=False):
                 with asset.open('rb') as stream:asset_hash=hashlib.file_digest(stream,'sha256').hexdigest()
                 assert asset_hash==expected_hash,'Sound asset checksum mismatch: '+relative
                 asset_count+=1
-        packs.append(dict(id=ident,presets=len(data['presets']),sha256=actual,verified_assets=asset_count))
-    assert not set(info['bundled_packs'])&{'piano-grand','piano-electric','keyboard-gm'},'Optional sound banks must remain separate downloads'
+        pack_root=(folder/'synths'/ident).resolve()
+        assert (pack_root/CALIBRATION_FILE).is_file(),'Bundled preset calibration is missing: '+ident
+        gains=_load_calibration(pack_root,data)
+        packs.append(dict(id=ident,presets=len(data['presets']),sha256=actual,verified_assets=asset_count,calibrated_presets=len(gains)))
     report=dict(status='passed',version=__version__,folder=str(folder),archive=None,
                 bytes=sum(path.stat().st_size for path in folder.rglob('*') if path.is_file()),
                 sha256=None,archive_files=0,source_files=len(source_files),
                 bundled_packs=packs,checks=['standalone source matches workspace','all application modules included',
                 'frozen catalog and icon match source','synth binary and sampled-asset checksums',
-                'all approved lightweight packs included','optional piano and keyboard banks excluded from bundled inventory',
+                'Greg, STK and YDP included in the bundled inventory','preset loudness calibration files',
                 'excluded local development and user data','excluded local design and maintenance records','categorized help included'])
     if archive:
         report.update(verify_archive(folder,ROOT/'dist'/f'Lingfeng-{__version__}-Windows-x64.zip',info['bundled_packs']))

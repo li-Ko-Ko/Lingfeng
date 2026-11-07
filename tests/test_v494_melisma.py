@@ -20,9 +20,9 @@ class MelismaTests(unittest.TestCase):
         text='我，/-/-/s/x{Hello world!/-}/s尾。'
         tokens=tokenize(text)
         self.assertEqual([t.melisma for t in tokens],[False,True,True,False,False,False,True,False,False])
-        self.assertEqual(format_tokens(tokens),text)
+        self.assertEqual(format_tokens(tokens),r'我，__*\x{Hello world!_}*尾。')
         self.assertFalse(any(t.melisma for t in tokenize('我/-/-',syntax_version=3)))
-        self.assertEqual(format_tokens(tokenize('我/-_-',syntax_version=2)),'我/s/s/s')
+        self.assertEqual(format_tokens(tokenize('我/-_-',syntax_version=2)),'我***')
 
     def test_adjacent_123_get_two_slurs_and_no_extra_text_or_midi_changes(self):
         for style in ('traditional','spatial','compact'):
@@ -32,7 +32,7 @@ class MelismaTests(unittest.TestCase):
             self.assertEqual([e['text'] for e in events(p)],['我','',''])
             self.assertEqual(len(layout.lyric_positions),1);self.assertEqual(p.to_dict(),before)
             self.assertEqual(p.notes,notes);self.assertEqual(export_midi(p,None),midi)
-            self.assertEqual(range_source(p,0,1),('我/-/-',True))
+            self.assertEqual(range_source(p,0,1),('我__',True))
             apply_range(p,'我/s/s',0,1,replace=True);self.assertFalse(entry.render(p).melisma_paths)
 
     def test_first_song_onset_has_no_predecessor_but_range_start_can_connect_back(self):
@@ -41,16 +41,16 @@ class MelismaTests(unittest.TestCase):
         self.assertEqual(p.to_dict(),before)
         apply_range(p,'/-',1,1)
         self.assertEqual([(a,b) for a,b,_,_ in melisma_links(p)],[(3360,3840)])
-        self.assertEqual(range_source(p,1,1),('/-',True))
+        self.assertEqual(range_source(p,1,1),('_',True))
 
     def test_legacy_saved_skip_sources_are_not_reinterpreted(self):
         p=song();apply_range(p,'我/s/s',0,1)
         p.notation['lyric_sections'][0].update(text='我/-/-',syntax_version=3)
-        before=p.to_dict();self.assertEqual(sections(p)[0]['text'],'我/s/s');self.assertFalse(melisma_links(p))
+        before=p.to_dict();self.assertEqual(sections(p)[0]['text'],'我**');self.assertFalse(melisma_links(p))
         self.assertEqual(before,p.to_dict())
 
     def test_mixed_rap_newlines_roundtrip_and_old_sample_remain_valid(self):
-        p=song();text='我/-/-/s\n/x{我们/-Let us rap!/-/s}\n/-唱'
+        p=song();text='我__*\n\\x{我们_Let us rap!_*}\n_唱'
         apply_range(p,text,0,3);before=export_midi(p,None)
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder)/'melisma.lfs';p.save(path);p=Project.load(path)
@@ -78,7 +78,7 @@ class MelismaTests(unittest.TestCase):
 
     def test_range_delete_preserves_outside_and_verse_flags(self):
         p=song();apply_range(p,'我/-/-\n你/-/-',0,2);apply_range(p,'他/-/-',0,1,verse=1)
-        delete_range(p,0,1);self.assertEqual(range_source(p,1,1),('你/-/-',True));self.assertEqual(range_source(p,0,1,1),('他/-/-',True))
+        delete_range(p,0,1);self.assertEqual(range_source(p,1,1),('你__',True));self.assertEqual(range_source(p,0,1,1),('他__',True))
         self.assertEqual(len(melisma_links(p)),4)
 
     def test_flag_validation_rejects_visible_or_timed_melisma(self):
@@ -122,9 +122,9 @@ class MelismaTests(unittest.TestCase):
             panel.text.setPlainText('我/s/s');panel.commit();before=export_midi(w.project,None)
             panel.text.setPlainText('我/-/-');self.assertTrue(panel.check());panel.commit()
             self.assertEqual(len(entry.render(w.score_view.canvas.project).melisma_paths),2)
-            self.assertIn('/- /-',panel.rhythm.topLevelItem(0).text(2))
-            w.undo();self.assertEqual(panel.text.toPlainText(),'我/s/s');self.assertFalse(entry.render(w.score_view.canvas.project).melisma_paths)
-            w.redo();self.assertEqual(panel.text.toPlainText(),'我/-/-')
+            self.assertIn('_ _',panel.rhythm.topLevelItem(0).text(2))
+            w.undo();self.assertEqual(panel.text.toPlainText(),'我**');self.assertFalse(entry.render(w.score_view.canvas.project).melisma_paths)
+            w.redo();self.assertEqual(panel.text.toPlainText(),'我__')
             self.assertEqual(len(entry.render(w.score_view.canvas.project).melisma_paths),2);self.assertEqual(export_midi(w.project,None),before)
             panel.delete();self.assertFalse(entry.render(w.score_view.canvas.project).melisma_paths)
         finally:w.dirty=False;w.close();w.deleteLater();entry.APP.processEvents()

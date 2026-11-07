@@ -3,7 +3,7 @@
   "id": "stk-essentials",
   "name": "STK · 键盘与弦乐",
   "name_en": "STK Essentials",
-  "version": "0.44.0",
+  "version": "0.59",
   "abi": 1,
   "platform": "windows-x64",
   "library": "lingfeng-stk.dll",
@@ -188,6 +188,20 @@
       },
       "gain": 0.25,
       "cutoff_hz": 5000
+    },
+    {
+      "program": 49,
+      "name": "轻弦和声",
+      "name_en": "Light chord strings",
+      "model": 4,
+      "controls": {
+        "2": 60,
+        "4": 68,
+        "11": 42,
+        "1": 2
+      },
+      "gain": 0.18,
+      "cutoff_hz": 3200
     }
   ]
 }

@@ -12,7 +12,7 @@ from lingfeng.platform.i18n import tr
 import lingfeng.platform.i18n as i18n
 
 
-from lingfeng.audio.events import silence_channels, window_events
+from lingfeng.audio.events import silence_channels, window_events, PLAYBACK_CHANNELS
 
 
 class PlaybackSchedule:
@@ -35,7 +35,7 @@ class PlaybackSchedule:
         return self.start + (now - self.epoch) / self.seconds
 
     def stop(self):
-        silence_channels(self.output, (0, 1))
+        silence_channels(self.output, PLAYBACK_CHANNELS)
         self.active.clear()
         self.playing = False
 
@@ -142,6 +142,8 @@ def _playback_worker(connection, state, settings, router_factory=None, language=
             elif command == 'midi_batch':
                 for event in args:
                     output.send(*event)
+            elif command == 'source_gains':
+                output.set_source_gains(*args)
             elif command == 'play':
                 schedule.play(*args)
             elif command == 'revise':
@@ -304,6 +306,9 @@ class ProcessRouter:
     def send(self, status, a=0, b=0):
         # Program changes retain synchronous validation before settings commit.
         self._submit('midi', (status, a, b), wait=status & 0xf0 == 0xc0)
+
+    def set_source_gains(self, gains):
+        self._submit('source_gains', (dict(gains),), wait=True)
 
     def play_schedule(self, *args):
         args = (tuple(args[0]), *args[1:])

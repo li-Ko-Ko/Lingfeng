@@ -29,19 +29,25 @@ class CreationPreferencesTests(unittest.TestCase):
         preferences.load_preferences({'default_velocities': {'melody': 47, 'harmony': 101},
                                       'chord_edit_options': {'velocity': 3}})
         self.assertEqual(preferences.default_velocity('melody'), 47)
+        self.assertEqual(preferences.default_velocity('instrument'), 47)
         self.assertEqual(preferences.default_velocity('harmony'), 101)
         self.assertEqual(preferences.default_velocity('chords'), 101)
         for bad in (True, 0, 128, '80', None, float('nan')):
             preferences.load_preferences({'default_velocities': {'melody': bad, 'harmony': 60}})
             self.assertEqual(preferences.default_velocity('melody'), 92)
+            self.assertEqual(preferences.default_velocity('instrument'), 80)
             self.assertEqual(preferences.default_velocity('harmony'), 60)
         preferences.load_preferences({'chord_edit_options': {'velocity': 127}})
         self.assertEqual(preferences.default_velocity('harmony'), 72)
+        preferences.load_preferences({'default_velocities': {'melody': 92, 'harmony': 72}})
+        self.assertEqual(preferences.default_velocity('instrument'), 80)
+        preferences.load_preferences({'default_velocities': {'melody': 47, 'instrument': 0}})
+        self.assertEqual(preferences.default_velocity('instrument'), 80)
 
     def test_legacy_order_migrates_without_enabling_the_extended_catalog(self):
         preferences.load_preferences({'chord_order': ['m7', 'add9', 'm7', {}, 'unknown', '7']})
         selected = preferences.quick_qualities()
-        self.assertEqual(selected[:3], ['m7', 'add2', '7'])
+        self.assertEqual(selected[:2], ['m7', '7'])
         self.assertEqual(set(selected), set(preferences.DEFAULT_QUICK_QUALITIES))
 
     def test_selection_order_empty_selection_and_returned_values_are_independent(self):
@@ -114,11 +120,13 @@ class ChordSettingsDialogTests(unittest.TestCase):
 
     def test_selection_reorder_and_confirmation_apply_only_the_dialog_result(self):
         self.dialog.set_all(False)
-        self.item_for('m').setCheckState(Qt.CheckState.Checked)
+        minor = self.item_for('m')
+        minor.setCheckState(Qt.CheckState.Checked)
         seventh = self.item_for('7')
         seventh.setCheckState(Qt.CheckState.Checked)
         self.dialog.list.setCurrentItem(seventh)
-        self.dialog.move_item(-1)
+        for _ in range(self.dialog.list.row(seventh) - self.dialog.list.row(minor)):
+            self.dialog.move_item(-1)
         self.assertEqual(self.dialog.value()['quick_chord_qualities'], ['7', 'm'])
         self.dialog.accept()
         self.assertEqual(preferences.default_velocity('harmony'), 72)
@@ -128,8 +136,9 @@ class ChordSettingsDialogTests(unittest.TestCase):
         self.assertEqual(preferences.default_velocity('harmony'), 72)
 
     def test_full_reference_contains_each_supported_quality_and_keeps_written_degrees(self):
+        from lingfeng.music.quality_catalog import yue2_lossless_quality
         self.assertEqual(self.dialog.preview.rowCount(), len(QUALITIES))
-        self.assertEqual(self.dialog.list.count(), len(QUALITIES))
+        self.assertEqual(self.dialog.list.count(), sum(yue2_lossless_quality(code) is not None for code in QUALITIES))
         self.assertEqual(quality_formula('dim7'), '1 b3 b5 bb7')
         self.assertEqual(quality_formula('maj9'), '1 3 5 7 9')
         self.assertEqual(quality_formula('add2'), '1 2 3 5')
@@ -173,10 +182,10 @@ class MainWindowCreationPreferencesTests(unittest.TestCase):
         self.addCleanup(lambda: (setattr(window, 'dirty', False), window.close()))
         return window
 
-    def test_main_window_confirm_saves_selection_and_both_velocities_for_restart(self):
+    def test_main_window_confirm_saves_selection_and_track_velocities_for_restart(self):
         save_preferences(self.folder, {'chord_edit_options': {'velocity': 1}})
         window = self.window()
-        chosen = {'default_velocities': {'melody': 49, 'harmony': 103},
+        chosen = {'default_velocities': {'melody': 49, 'instrument': 57, 'harmony': 103},
                   'quick_chord_qualities': ['maj9', '7', 'm']}
         dialog = Mock()
         dialog.exec.return_value = QDialog.DialogCode.Accepted

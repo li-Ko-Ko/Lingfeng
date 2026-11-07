@@ -43,17 +43,17 @@ class SectionNavigationTests(unittest.TestCase):
             self.w.change_language(language,False);APP.processEvents();menu=self.menu()
             try:
                 self.assertEqual([a.text() for a in menu.actions()][1:3],[i18n.tr('段落标识'),i18n.tr('跳转小节')])
-                self.assertIn('Chorus',[a.text() for a in menu.section_menu.actions()])
+                self.assertIn('chorus',[a.text() for a in menu.section_menu.actions()])
                 actions=menu.section_jump_menu.actions()
                 self.assertEqual([a.data() for a in actions],[0,3,6,7])
-                self.assertEqual([a.text() for a in actions],[i18n.tr('{0} · 第 {1} 小节',name,index+1) for name,index in [('Intro',0),('Verse',3),('Verse',6),('Outro',7)]])
+                self.assertEqual([a.text() for a in actions],[i18n.tr('{0} · 第 {1} 小节',name,index+1) for name,index in [('intro',0),('verse',3),('verse',6),('outro',7)]])
             finally:menu.deleteLater()
 
     def test_assignment_still_changes_markers_and_jump_menu_refreshes(self):
         menu=self.menu()
-        next(a for a in menu.section_menu.actions() if a.text()=='Chorus').trigger()
-        self.assertEqual(self.w.project.measures[0].section,'Chorus');menu.deleteLater()
-        menu=self.menu();self.assertEqual(menu.section_jump_menu.actions()[0].text(),i18n.tr('{0} · 第 {1} 小节','Chorus',1))
+        next(a for a in menu.section_menu.actions() if a.text()=='chorus').trigger()
+        self.assertEqual(self.w.project.measures[0].section,'chorus');menu.deleteLater()
+        menu=self.menu();self.assertEqual(menu.section_jump_menu.actions()[0].text(),i18n.tr('{0} · 第 {1} 小节','chorus',1))
         menu.section_menu.actions()[0].trigger();self.assertEqual(self.w.project.measures[0].section,'');menu.deleteLater()
         menu=self.menu();self.assertEqual([a.data() for a in menu.section_jump_menu.actions()],[3,6,7]);menu.deleteLater()
 

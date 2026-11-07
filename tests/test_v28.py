@@ -121,8 +121,9 @@ class InterfaceTests(unittest.TestCase):
     def tearDown(self):
         self.w.dirty=False;self.w.close();self.w.deleteLater();APP.processEvents();self.save.stop()
     def test_hide_buttons_match_view_checkboxes_and_can_restore(self):
-        w=self.w;w.melody_hide.activated.emit();self.assertFalse(w.visibility_actions['melody'].isChecked());self.assertTrue(w.melody_window.isHidden())
-        w.visibility_actions['melody'].setChecked(True);self.assertTrue(w.melody_window.isVisible())
+        w=self.w;track=w.roll.melody_track;w.melody_hide.activated.emit()
+        self.assertFalse(w.melody_view_actions[track].isChecked());self.assertTrue(w.melody_window.isVisible())
+        w.melody_view_actions[track].setChecked(True);self.assertTrue(w.melody_tabs.isVisible())
         w.open_harmony();w.harmony_window.hide_button.activated.emit();self.assertFalse(w.visibility_actions['harmony'].isChecked())
         self.assertTrue(w.visibility_actions['chords'].isChecked());w.open_harmony();self.assertTrue(w.harmony_window.isVisible())
 

@@ -8,6 +8,12 @@ CUSTOM_PALETTES={}
 PAINT_REVISION=0
 SHOW_NOTE_DEGREES=True
 ACCIDENTAL_PREFERENCE='sharp'
+PANEL_SURFACES=('#FFFFFF','#1B2533')
+PANEL_BORDERS=('#D8E1EA','#35465B')
+PANEL_RAISED=('#F8FAFC','#243143')
+PANEL_TEXT=('#27374D','#DCE5F0')
+PANEL_MUTED=('#728399','#A0B0C6')
+PANEL_HOVER=('#EDF3F8','#2C4055')
 
 def set_accidental_preference(value):
     global ACCIDENTAL_PREFERENCE,PAINT_REVISION
@@ -28,7 +34,9 @@ def pitch_class_choices(tonic,mode=None):
     return [(roll_degree_text(tonic+offset,tonic,mode,unicode=False)+' · '+names[(tonic+offset)%12],
              (tonic+offset)%12) for offset in range(12)]
 
-ROLL_COLORING={'melody':{'scale':True,'match':True},'harmony':{'scale':True,'match':True}}
+HARMONY_BACKGROUND_TRACKS={'vocal':(0,), 'instrument':(1,), 'both':(0,1)}
+ROLL_COLORING={'melody':{'scale':True,'match':True},
+               'harmony':{'scale':True,'match':True,'background_source':'vocal'}}
 
 
 def set_note_degrees(visible):
@@ -40,7 +48,14 @@ def set_note_degrees(visible):
 def set_roll_coloring(values):
     global ROLL_COLORING,PAINT_REVISION
     values=values if isinstance(values,dict) else {}
-    ROLL_COLORING={role:{key:values.get(role,{}).get(key,True) is not False for key in ('scale','match')} for role in ('melody','harmony')}
+    ROLL_COLORING={}
+    for role in ('melody','harmony'):
+        options=values.get(role)
+        options=options if isinstance(options,dict) else {}
+        ROLL_COLORING[role]={key:options.get(key,True) is not False for key in ('scale','match')}
+        if role=='harmony':
+            source=options.get('background_source')
+            ROLL_COLORING[role]['background_source']=source if isinstance(source,str) and source in HARMONY_BACKGROUND_TRACKS else 'vocal'
     PAINT_REVISION+=1
 
 
@@ -100,7 +115,9 @@ def color(value,dark=None):
     return QColor(DARK_COLORS.get(source.name().lower(),source.name())) if dark else source
 
 def stylesheet(dark=False):
-    bg,surface,raised,text,muted,border,hover,active=('#111923','#1B2533','#243143','#DCE5F0','#A0B0C6','#35465B','#2C4055','#365A62') if dark else ('#F0F3F7','#FFFFFF','#F8FAFC','#27374D','#728399','#D8E1EA','#EDF3F8','#293F58')
+    surface,border=PANEL_SURFACES[dark],PANEL_BORDERS[dark]
+    raised,text,muted,hover=PANEL_RAISED[dark],PANEL_TEXT[dark],PANEL_MUTED[dark],PANEL_HOVER[dark]
+    bg,active=('#111923','#365A62') if dark else ('#F0F3F7','#293F58')
     check=(resource_root()/'assets'/'check.svg').as_posix()
     return f'''
     QWidget {{font-family:"Microsoft YaHei";font-size:12px;color:{text};}}
@@ -108,6 +125,8 @@ def stylesheet(dark=False):
     QMainWindow,QWidget#shell,QDialog {{background:{bg};}}
     QFrame#header {{background:{surface};border-bottom:1px solid {border};}}
     QFrame#editorCard,QFrame#harmonyDock {{background:{surface};border:1px solid {border};border-radius:8px;}}
+    QFrame#melodyDock {{background:transparent;border:0;}}
+    QFrame#melodyRollBody {{background:{surface};border:1px solid {border};border-top:0;border-bottom-left-radius:5px;border-bottom-right-radius:5px;}}
     QLabel#brand {{font-size:20px;font-weight:600;}}
     QLabel#subtitle,QLabel#legend {{color:{muted};font-size:11px;}}
     QPushButton,QToolButton {{background:{surface};border:1px solid {border};border-radius:6px;padding:5px 10px;min-height:22px;}}
@@ -116,6 +135,7 @@ def stylesheet(dark=False):
     QToolButton#play {{background:{'#346E62' if dark else '#247D6E'};border:0;}}
     QPushButton:disabled,QToolButton:disabled {{color:{muted};background:{raised};}}
     QComboBox,QSpinBox,QDoubleSpinBox,QLineEdit,QPlainTextEdit {{background:{surface};border:1px solid {border};border-radius:5px;padding:4px 7px;min-height:22px;selection-background-color:{hover};}}
+    QSpinBox#trackVolumeValue {{padding:3px;}}
     QComboBox::drop-down {{border:0;width:20px;}}
     QComboBox QAbstractItemView {{background:{surface};selection-background-color:{hover};color:{text};}}
     QSpinBox::up-button,QDoubleSpinBox::up-button,QSpinBox::down-button,QDoubleSpinBox::down-button {{width:16px;border:0;background:{raised};}}
@@ -128,6 +148,7 @@ def stylesheet(dark=False):
     QMenu::item:disabled {{color:{muted};}}
     QMenu::separator {{height:1px;background:{border};margin:4px 8px;}}
     QTabWidget::pane {{background:{surface};border:1px solid {border};border-radius:5px;}}
+    QTabWidget#workspaceScoreTabs::pane {{border-top:0;border-top-left-radius:0;border-top-right-radius:0;}}
     QTabBar::tab {{background:{raised};color:{muted};padding:7px 13px;border:1px solid {border};border-bottom:0;margin-right:2px;}}
     QTabBar::tab:selected {{background:{surface};color:{text};border-top:2px solid #3C8F7D;}}
     QTabBar::tab:hover {{background:{hover};}}

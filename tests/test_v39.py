@@ -78,7 +78,7 @@ class QualityTests(unittest.TestCase):
 
     def test_chorus_roundtrip_and_repeated_sections(self):
         p=Project();p.measures[0]=Measure(section='chorus');p.measures[2]=Measure(section='CHORUS')
-        q=Project.from_dict(p.to_dict());self.assertEqual(q.sections(),[('Chorus',0,2),('Chorus',2,8)])
+        q=Project.from_dict(p.to_dict());self.assertEqual(q.sections(),[('chorus',0,2),('chorus',2,8)])
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder)/'chorus.lfs';q.save(path);self.assertEqual(Project.load(path).sections(),q.sections())
 
@@ -149,7 +149,7 @@ class ApplicationTests(unittest.TestCase):
             self.assertEqual(d.options(),opts)
             self.assertEqual(d.velocity.value(),72)
             self.assertEqual((d.value().start,d.value().duration),(target.start,target.duration))
-            d.quality.setCurrentIndex(d.quality.findData('add2'));return QDialog.DialogCode.Rejected
+            d.quality.setCurrentIndex(d.quality.findData('sus2'));return QDialog.DialogCode.Rejected
         self.edit(1,cancel)
         self.assertEqual(self.w.chord_edit_options,opts);self.assertEqual(self.w.project.to_dict(),before)
         self.assertEqual(len(self.w.undo_history),history)
@@ -170,10 +170,10 @@ class ApplicationTests(unittest.TestCase):
             menu=r.lane.context_menu(QPoint(round(r.lane.x_at(100)),18))
             self.assertEqual(menu.root_menu.actions()[0].text(),'1 · F');self.assertTrue(menu.root_menu.actions()[0].isChecked())
             labels=[a.text() for a in menu.quality_menu.actions()]
-            self.assertTrue(any(x.startswith('mM7') for x in labels));self.assertTrue(any(x.startswith('add2') for x in labels))
+            self.assertTrue(any(x.startswith('mM7') for x in labels));self.assertFalse(any(x.startswith('add2') for x in labels))
             self.assertFalse(any('add9' in x for x in labels));menu.deleteLater()
             menu=r.timeline_menu(QPoint(round(r.x_at(100)),10))
             section=next(a.menu() for a in menu.actions() if a.text()=='段落标识')
-            self.assertIn('Chorus',[a.text() for a in section.actions()]);menu.deleteLater()
+            self.assertIn('chorus',[a.text() for a in section.actions()]);menu.deleteLater()
 
 if __name__=='__main__':unittest.main()

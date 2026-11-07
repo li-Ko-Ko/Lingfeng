@@ -122,14 +122,14 @@ class HistoryIntegrationTests(unittest.TestCase):
         w=self.window
         w.mutate('title',lambda p:setattr(p,'title','Volume history'))
         notes=w.undo_history[-1]['notes'];original=w.project.volumes.copy()
-        w.change_volume('melody',42);w.change_volume('chords',67)
+        w.change_volume('melody',42);w.change_volume('chords',67);w.change_volume('instrument',58)
         self.assertIs(w.volume_before['notes'],notes)
         pending=w.volume_before;w.commit_volume()
         self.assertIs(w.undo_history[-1],pending)
         self.assertIsNone(w.volume_before)
-        self.assertEqual(w.project.volumes,{'melody':42,'chords':67})
+        self.assertEqual(w.project.volumes,{'melody':42,'chords':67,'instrument':58})
         w.undo();self.assertEqual(w.project.volumes,original)
-        w.redo();self.assertEqual(w.project.volumes,{'melody':42,'chords':67})
+        w.redo();self.assertEqual(w.project.volumes,{'melody':42,'chords':67,'instrument':58})
         w.undo();w.project.notes[0].velocity=24
         self.assertEqual(pending['notes'][0]['velocity'],75)
 

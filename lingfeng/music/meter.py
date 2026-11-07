@@ -56,14 +56,16 @@ def moved_chord(project,chord,start,bounds=None):
 
 def losses(project,indices,numerator,denominator):
     """Count performed events that would lose time, before mutating anything."""
+    from lingfeng.engraving.lyrics import LYRIC_TRACK_KEYS
     cuts=[];length=PPQ*4*numerator//denominator
     for i in indices:
         a,b=project.starts[i:i+2]
         if length<b-a:cuts.append((a+length,b))
     hit=lambda a,b:any(a<end and b>start for start,end in cuts)
-    return (sum(hit(n.start,n.end) for n in project.notes),
+    return (sum(hit(n.start,n.end) for n in project.notes + project.instrument_notes),
             sum(hit(n.start,n.end) for n in project.harmony_notes()),
-            sum(hit(e['tick'],e['tick']+e['duration']) for e in project.notation.get('lyric_events',[]) if e.get('kind')=='rap'))
+            sum(hit(e['tick'],e['tick']+e['duration']) for key,_ in LYRIC_TRACK_KEYS
+                for e in project.notation.get(key,[]) if e.get('kind')=='rap'))
 
 
 def splice_events(notes,old_end,new_end):

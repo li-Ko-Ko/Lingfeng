@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
                                QVBoxLayout, QWidget)
 
 from lingfeng.music.model import QUALITIES, SHARP
+from lingfeng.music.quality_catalog import yue2_lossless_quality
 from lingfeng.platform.chord_preferences import (DEFAULT_QUICK_QUALITIES,
                                                normalize_qualities,
                                                settings_dict)
@@ -35,7 +36,7 @@ class ChordSettingsDialog(QDialog):
         box.addWidget(self.tabs, 1)
         quick = QWidget()
         quick_box = QVBoxLayout(quick)
-        note = QLabel(tr('勾选编辑和弦与右键快速创建菜单中的性质，拖动或使用上移、下移调整顺序。取消勾选不会影响已有和弦。'))
+        note = QLabel(tr('勾选要用于编辑和弦与右键菜单的性质。这里使用 PyChord 名称，每项都可无损转换为 YuE2 ABC 和弦。可拖动或使用上移、下移调整顺序。'))
         note.setWordWrap(True)
         quick_box.addWidget(note)
         self.list = QListWidget()
@@ -99,6 +100,8 @@ class ChordSettingsDialog(QDialog):
         self.list.clear()
         order = selected + [code for code in self.quality_labels if code not in selected]
         for code in order:
+            if yue2_lossless_quality(code) is None:
+                continue
             formula = quality_formula(code)
             item = QListWidgetItem(self.quality_labels[code] + '    ' + formula)
             item.setData(Qt.ItemDataRole.UserRole, code)

@@ -18,6 +18,7 @@ def size_label(count):
 
 class SoundInstallWorker(QThread):
     progress=Signal(int,int)
+    calibration_progress=Signal(int,int)
 
     def __init__(self,source,download=False,parent=None):
         super().__init__(parent)
@@ -27,7 +28,8 @@ class SoundInstallWorker(QThread):
     def run(self):
         try:
             install=install_download if self.download else install_archive
-            self.path=install(self.source,cancel=self.cancel,progress=self.progress.emit)
+            self.path=install(self.source,cancel=self.cancel,progress=self.progress.emit,
+                              calibration_progress=self.calibration_progress.emit)
         except InstallCancelled:self.cancelled=True
         except Exception as exc:self.error=exc
 
@@ -40,7 +42,7 @@ class SoundLibraryDialog(QDialog):
         self.setWindowTitle(tr('下载／添加音源'));self.setMinimumWidth(560)
         self.worker=None;self.closing=False;self.entries=tuple(DOWNLOADS)
         box=QVBoxLayout(self);box.setSpacing(12)
-        introduction=QLabel(tr('大音源可按需下载，也可添加已下载的完整伶风音源 ZIP 包。'))
+        introduction=QLabel(tr('可下载音源，也可添加完整伶风音源 ZIP 包。安装时为可测量的音色计算响度补偿。'))
         introduction.setWordWrap(True);box.addWidget(introduction)
         form=QFormLayout();box.addLayout(form)
         self.choice=QComboBox();self.choice.currentIndexChanged.connect(self.show_entry)
@@ -119,7 +121,9 @@ class SoundLibraryDialog(QDialog):
     def start_install(self,source,download=False):
         if self.worker is not None:return
         self.closing=False;self.worker=SoundInstallWorker(source,download,self)
-        self.worker.progress.connect(self.update_progress);self.worker.finished.connect(self.finished_install)
+        self.worker.progress.connect(self.update_progress)
+        self.worker.calibration_progress.connect(self.update_calibration_progress)
+        self.worker.finished.connect(self.finished_install)
         self.choice.setEnabled(False);self.local_button.setEnabled(False)
         self.buttons.button(QDialogButtonBox.StandardButton.Close).setEnabled(False)
         self.cancel_button.setEnabled(True);self.cancel_button.show();self.show_entry()
@@ -134,6 +138,11 @@ class SoundLibraryDialog(QDialog):
             self.status.setText(tr('正在下载：{0} / {1}',size_label(done),size_label(total)))
         else:
             self.progress.setRange(0,0);self.status.setText(tr('正在添加音源…'))
+
+    def update_calibration_progress(self,done,total):
+        if self.worker is None or self.worker.cancel.is_set():return
+        self.progress.setRange(0,total);self.progress.setValue(done)
+        self.status.setText(tr('正在测量音色响度（{0}/{1}）…',done,total))
 
     def cancel_install(self):
         if self.worker is None:return

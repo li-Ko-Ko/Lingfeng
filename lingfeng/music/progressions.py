@@ -148,6 +148,8 @@ def common_patterns(project,chords):
 
 def apply(project,cid,text,keep_rhythm=True,pattern='block',velocity=None,gate=None,tonic=None):
     from lingfeng.music.rhythm import analyze_performed, Rhythm, regenerate
+    from lingfeng.platform.chord_preferences import default_velocity
+    velocity=default_velocity('harmony') if velocity is None else velocity
     sequence=tokens(text);destinations=targets(project,cid,len(sequence))
     if not destinations:raise ValueError(tr('请选择起始和弦。'))
     tonic=project.context_at(destinations[0].start).tonic if tonic is None else tonic
@@ -159,18 +161,19 @@ def apply(project,cid,text,keep_rhythm=True,pattern='block',velocity=None,gate=N
         c=copy.deepcopy(old);c.root=semantic.root;c.quality=semantic.quality;c.bass=semantic.bass;c.recognized=True;c.custom_rhythm=False
         c.recognition_disabled=False;c.marked=False
         c.pattern=rhythm.pattern if rhythm else pattern;c.gate=gate if gate is not None else rhythm.gate if rhythm else old.gate
-        if velocity is not None:c.velocity=velocity
+        c.velocity=velocity
         generated=regenerate(c,c.start,c.end,project,Rhythm(c.pattern,tuple(c.pitches),c.gate),explicit=True)
         if generated is None:raise ValueError(tr('无法生成该拍号的和弦节奏型。'))
         # Replacement terminates crossing events in this region, as any explicit chord edit does.
         project.put_chord(generated);ids.append(c.id)
     return ids
 
-def capture(project,ids,tonic=None):
+def capture(project,ids,tonic=None,*,context_tick=None):
     """Keep qualities and explicit bass degrees, including inversions."""
     ordered=sorted((c for c in project.chords if c.id in ids),key=lambda c:c.start)
-    if not ordered or any(not c.recognized or c.notes==[] for c in ordered):raise ValueError(tr('只有名称可识别的和弦可以加入和弦进行。'))
-    context=project.context_at(ordered[0].start)
+    if not ordered or any(c.empty or c.display_symbol is None for c in ordered):
+        raise ValueError(tr('只有名称可识别的和弦可以加入和弦进行。'))
+    context=project.context_at(ordered[0].start if context_tick is None else context_tick)
     tonic=context.tonic if tonic is None else tonic
     mode=context.mode if tonic%12==context.tonic%12 else 'Ionian'
     return ' '.join(c.roman(tonic,c.flat,mode).replace('♭','b').replace('♯','#') for c in ordered)

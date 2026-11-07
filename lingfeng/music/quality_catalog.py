@@ -6,6 +6,9 @@ PyChord 1.4.2 supplies all other names, including aliases. Lingfeng's add2 keeps
 its original close-position 1 2 3 5 spelling; add9 retains upstream 1 3 5 9.
 See docs/THIRD_PARTY.md for upstream source and MIT licensing.
 """
+YUE2_QUALITIES = ('', 'm', 'dim', 'aug', '7', 'maj7', 'm7', 'dim7', 'm7b5',
+                  'sus4', 'sus2', '6', 'm6', '7sus4', 'mM7')
+
 QUALITY_RELATIONS = {'': ('1', '3', '5'),
  'm': ('1', 'b3', '5'),
  '7': ('1', '3', '5', 'b7'),
@@ -119,6 +122,18 @@ def _pitch(degree):
 
 QUALITIES={code:tuple(_pitch(d) for d in degrees) for code,degrees in QUALITY_RELATIONS.items()}
 QUALITY_DEGREES={code:tuple(int(d.lstrip('b#')) for d in degrees) for code,degrees in QUALITY_RELATIONS.items()}
+
+_YUE2_BY_PITCH_SET = {
+    frozenset(pitch % 12 for pitch in QUALITIES[code]): code for code in YUE2_QUALITIES
+}
+
+
+def yue2_lossless_quality(quality):
+    """Return the YuE2 quality with the same root-relative pitch classes."""
+    if quality in YUE2_QUALITIES:
+        return quality
+    return _YUE2_BY_PITCH_SET.get(frozenset(pitch % 12 for pitch in QUALITIES[quality]))
+
 
 # Display names are shared by editing, context menus and the complete catalogue.
 _BASE_LABELS={

@@ -81,11 +81,13 @@ class DynamicsSettingsDialog(VelocityOptionsDialog):
         defaults = normalize_velocities((settings_dict() if defaults is None else defaults).get('default_velocities'))
         creation = QGroupBox(tr('创建默认值'))
         form = QFormLayout(creation)
-        self.melody_velocity = QSpinBox(); self.chord_velocity = QSpinBox()
-        for control, role in ((self.melody_velocity, 'melody'), (self.chord_velocity, 'harmony')):
+        self.melody_velocity = QSpinBox(); self.instrument_velocity = QSpinBox(); self.chord_velocity = QSpinBox()
+        for control, role in ((self.melody_velocity, 'melody'), (self.instrument_velocity, 'instrument'),
+                              (self.chord_velocity, 'harmony')):
             control.setRange(1, 127); control.setValue(defaults[role])
             control.setToolTip(tr('MIDI 力度（1–127）'))
-        form.addRow(tr('旋律默认力度'), self.melody_velocity)
+        form.addRow(tr('人声默认力度'), self.melody_velocity)
+        form.addRow(tr('乐器默认力度'), self.instrument_velocity)
         form.addRow(tr('和弦默认力度'), self.chord_velocity)
         info = QLabel(tr('和弦各声部共用力度。和弦卷帘新建音符跟随所在和弦的力度；空白处使用和弦默认力度。编辑和弦每次使用和弦默认力度。'))
         info.setWordWrap(True); form.addRow(info)
@@ -107,5 +109,7 @@ class DynamicsSettingsDialog(VelocityOptionsDialog):
         box.insertWidget(0, self.scroll, 1)
 
     def value(self):
-        return {'default_velocities': {'melody': self.melody_velocity.value(), 'harmony': self.chord_velocity.value()},
+        return {'default_velocities': {'melody': self.melody_velocity.value(),
+                                       'instrument': self.instrument_velocity.value(),
+                                       'harmony': self.chord_velocity.value()},
                 'chord_velocity_options': self.options.value()}

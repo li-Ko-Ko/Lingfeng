@@ -4,6 +4,25 @@
 
 Versions with generated release archives only; local work is recorded in `CHANGELOG_LOCAL.md`（仅本地 / local only）. Archive generation does not imply uploading or publishing. See [README](README.md) and [HELP](docs/HELP.md) for usage. Releases are grouped into version families: `0.50.x` belongs to **0.5**. Application releases and project-format versions are maintained separately.
 
+## 0.6 系列 / 0.6 family
+
+### 0.60.1 — 双旋律、ABC 与 YuE2 交接 / Dual melodies, ABC and YuE2 handoff
+
+日期 / Date: 2026-11-07。上一 GitHub 发布版 / Previous GitHub release: 0.57.1。
+
+- 人声与乐器旋律各有卷帘、歌词和音量。导航器可选轨、自动隐藏空轨，并可拖动调节高度。选中段落音符时，卷帘可定位到对应时间与音高。剪切和弦会在原位置留下保留区间与节奏设置的 N.C.。
+- 导入和导出 ABC、MusicXML。YuE2 兼容 ABC 导出检查已选旋律、格点和和弦，支持预览和弦替换。将 ABC 与歌词交给外部 YuE2，可在 ComfyUI 生成音频。已用原创八小节草稿验证伶风保存、导出、YuE2 解析和生成音频的流程。
+- 立体与紧凑简谱支持多声部。传统简谱可随时选择，兼容性提示只检查勾选的旋律。传统简谱下，有重叠音符的旋律轨无法勾选。谱面及 PDF 可显示独立选择的人声、乐器与和弦。
+- Windows 便携包随附 YDP 原声三角钢琴、Greg Sullivan 电钢琴和三组 STK 合成音源，支持按预设补偿响度与逐轨手动增益。分发包内有构建源码、公开示例和第三方许可，并附 SHA-256 校验文件。
+
+Vocal and instrumental melodies have separate piano rolls, lyrics and volume controls. The navigator supports track selection, automatic sizing and a resize grip. Section note selections bring offscreen notes into view, and cutting a chord leaves an N.C. region with its timing and rhythm settings.
+
+Import and export ABC and MusicXML. YuE2-compatible ABC export checks selected melodies, timing and chord symbols, and lets you review chord substitutions. Use the exported ABC and lyrics with an external YuE2 workflow in ComfyUI. The handoff was tested end to end with an original eight-bar draft and generated audio.
+
+Spatial and Compact jianpu support polyphony. Traditional checks the selected melody tracks and reports compatibility issues. Tracks with overlapping notes cannot be enabled in Traditional. Score and PDF can show different combinations of vocals, instrumentals and chords.
+
+The portable Windows package includes the YDP acoustic grand, Greg Sullivan electric pianos, three STK packs, build sources, public examples, third-party notices and a SHA-256 sidecar. Bundled presets use measured gain adjustments with independent per-track gain controls.
+
 ## 0.5 系列 / 0.5 family
 
 ### 0.57.1 — 拖屏性能与内存优化 / Panning performance and memory use

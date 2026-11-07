@@ -26,17 +26,19 @@ def draw(p):
     painter=QPainter(im);layout.draw(painter,0);painter.end();return layout
 
 class ExampleTests(unittest.TestCase):
-    def test_every_shipped_project_uses_exact_section_choices(self):
+    def test_every_shipped_project_loads_with_current_section_choices(self):
+        from lingfeng.music.model import section_name
         for path in [*ROOT.glob('examples/*.lfs'),*ROOT.glob('examples/*.popscore')]:
             with zipfile.ZipFile(path) as z:data=json.loads(z.read('project.json'))
-            self.assertTrue(all(not m.get('section') or m['section'] in SECTIONS for m in data['measures']),path.name)
-        p=demo_project();self.assertEqual([(i,m.section) for i,m in enumerate(p.measures) if m.section],[(0,'Verse'),(8,'Chorus')])
+            self.assertTrue(all(not m.get('section') or section_name(m['section']) in SECTIONS for m in data['measures']),path.name)
+        p=demo_project();self.assertEqual([(i,m.section) for i,m in enumerate(p.measures) if m.section],[(0,'verse'),(8,'chorus')])
         p=Project.load(ROOT/'examples/lingfeng-sections.lfs')
-        self.assertEqual([(i,m.section) for i,m in enumerate(p.measures) if m.section],[(0,'Intro'),(2,'Verse'),(4,'Verse'),(6,'Outro')])
+        self.assertEqual([(i,m.section) for i,m in enumerate(p.measures) if m.section],[(0,'intro'),(2,'verse'),(4,'verse'),(6,'outro')])
 
     def test_midi_demo_uses_the_same_section_names(self):
+        from lingfeng.music.model import section_name
         _,_,tracks=read_midi(ROOT/'examples/demo.mid')
-        self.assertEqual([(e[0],e[3].decode('utf-8')) for e in tracks[0] if e[1:3]==(255,6)],[(0,'Verse'),(30720,'Chorus')])
+        self.assertEqual([(e[0],section_name(e[3].decode('utf-8'))) for e in tracks[0] if e[1:3]==(255,6)],[(0,'verse'),(30720,'chorus')])
 
 class MixedLyricsTests(unittest.TestCase):
     def test_adjacent_languages_contractions_quotes_and_rap(self):
@@ -60,7 +62,8 @@ class MixedLyricsTests(unittest.TestCase):
                 path=Path(folder)/'mixed.lfs';p.save(path);q=Project.load(path)
                 self.assertEqual(events(q),events(p));out=Path(folder)/'mixed.mid';export_midi(q,out)
                 _,_,tracks=read_midi(out)
-                self.assertEqual([e[3].decode('utf-8') for e in tracks[1] if e[1:3]==(255,5)],[e['text'] for e in events(p) if e['text']])
+                self.assertEqual([e[3].decode('utf-8') for e in tracks[1] if e[1:3]==(255,5)],
+                                 [e['text'] for e in events(p) if e['text'] and e.get('kind') not in ('rap','rap_note')])
 
     def test_editor_confirms_and_reloads_mixed_language_text(self):
         w=MainWindow(song());w.save_preferences=lambda:None;w.timer.stop();w.autosave.stop();w.switch_workspace('score')
@@ -87,9 +90,10 @@ class SpacingTests(unittest.TestCase):
                 self.assertEqual(layout.font_size,p.notation['font_size'])
                 for system in layout.systems:
                     weights=[]
-                    for bar,width in zip(system.bars,system.bar_widths):
+                    attacks={n.start for n in p.notes+p.instrument_notes+p.harmony_notes()}
+                    for bar in system.bars:
                         counts={};beat=3840//p.measures[bar].denominator
-                        for tick in {f.start for f in system.fragments[bar]}:
+                        for tick in sorted(t for t in attacks if p.starts[bar]<=t<p.starts[bar+1]):
                             group=(tick-p.starts[bar])//beat;counts[group]=counts.get(group,0)+1
                         weights.append(max(1,max(counts.values(),default=0))*(p.starts[bar+1]-p.starts[bar])/beat)
                     if style!='traditional':

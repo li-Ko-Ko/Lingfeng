@@ -3,6 +3,7 @@
 Inspired by music21 Stream.quantize's candidate grids and duration look-ahead;
 implemented independently using integer ticks. No inference for keyboard input.
 """
+from bisect import bisect_right
 import copy
 from lingfeng.music.model import PPQ
 
@@ -26,13 +27,17 @@ def quantize_notes(notes,grid=240,protect_triplets=False,origin=0,starts=None):
             swung=sum(abs(t-nearest(t,triplet,base)) for t in onsets)
             if len({nearest(t,triplet,base) for t in candidates})>=2 and swung<straight*.6:triplet_beats.add(beat)
     def spacing(t):return triplet if (t-origin)//PPQ in triplet_beats else grid
-    def anchor(t):return max((x for x in starts or [origin] if x<=t),default=origin)
+    anchors=sorted(starts or [origin])
+    def anchor(t):
+        index=bisect_right(anchors,t)
+        return anchors[index-1] if index else origin
     onsets=sorted({n.start for n in source})
     for old in source:
         n=copy.deepcopy(old);step=spacing(old.start);base=anchor(old.start)
         n.start=max(origin,nearest(old.start,step,base))
         end=nearest(old.end,step,base)
-        following=next((t for t in onsets if t>old.start),None)
+        index=bisect_right(onsets,old.start)
+        following=onsets[index] if index<len(onsets) else None
         # Only close a performance-sized gap, never erase an intentional rest.
         if following is not None and abs(old.end-following)<=step*.18:
             end=nearest(following,spacing(following),anchor(following))

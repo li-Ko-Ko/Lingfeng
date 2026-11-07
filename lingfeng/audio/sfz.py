@@ -12,6 +12,8 @@ import numpy as np
 
 _validation_cache = {}
 _validation_lock = threading.RLock()
+_SFIZZ_1_2_3_WINDOWS = 'aa4bfa4ad9a57cfbb3c832a50be14bfe5aeaf7a36ffcdf0178547abe8719e653'
+_KAWAI_MAPPINGS = ('acoustic/UprightPianoKW-20220221.sfz', 'acoustic/bright.sfz')
 
 
 def _stamp(path):
@@ -179,6 +181,9 @@ class SfzVoice:
         self.handle = None; self.api = api; self.gain = item['gain']; self.block = block
         self.volume = 100; self.expression = 127; self.pan = 64
         self.started = False
+        self.prime_attack = (info.get('id') == 'piano-small' and info.get('sha256') == _SFIZZ_1_2_3_WINDOWS
+                             and item['sfz'] in _KAWAI_MAPPINGS)
+        self.attack_pending = False
         self.planar = np.empty((2, block), np.float32)
         self.outputs = (C.POINTER(C.c_float) * 2)(*(row.ctypes.data_as(C.POINTER(C.c_float)) for row in self.planar))
         mapping = validate_assets(info['path'], item['sfz'])
@@ -204,6 +209,7 @@ class SfzVoice:
         kind = status & 0xf0
         if kind == 0x90 and b:
             self.started = True
+            self.attack_pending = self.prime_attack
             self.api.sfizz_send_note_on(self.handle, 0, a, b)
         elif kind == 0x80 or kind == 0x90:
             self.api.sfizz_send_note_off(self.handle, 0, a, b)
@@ -215,6 +221,7 @@ class SfzVoice:
             elif a == 10: self.pan = b
             elif a == 120:
                 self.api.sfizz_all_sound_off(self.handle); self.started = False
+                self.attack_pending = False
             else:
                 if a != 123: self.started = True  # CC-triggered pedal/noise regions.
                 self.api.sfizz_send_cc(self.handle, 0, a, b)
@@ -225,10 +232,15 @@ class SfzVoice:
         result = np.empty((count, 2), np.float32)
         if not count:
             return result
-        for start in range(0, count, self.block):
-            size = min(self.block, count - start)
+        start = 0
+        while start < count:
+            # sfizz 1.2.3 repeats the last sample of an attack's first block.
+            # Isolate the near-silent first frame to avoid a click mid-attack.
+            size = 1 if self.attack_pending else min(self.block, count - start)
+            self.attack_pending = False
             self.api.sfizz_render_block(self.handle, self.outputs, 2, size)
             result[start:start + size] = self.planar[:, :size].T
+            start += size
         result *= self.gain * (self.volume / 127) * (self.expression / 127)
         # Preserve the library's stereo image at centre; attenuate the opposite
         # side toward each endpoint, matching MIDI's conventional 64 centre.

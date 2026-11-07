@@ -43,7 +43,7 @@ class RhythmTests(unittest.TestCase):
 class RangeDataTests(unittest.TestCase):
     def test_autofill_roundtrip_preserves_missing_slots_skip_and_rap(self):
         p=song();before=p.to_dict();text,valid=range_source(p,0,3)
-        self.assertTrue(valid);self.assertEqual(text,'甲/s/x{乙}\n丙&丁\n戊己庚');self.assertEqual(p.to_dict(),before)
+        self.assertTrue(valid);self.assertEqual(text,'甲*\\x{乙}\n丙&丁\n戊己庚');self.assertEqual(p.to_dict(),before)
         plan=plan_range(p,text,0,3,replace=True)
         self.assertFalse(plan.issues)
         self.assertEqual([(e['tick'],e['text']) for e in plan.events if e['kind']!='pending'],[(e['tick'],e['text']) for e in events(p) if e['verse']==0])
@@ -68,7 +68,7 @@ class RangeDataTests(unittest.TestCase):
     def test_legacy_note_lyrics_and_dotted_timed_rap_can_load(self):
         p=Project();p.notes=[Note(0,1920,60,lyric='旧'),Note(480,240,62,lyric='词')]
         self.assertEqual(range_source(p,0,1),('旧词',True))
-        p.notes.append(Note(960,240,64,lyric='_'));self.assertEqual(range_source(p,0,1),('旧词/s',True))
+        p.notes.append(Note(960,240,64,lyric='_'));self.assertEqual(range_source(p,0,1),('旧词*',True))
         q=Project();apply_range(q,'我/64.爱/64你/64',0,1)
         self.assertEqual(range_source(q,0,1),('我/64.爱/64你/64',True))
 
@@ -79,7 +79,7 @@ class RangePanelTests(unittest.TestCase):
 
     def test_spin_range_and_stanza_autofill_without_mutation(self):
         panel=self.panel;before=self.w.project.to_dict();panel.count.setValue(1)
-        self.assertEqual(panel.text.toPlainText(),'甲/s/x{乙}');self.assertTrue(panel.check());self.assertFalse(panel.dirty)
+        self.assertEqual(panel.text.toPlainText(),r'甲*\x{乙}');self.assertTrue(panel.check());self.assertFalse(panel.dirty)
         panel.start.setValue(3);self.assertEqual(panel.text.toPlainText(),'戊己庚')
         panel.start.setValue(1);panel.verse.setValue(2);self.assertEqual(panel.text.toPlainText(),'one two three')
         panel.start.setValue(4);self.assertEqual(panel.text.toPlainText(),'');self.assertEqual(self.w.project.to_dict(),before)
@@ -107,8 +107,8 @@ class RangePanelTests(unittest.TestCase):
         p.text.setPlainText('改/s/x{词}');self.assertTrue(p.check());p.commit()
         self.assertEqual([e['text'] for e in events(w.project) if e['verse']==0 and e['tick']<3840],['改','','词'])
         self.assertEqual([e['text'] for e in events(w.project) if e['verse']==0 and 3840<=e['tick']<7680],['丙','丁'])
-        w.undo();self.assertEqual(w.project.to_dict(),before);self.assertEqual(p.text.toPlainText(),'甲/s/x{乙}')
-        w.redo();self.assertEqual(p.text.toPlainText(),'改/s/x{词}')
+        w.undo();self.assertEqual(w.project.to_dict(),before);self.assertEqual(p.text.toPlainText(),r'甲*\x{乙}')
+        w.redo();self.assertEqual(p.text.toPlainText(),r'改*\x{词}')
         p.delete();self.assertFalse(any(e['verse']==0 and e['tick']<3840 for e in events(w.project)));self.assertTrue(any(e['text']=='丙' for e in events(w.project)))
 
     def test_draft_and_range_mode_survive_language_switch(self):

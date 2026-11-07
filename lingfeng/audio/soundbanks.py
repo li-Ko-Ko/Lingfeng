@@ -9,6 +9,7 @@ from lingfeng import __version__
 from lingfeng.platform.i18n import tr
 
 DEFAULT_DEVICE='synth:stk-essentials'
+CALIBRATION_FILE='calibration.json'
 _state=None
 _identity=None
 
@@ -107,6 +108,25 @@ def _validate(data,root,verify_files=True):
                 assets_checked.add(item['sf2'])
     return data
 
+def _preset_gains(pack_data, values):
+    from lingfeng.audio.events import MAX_SOURCE_GAIN_DB, MIN_SOURCE_GAIN_DB
+    programs={str(row['program']) for row in pack_data['presets']}
+    if not isinstance(values,dict) or values.keys()-programs or any(
+        type(value) not in (int,float) or not MIN_SOURCE_GAIN_DB<=value<=MAX_SOURCE_GAIN_DB
+        for value in values.values()
+    ):
+        raise ValueError('Invalid preset gain calibration')
+    return {key:float(value) for key,value in values.items()}
+
+def _load_calibration(root, data):
+    if not (root/CALIBRATION_FILE).exists():return {}
+    path=_inside(root,CALIBRATION_FILE)
+    if path.stat().st_size>16384:raise ValueError('Preset gain calibration is too large')
+    calibration=json.loads(path.read_text('utf-8'))
+    if not isinstance(calibration,dict) or type(calibration.get('schema')) is not int or calibration['schema']!=1:
+        raise ValueError('Invalid preset gain calibration schema')
+    return _preset_gains(data,calibration.get('preset_gain_db'))
+
 def _write(state):
     from lingfeng.platform.preferences import atomic_json
     atomic_json(cache_path(),state)
@@ -128,9 +148,13 @@ def rescan(roots=None,persist=True):
             visited.add(file.resolve())
             try:
                 if file.stat().st_size>256000:raise ValueError('Manifest is too large')
-                data=_validate(json.loads(file.read_text('utf-8')),file.parent.resolve())
+                folder=file.parent.resolve()
+                data=_validate(json.loads(file.read_text('utf-8')),folder)
                 if data['id'] in packs:raise ValueError('Duplicate pack ID: '+data['id'])
-                packs[data['id']]=dict(data,path=str(file.parent.resolve()),manifest_stamp=file.stat().st_mtime_ns)
+                try:gains=_load_calibration(folder,data)
+                except (OSError,ValueError,RecursionError) as exc:
+                    gains={};errors.append(str(folder/CALIBRATION_FILE)+': '+str(exc))
+                packs[data['id']]=dict(data,path=str(folder),manifest_stamp=file.stat().st_mtime_ns,preset_gain_db=gains)
             except (OSError,ValueError,KeyError,TypeError,AttributeError) as exc:errors.append(str(file)+': '+str(exc))
     state=dict(schema=1,app_version=__version__,roots=roots,packs=packs,errors=errors,defaults=prior.get('defaults'))
     if persist:_write(state)
@@ -148,6 +172,7 @@ def registry():
         roots=[Path(p).resolve() for p in state['roots']]
         for ident,item in state['packs'].items():
             _validate(item,None,verify_files=False)
+            _preset_gains(item,item.get('preset_gain_db',{}))
             if item['id']!=ident or not isinstance(item.get('path'),str) or type(item.get('manifest_stamp')) is not int:raise ValueError('Invalid cached pack')
             path=Path(item['path']).resolve()
             if not any(path==root or path.parent==root for root in roots):raise ValueError('Cached pack is outside its scanned folders')
@@ -198,9 +223,18 @@ def available_programs(device=DEFAULT_DEVICE):
     try:return [p['program'] for p in pack(device)['presets']]
     except ValueError:return []
 
-def instrument(program,device=DEFAULT_DEVICE):
-    item=next((p for p in pack(device)['presets'] if p['program']==program),None)
+def preset_calibration_db(program,device=DEFAULT_DEVICE):
+    """Return the imported preset's measured compensation, or None if uncalibrated."""
+    if not is_synth_source(device):return None
+    return pack(device).get('preset_gain_db',{}).get(str(program))
+
+def instrument(program,device=DEFAULT_DEVICE,*,apply_calibration=False):
+    """Return preset metadata with optional playback compensation folded into gain."""
+    data=pack(device)
+    item=next((p for p in data['presets'] if p['program']==program),None)
     if item is None:raise ValueError(tr('音源“{0}”不包含音色 {1}，请在音源设置中选择可用音色。',device,program+1))
+    gain_db=data.get('preset_gain_db',{}).get(str(program)) if apply_calibration else None
+    if gain_db:return dict(item,gain=item['gain']*10**(gain_db/20))
     return item
 
 def instrument_label(program,device=DEFAULT_DEVICE):
@@ -208,22 +242,40 @@ def instrument_label(program,device=DEFAULT_DEVICE):
     item=instrument(program,device);return f'{program+1:02} · '+item['name_en' if LANGUAGE=='en' else 'name']
 
 def default_audio():
-    saved=registry().get('defaults')
-    if isinstance(saved,dict) and set(saved)=={'melody','chords'}:
-        if all(isinstance(s,dict) and isinstance(s.get('device'),str) and type(s.get('program')) is int and 0<=s['program']<=127 and (not is_synth_source(s['device']) or s['program'] in available_programs(s['device'])) for s in saved.values()):return {k:dict(v) for k,v in saved.items()}
-    piano=available_programs('synth:piano-small')
-    if 0 in piano:return {'melody':dict(device='synth:piano-small',program=1 if 1 in piano else 0),'chords':dict(device='synth:piano-small',program=0)}
-    device=DEFAULT_DEVICE if available_programs() else 'default'
-    return {'melody':dict(device=device,program=1),'chords':dict(device=device,program=0)}
+    from lingfeng.audio.events import TRACK_ROLES, complete_track_values, source_gain_db
+    saved=complete_track_values(registry().get('defaults'))
+    settings={}
+    if isinstance(saved,dict) and set(saved)==set(TRACK_ROLES):
+        for role,spec in saved.items():
+            if not isinstance(spec,dict) or not isinstance(spec.get('device'),str) or type(spec.get('program')) is not int or not 0<=spec['program']<=127:
+                continue
+            if is_synth_source(spec['device']) and spec['program'] not in available_programs(spec['device']):
+                continue
+            settings[role]=dict(spec)
+            try:source_gain_db(settings[role])
+            except ValueError:settings[role].pop('gain_db',None)
+        if len(settings)==len(TRACK_ROLES):return settings
+    if 0 in available_programs('synth:ydp-grand'):
+        device='synth:ydp-grand';melody_program=0
+    else:
+        piano=available_programs('synth:piano-small')
+        if 0 in piano:
+            device='synth:piano-small';melody_program=1 if 1 in piano else 0
+        else:
+            device=DEFAULT_DEVICE if available_programs() else 'default';melody_program=1
+    return {role:settings.get(role,dict(device=device,program=0 if role=='chords' else melody_program)) for role in TRACK_ROLES}
 
 def save_defaults(settings):
+    from lingfeng.audio.events import complete_track_values
+    settings=complete_track_values(settings)
     state=dict(registry(),defaults=settings);_write(state);registry()['defaults']={k:dict(v) for k,v in settings.items()}
 
 def export_instruments(project,which,start,end):
+    from lingfeng.audio.midi import export_tracks
     used=[]
-    for role,notes in [('melody',project.notes),('chords',project.harmony_notes())]:
-        if which not in ('both',role) or not any(n.start<end and n.end>start for n in notes):continue
-        spec=project.audio[role];device=spec['device']
+    for _,role,notes in export_tracks(project,which):
+        if not any(n.start<end and n.end>start for n in notes):continue
+        spec=project.audio_for(role);device=spec['device']
         if not is_synth_source(device):raise ValueError(tr('所选轨道使用 Windows MIDI，离线导出需先选择合成音源，或改用 Windows 实时录制。'))
         item=dict(instrument(spec['program'],device),pack=pack(device))
         if item not in used:used.append(item)

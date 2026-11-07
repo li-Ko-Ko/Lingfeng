@@ -40,15 +40,22 @@ class AnnotationPanel(QWidget):
             entry=QListWidgetItem(tr('{0} · 第 {1} 小节',label,p.measure_at(min(item['start'],p.end-1))+1))
             entry.setData(Qt.ItemDataRole.UserRole,index);self.items.addItem(entry)
             if current==index:self.items.setCurrentItem(entry)
-        kind=self.kind.currentData();canvas=self.owner.score_view.canvas;ranges=canvas.selection_ranges()
-        count=len(self.selected_notes())
-        allowed=can_add_slur(p,self.selected_notes()) if kind=='slur' else len(ranges)==1 and annotation_allowed(p,kind,*ranges[0])
+        self.refresh_selection()
+        self.selection_changed()
+
+    def refresh_selection(self):
+        kind=self.kind.currentData();p=self.owner.project
+        if kind=='slur':
+            notes=self.selected_notes();count=len(notes)
+            allowed=count>=2 and can_add_slur(p,notes)
+            conflict=count>=2 and not allowed and slur_conflicts(p,dict(note_ids=notes))
+        else:
+            ranges=self.owner.score_view.canvas.selection_ranges()
+            allowed=len(ranges)==1 and annotation_allowed(p,kind,*ranges[0]);conflict=False
         self.add_button.setEnabled(allowed)
-        conflict=kind=='slur' and slur_conflicts(p,dict(note_ids=self.selected_notes()))
         self.add_button.setToolTip(tr('歌词连音优先：所选连音弧与歌词 /- 连音冲突。') if conflict else '')
         self.note_select.setVisible(kind=='slur')
         self.feedback.setText(tr('已选 {0} 个旋律音符',count) if kind=='slur' else tr('请选择适用的连续小节或拍。'))
-        self.selection_changed()
 
     def selection_changed(self,*args):
         if hasattr(self,'remove_button'):self.remove_button.setEnabled(self.items.currentItem() is not None)

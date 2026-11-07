@@ -17,6 +17,7 @@ import zipfile
 
 from lingfeng.platform.i18n import tr
 from lingfeng.audio import soundbanks as banks
+from lingfeng.audio.calibration import CALIBRATION_FILE, calibrate_pack, write_calibration
 
 MAX_ARCHIVE = 1024 * 1024 * 1024
 MAX_EXTRACTED = 2 * MAX_ARCHIVE
@@ -77,13 +78,14 @@ def _extract(archive, folder, cancel=None, select=None):
                     writer.write(chunk)
 
 
-def _commit(folder, destination, cancel=None):
+def _commit(folder, destination, cancel=None, calibration_progress=None):
     _check_cancel(cancel)
     manifest = folder / 'synth.json'
     if not manifest.is_file() or manifest.stat().st_size > 256000:
         raise ValueError(tr('音源包缺少有效的 synth.json。'))
     data = banks._validate(json.loads(manifest.read_text('utf-8')), folder.resolve())
     hashes = folder / 'files.sha256.json'
+    expected = {}
     if hashes.is_file():
         if hashes.stat().st_size > 4 * 1024 * 1024:
             raise ValueError(tr('音源文件校验清单无效。'))
@@ -100,12 +102,16 @@ def _commit(folder, destination, cancel=None):
     target = destination / data['id']
     if target.exists():
         raise ValueError(tr('音源“{0}”已经存在，请保留原音源或关闭程序后移走旧文件夹。', data['id']))
+    if not any(PurePosixPath(name).as_posix().casefold() == CALIBRATION_FILE for name in expected):
+        gains = calibrate_pack(folder, data, cancel, calibration_progress)
+        _check_cancel(cancel)
+        write_calibration(folder, gains)
     _check_cancel(cancel)
     os.replace(folder, target)
     return target
 
 
-def install_archive(archive, destination=None, cancel=None, progress=None):
+def install_archive(archive, destination=None, cancel=None, progress=None, *, calibration_progress=None):
     """Install a local, complete Lingfeng sound-pack ZIP without overwriting packs."""
     destination = Path(destination or banks.default_root()).resolve()
     archive = Path(archive)
@@ -121,7 +127,7 @@ def install_archive(archive, destination=None, cancel=None, progress=None):
         manifests = list(stage.glob('synth.json')) + list(stage.glob('*/synth.json'))
         if len(manifests) != 1:
             raise ValueError(tr('请选择只包含一个完整伶风音源包的 ZIP。'))
-        return _commit(manifests[0].parent, destination, cancel)
+        return _commit(manifests[0].parent, destination, cancel, calibration_progress)
 
 
 def _download(entry, filename, cancel=None, progress=None):
@@ -155,20 +161,33 @@ def _download(entry, filename, cancel=None, progress=None):
         raise ValueError(tr('音源下载校验失败，请重新下载。'))
 
 
-def install_download(entry, destination=None, cancel=None, progress=None):
+def _verified_runtime(manifest, preferred=None):
+    """Reuse only an installed runtime matching the download catalog's digest."""
+    engine=manifest.get('engine','native')
+    candidates=[preferred] if preferred else []
+    if engine=='sfz':candidates.extend(('piano-electric','piano-small'))
+    for ident in dict.fromkeys(candidates):
+        try:
+            runtime=banks.pack('synth:'+ident)
+            if runtime.get('engine','native')!=engine:continue
+            root=Path(runtime['path'])
+            library=banks._inside(root,runtime['library'])
+            if hashlib.sha256(library.read_bytes()).hexdigest()==manifest['sha256']:
+                return root,library
+        except (OSError,ValueError):
+            continue
+    raise ValueError(tr('请先安装与下载音源匹配的合成音源运行库。'))
+
+
+def install_download(entry, destination=None, cancel=None, progress=None, *, calibration_progress=None):
     """Build an optional SFZ pack from a pinned, hash-verified upstream archive."""
     if entry.get('assets'):
-        return install_multi_download(entry,destination,cancel,progress)
+        return install_multi_download(entry,destination,cancel,progress,calibration_progress=calibration_progress)
     destination = Path(destination or banks.default_root()).resolve()
     if (destination / entry['id']).exists():
         raise ValueError(tr('音源“{0}”已经存在，请保留原音源或关闭程序后移走旧文件夹。', entry['id']))
-    runtime = banks.pack('synth:piano-small')
-    runtime_root = Path(runtime['path'])
-    library = banks._inside(runtime_root, runtime['library'])
     manifest = copy.deepcopy(entry['manifest'])
-    if (runtime.get('engine') != 'sfz' or
-            hashlib.sha256(library.read_bytes()).hexdigest() != manifest['sha256']):
-        raise ValueError(tr('请先安装本版本附带的小型钢琴音源，再添加大钢琴音源。'))
+    runtime_root,library=_verified_runtime(manifest)
     destination.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.download-', dir=destination) as temporary:
         temporary = Path(temporary)
@@ -208,7 +227,7 @@ def install_download(entry, destination=None, cancel=None, progress=None):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding='utf-8', newline='\n')
         (folder / 'synth.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8', newline='\n')
-        return _commit(folder, destination, cancel)
+        return _commit(folder, destination, cancel, calibration_progress)
 
 
 def _mapped_asset(archive,folder,asset,cancel):
@@ -264,16 +283,13 @@ def _mapped_asset(archive,folder,asset,cancel):
     if seen!=set(mapping):raise ValueError(tr('下载的音源缺少目录中指定的文件。'))
 
 
-def install_multi_download(entry,destination=None,cancel=None,progress=None):
+def install_multi_download(entry,destination=None,cancel=None,progress=None,*,calibration_progress=None):
     destination=Path(destination or banks.default_root()).resolve()
     if (destination/entry['id']).exists():
         raise ValueError(tr('音源“{0}”已经存在，请保留原音源或关闭程序后移走旧文件夹。',entry['id']))
     manifest=copy.deepcopy(entry['manifest']);runtime=None
     if entry.get('runtime_id'):
-        runtime=banks.pack('synth:'+entry['runtime_id'])
-        library=banks._inside(Path(runtime['path']),runtime['library'])
-        if hashlib.sha256(library.read_bytes()).hexdigest()!=manifest['sha256']:
-            raise ValueError(tr('请先安装本版本附带的小型钢琴音源，再添加大钢琴音源。'))
+        runtime=_verified_runtime(manifest,entry['runtime_id'])
     total=sum(asset['archive_bytes'] for asset in entry['assets'])
     if total>MAX_ARCHIVE:raise ValueError(tr('音源压缩包超过允许的大小。'))
     destination.mkdir(parents=True,exist_ok=True)
@@ -287,14 +303,14 @@ def install_multi_download(entry,destination=None,cancel=None,progress=None):
             _mapped_asset(archive,folder,asset,cancel);offset+=asset['archive_bytes']
         if progress:progress(0,0)
         if runtime:
-            library=banks._inside(Path(runtime['path']),runtime['library'])
+            runtime_root,library=runtime
             target=folder/manifest['library'];target.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(library,target)
-            if (Path(runtime['path'])/'runtime').is_dir():
-                shutil.copytree(Path(runtime['path'])/'runtime',folder/'runtime',dirs_exist_ok=True)
+            if (runtime_root/'runtime').is_dir():
+                shutil.copytree(runtime_root/'runtime',folder/'runtime',dirs_exist_ok=True)
         for name,content in entry.get('text_files',{}).items():
             checked=_member_name(zipfile.ZipInfo(name));path=folder.joinpath(*checked.parts)
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text(content,encoding='utf-8',newline='\n')
         (folder/'synth.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
-        return _commit(folder,destination,cancel)
+        return _commit(folder,destination,cancel,calibration_progress)

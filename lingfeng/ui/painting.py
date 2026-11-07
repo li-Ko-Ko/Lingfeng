@@ -49,5 +49,5 @@ def roll_view_key(roll):
 
 def time_view_key(roll):
     """Timeline layers do not depend on pitch scrolling or keyboard row size."""
-    return (id(roll),getattr(roll,'paint_revision',0),roll.zoom,
+    return (id(roll),getattr(roll,'time_revision',0),roll.zoom,
             roll.horizontalScrollBar().value(),roll.ruler_height)

@@ -73,7 +73,7 @@ class PolyphonicScoreTests(unittest.TestCase):
                     self.assertTrue(window.switch_workspace('score'))
                     self.assertEqual(window.workspace, 'score')
                     self.assertEqual(window.score_view.canvas.project.notes, before)
-                    self.assertFalse(self.traditional(window).isEnabled())
+                    self.assertTrue(self.traditional(window).isEnabled())
                     self.assertEqual(export_midi(window.project, None), midi)
                     window.dirty = False; window.close()
 
@@ -83,7 +83,7 @@ class PolyphonicScoreTests(unittest.TestCase):
         project.save(original)
         window = self.window(Project.load(original))
         self.assertEqual(window.project.notation['style'], 'spatial'); self.assertTrue(window.dirty)
-        self.assertFalse(self.traditional(window).isEnabled())
+        self.assertTrue(self.traditional(window).isEnabled())
         self.assertTrue(window.switch_workspace('score'))
         window.path = self.folder / 'updated.lfs'; self.assertTrue(window.save())
         saved = Project.load(window.path)
@@ -91,7 +91,7 @@ class PolyphonicScoreTests(unittest.TestCase):
         self.assertEqual(export_midi(saved, None), midi)
         reopened = self.window(saved)
         self.assertTrue(reopened.switch_workspace('score')); self.assertFalse(reopened.dirty)
-        self.assertFalse(self.traditional(reopened).isEnabled())
+        self.assertTrue(self.traditional(reopened).isEnabled())
 
     def test_polyphonic_edit_fallback_is_in_same_undo_and_redo_stays_in_score(self):
         window = self.window(song('traditional', False)); window.switch_workspace('score')
@@ -99,28 +99,29 @@ class PolyphonicScoreTests(unittest.TestCase):
         mono = copy.deepcopy(window.project.to_dict())
         self.assertTrue(window.mutate('overlap', lambda p: setattr(p.notes[0], 'duration', 961), source='melody'))
         self.assertEqual(window.workspace, 'score'); self.assertEqual(window.project.notation['style'], 'spatial')
-        self.assertFalse(self.traditional(window).isEnabled()); self.assertEqual(len(window.undo_history), 1)
+        self.assertTrue(self.traditional(window).isEnabled()); self.assertEqual(len(window.undo_history), 1)
         poly = copy.deepcopy(window.project.to_dict())
         window.undo()
         self.assertEqual(window.workspace, 'score'); self.assertEqual(window.project.to_dict(), mono)
         self.assertTrue(self.traditional(window).isEnabled()); self.assertEqual(len(window.undo_history), 0)
         window.redo()
         self.assertEqual(window.workspace, 'score'); self.assertEqual(window.project.to_dict(), poly)
-        self.assertFalse(self.traditional(window).isEnabled()); self.assertEqual(len(window.undo_history), 1)
+        self.assertTrue(self.traditional(window).isEnabled()); self.assertEqual(len(window.undo_history), 1)
 
     def test_traditional_selection_is_rejected_without_history_or_document_changes_in_both_languages(self):
         for language in ('zh', 'en'):
             with self.subTest(language=language):
                 window = self.window(song(), language); window.switch_workspace('score')
                 before = copy.deepcopy(window.project.to_dict()); history = list(window.undo_history)
-                window.set_notation('style', 'traditional')
+                with patch('lingfeng.ui.score_compatibility_dialog.show_traditional_compatibility') as report:
+                    window.set_notation('style', 'traditional')
+                report.assert_called_once_with(window, window.project)
                 self.assertEqual(window.project.to_dict(), before); self.assertEqual(window.undo_history, history)
-                self.assertEqual(window.statusBar().currentMessage(), i18n.tr(MESSAGE))
-                self.assertEqual(self.traditional(window).toolTip(), i18n.tr(MESSAGE))
+                self.assertTrue(self.traditional(window).isEnabled())
                 if language == 'en': self.assertNotEqual(i18n.tr(MESSAGE), MESSAGE)
                 window.dirty = False; window.close()
 
-    def test_repaired_melody_reenables_traditional_and_replaces_only_incompatible_snapshot(self):
+    def test_repaired_melody_accepts_traditional_and_replaces_only_incompatible_snapshot(self):
         window = self.window(song()); window.switch_workspace('score')
         old_snapshot = window.score_view.canvas.project
         self.assertEqual(old_snapshot.notes[0].duration, 961)
@@ -170,7 +171,7 @@ class PolyphonicScoreTests(unittest.TestCase):
         window.change_language('en', False)
         self.assertEqual(window.workspace, 'score'); self.assertEqual(window.project.to_dict(), live)
         self.assertEqual(window.score_view.canvas.project.notes, snapshot)
-        self.assertFalse(self.traditional(window).isEnabled())
+        self.assertTrue(self.traditional(window).isEnabled())
 
     def test_polyphonic_supported_pdf_and_mono_traditional_export_without_music_changes(self):
         for style, polyphonic in (('spatial', True), ('compact', True), ('traditional', False)):

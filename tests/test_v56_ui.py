@@ -1,5 +1,6 @@
 """User-visible annotation commands and creation preferences through the editors."""
 import copy
+import json
 import os
 import tempfile
 import unittest
@@ -49,10 +50,22 @@ class ChordUiTests(unittest.TestCase):
         second=ChordDialog(c,p,defaults=first.options());self.addCleanup(second.close)
         self.assertEqual(second.quality.currentData(),'add9');self.assertIn(62,second.value().pitches)
 
+    def test_editor_uses_pychord_names_for_lossless_choices(self):
+        preferences.set_preferences(dict(quick_chord_qualities=['maj9','mM7','M7']))
+        p=Project();dialog=ChordDialog(Chord(0,1920,quality='maj9'),p);self.addCleanup(dialog.close)
+        self.assertEqual([dialog.quality.itemData(i) for i in range(dialog.quality.count())
+                          if dialog.quality.model().item(i).isEnabled()],['mM7','M7'])
+        index=dialog.quality.findData('mM7')
+        self.assertTrue(dialog.quality.itemText(index).startswith('mM7'))
+        dialog.quality.setCurrentIndex(index)
+        self.assertIn('CmM7',dialog.preview.text())
+        self.assertNotIn('m(maj7)',dialog.preview.text())
+
     def test_actual_draw_input_uses_each_roll_default(self):
-        preferences.set_preferences(dict(default_velocities=dict(melody=41,harmony=109)))
-        for role,expected in [('melody',41),('harmony',109)]:
+        preferences.set_preferences(dict(default_velocities=dict(melody=41,instrument=59,harmony=109)))
+        for role,track,expected in [('melody',0,41),('melody',1,59),('harmony',0,109)]:
             roll=PianoRoll(Project(),role=role);self.addCleanup(roll.close)
+            roll.melody_track=track
             roll.resize(900,500);roll.show();roll.center_pitch(60);APP.processEvents();roll.tool='draw'
             received=[];roll.noteAdded.connect(received.append)
             point=QPoint(round(roll.x_at(120)),round(roll.y_at(60)+roll.row_height/2))
@@ -115,6 +128,31 @@ class ChordUiTests(unittest.TestCase):
                 self.assertEqual(c.name,'C');self.assertEqual(event_list(window.project),before)
                 window.undo();self.assertTrue(window.project.chords[0].marked)
                 self.assertEqual(Project.from_dict(window.project.to_dict()).to_dict(),window.project.to_dict())
+
+    def test_recognition_name_menu_keeps_performance_and_roundtrips_combined_choice(self):
+        from lingfeng.music.chord_operations import contextual_chord_name, roman_label
+        with tempfile.TemporaryDirectory(dir='tmp') as directory:
+            with patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(directory)):
+                p=Project(chords=[Chord(0,1920,notes=[Note(0,900,pitch) for pitch in (48,64,67)],
+                                        include_instrument_in_recognition=True)],
+                          instrument_notes=[Note(0,960,69)])
+                window=MainWindow(p);self.addCleanup(lambda:(setattr(window,'dirty',False),window.close()))
+                window.timer.stop();window.autosave.stop()
+                chord=window.project.chords[0];self.assertEqual(chord.name,'C6')
+                before=event_list(window.project)
+                menu=window.roll.lane.context_menu(QPoint(round(window.roll.lane.x_at(100)),18));self.addCleanup(menu.close)
+                other=next(a for a in menu.recognition_names_menu.actions() if 'Am7/C' in a.text())
+                self.assertIn('vi7/1',other.text())
+                other.trigger()
+                chord=window.project.chords[0]
+                self.assertEqual(contextual_chord_name(window.project,chord),'Am7/C')
+                self.assertEqual(roman_label(window.project,chord),'vi7/1')
+                self.assertEqual(event_list(window.project),before)
+                self.assertEqual(chord.quality,'')
+                restored=Project.from_dict(json.loads(json.dumps(window.project.to_dict())))
+                self.assertEqual(restored.chords[0].name,'Am7/C')
+                window.undo();self.assertEqual(window.project.chords[0].name,'C6')
+                window.redo();self.assertEqual(window.project.chords[0].name,'Am7/C')
 
 
 if __name__=='__main__':unittest.main()

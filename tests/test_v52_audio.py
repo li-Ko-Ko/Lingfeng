@@ -16,11 +16,11 @@ import numpy as np
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 import lingfeng.audio.soundbanks as banks
 from lingfeng.audio.exporting import offline_pcm
-from lingfeng.audio.synthesis import SynthEngine, RATE
+from lingfeng.audio.synthesis import SynthEngine, BLOCK, RATE
 from lingfeng.music.model import Project, Note
 
 ROOT = Path(__file__).resolve().parents[1]
-DLL = banks.default_root() / 'piano-small/sfizz.dll'
+DLL = banks.default_root() / 'piano-electric/sfizz.dll'
 
 
 class SamplePackTests(unittest.TestCase):
@@ -73,12 +73,23 @@ class SamplePackTests(unittest.TestCase):
         return engine
 
     def test_new_projects_prefer_small_pack_but_saved_choices_survive(self):
-        expected = {'melody': dict(device='synth:piano-small', program=1), 'chords': dict(device='synth:piano-small', program=0)}
+        expected = {'melody': dict(device='synth:piano-small', program=1), 'chords': dict(device='synth:piano-small', program=0),
+                    'instrument': dict(device='synth:piano-small', program=1)}
         self.assertEqual(banks.default_audio(), expected)
-        saved = {role: dict(device='default', program=5) for role in ('melody', 'chords')}
+        saved = {role: dict(device='default', program=5) for role in ('melody', 'chords', 'instrument')}
         banks.save_defaults(saved); banks._state = None
         self.assertEqual(banks.default_audio(), saved)
         self.assertEqual(Project().audio, saved)
+
+    def test_ydp_defaults_keep_other_valid_saved_tracks(self):
+        ydp = dict(device='synth:ydp-grand', program=0)
+        options = {'synth:ydp-grand': [0], 'synth:piano-small': [0, 1], 'synth:piano-electric': [2, 5, 6]}
+        with patch.object(banks, 'available_programs', side_effect=lambda device: options.get(device, [])):
+            self.assertEqual(Project().audio, dict(melody=ydp, chords=ydp, instrument=ydp))
+            greg = dict(device='synth:piano-electric', program=5, gain_db=6)
+            saved = dict(melody=dict(device='synth:missing', program=1), chords=ydp, instrument=greg)
+            banks.save_defaults(saved)
+            self.assertEqual(Project().audio, dict(melody=ydp, chords=ydp, instrument=greg))
 
     def test_native_pack_remains_fallback_without_sample_pack(self):
         self.manifest['id'] = 'test-piano'; self.write_manifest()
@@ -100,10 +111,11 @@ class SamplePackTests(unittest.TestCase):
         self.assertEqual(upgraded['app_version'],__version__)
         self.assertIn('piano-small',upgraded['packs'])
         self.assertIn(str(extra),upgraded['roots'])
-        self.assertEqual(banks.default_audio(),saved)
+        expected={**saved,'instrument':dict(saved['melody'])}
+        self.assertEqual(banks.default_audio(),expected)
         banks._state=None
         with patch.object(banks,'rescan',side_effect=AssertionError('Upgrade must scan only once')):
-            self.assertEqual(banks.default_audio(),saved)
+            self.assertEqual(banks.default_audio(),expected)
 
     def test_manifest_and_mapping_paths_cannot_escape_pack(self):
         outside = self.base / 'outside.wav'; shutil.copy2(self.folder / 'tone.wav', outside)
@@ -142,6 +154,64 @@ class SamplePackTests(unittest.TestCase):
             engine.stop(); engine.send(0x90, key, 100); data = engine.render(4096)
             self.assertTrue(np.isfinite(data).all()); self.assertGreater(float(abs(data).max()), 1e-4)
         engine.stop(); self.assertFalse(engine.render(512).any())
+
+    def test_imported_calibration_combines_with_track_gain_and_keeps_mute(self):
+        device = 'synth:piano-small'
+        reference = self.engine()
+        reference.send(0x90, 60, 100)
+        base = reference.render(4096)
+
+        (self.folder / 'calibration.json').write_text(json.dumps({
+            'schema': 1, 'preset_gain_db': {'0': 6, '1': 0},
+        }), 'utf-8')
+        self.assertFalse(banks.rescan()['errors'])
+        banks._state = None  # Exercise the persisted scan index too.
+        self.assertEqual(banks.preset_calibration_db(0, device), 6)
+        self.assertEqual(banks.preset_calibration_db(1, device), 0)
+        self.assertIsNone(banks.preset_calibration_db(4, device))
+        self.assertEqual(banks.instrument(0, device)['gain'], 1)
+
+        calibrated = self.engine()
+        calibrated.set_source_gains({0: -3})
+        calibrated.send(0x90, 60, 100)
+        np.testing.assert_allclose(calibrated.render(4096), base * 10**(3/20), atol=2e-6)
+        calibrated.send(0xb0, 7, 0)
+        self.assertFalse(calibrated.render(512).any())
+
+    def test_invalid_calibration_falls_back_to_original_preset(self):
+        device = 'synth:piano-small'
+        (self.folder / 'calibration.json').write_text(json.dumps({
+            'schema': 1, 'preset_gain_db': {'0': 30},
+        }), 'utf-8')
+        state = banks.rescan()
+        self.assertTrue(state['errors'])
+        self.assertIn('piano-small', state['packs'])
+        self.assertIsNone(banks.preset_calibration_db(0, device))
+        self.assertEqual(banks.instrument(0, device, apply_calibration=True)['gain'], 1)
+
+    def test_kawai_attack_stays_continuous_across_full_render_blocks(self):
+        from lingfeng.audio.sfz import SfzVoice
+
+        mapping = 'acoustic/UprightPianoKW-20220221.sfz'
+        path = self.folder / mapping
+        path.parent.mkdir()
+        path.write_text('<region> sample=../tone.wav pitch_keycenter=60', 'utf-8')
+        self.manifest['presets'][0]['sfz'] = mapping
+        self.write_manifest()
+        self.assertFalse(banks.rescan()['errors'])
+
+        engine = self.engine()
+        info = banks.pack('synth:piano-small')
+        reference = SfzVoice(engine.channels[0].api, info, {'gain': 1, 'sfz': 'piano.sfz'}, RATE, 2 * BLOCK, offline=True)
+        self.addCleanup(reference.close)
+        reference.send(0x90, 60, 100)
+        uninterrupted = reference.render(2 * BLOCK)
+
+        engine.send(0x90, 60, 100)
+        self.assertEqual(len(engine.render(0)), 0)
+        actual = np.concatenate((engine.render(BLOCK), engine.render(BLOCK)))
+        np.testing.assert_allclose(actual[0], uninterrupted[0], atol=2e-6)
+        np.testing.assert_allclose(actual[1:], uninterrupted[:-1], atol=2e-6)
 
     def test_sample_and_native_channels_mix_and_stop_independently(self):
         shutil.copytree(DLL.parent.parent / 'stk-essentials', self.base / 'synths/stk-essentials')

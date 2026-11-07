@@ -1,130 +1,93 @@
 # 伶风操作帮助 / Lingfeng user guide
 
-本文由 `python scripts/export_help.py` 从程序内帮助生成。程序中的帮助支持分类浏览以及中英文全文搜索。移动快捷键固定使用方向键及其修饰组合；其它可配置键位可在设置中修改。
+首次使用可先读[从创作到导出](#topic-1-1)。下方按任务查找，也可在程序内搜索中英文标题和正文。
 
-Generated from the in-app help with `python scripts/export_help.py`. In-app help provides categories and Chinese/English full-text search. Movement shortcuts use fixed arrows and modifier combinations; other configurable shortcuts can be changed in Settings.
+Start with [From composition to export](#topic-1-1). Browse by task below or search titles and text in either language from the app.
 
 ## 目录 / Contents
 
-1. [开始使用与工程 / Start and projects](#category-1)
-
-   - [1.1 开始与工程 / Getting started](#topic-1-1)
-
-   - [1.2 升级与偏好保留 / Upgrades and personal settings](#topic-1-2)
-
-2. [旋律输入与编辑 / Melody input and editing](#category-2)
-
-   - [2.1 智能与绘制工具 / Smart and Draw](#topic-2-1)
-
-   - [2.2 时值、吸附与小节设置 / Duration, snap and bar settings](#topic-2-2)
-
-   - [2.3 默认时值跟随与属七降五 / Default duration tracking and dominant flat five](#topic-2-3)
-
-   - [2.4 音符变换 / Note transformations](#topic-2-4)
-
-   - [2.5 音符力度与跨和弦合并 / Note velocities and joining across chord regions](#topic-2-5)
-
-   - [2.6 长音符、隐藏与编辑视角 / Long notes, hiding and edit scrolling](#topic-2-6)
-
-   - [2.7 导入 MIDI / Import MIDI](#topic-2-7)
-
-   - [2.8 MIDI 输入与量化 / MIDI input and quantization](#topic-2-8)
-
-3. [和弦与进行 / Chords and progressions](#category-3)
-
-   - [3.1 小节、和弦区间与实际音符 / Bars, chord regions and performed notes](#topic-3-1)
-
-   - [3.2 和弦区间与快速编辑 / Chord regions and quick editing](#topic-3-2)
-
-   - [3.3 和弦结构与节奏型 / Chord structure and patterns](#topic-3-3)
-
-   - [3.4 和弦边界与连续音符 / Chord regions and continuous notes](#topic-3-4)
-
-   - [3.5 低音与和弦转位 / Bass and chord inversion](#topic-3-5)
-
-   - [3.6 和弦调内移动 / Diatonic chord movement](#topic-3-6)
-
-   - [3.7 和弦节奏、节奏型与独立窗口 / Harmonic rhythm, accompaniment patterns and floating windows](#topic-3-7)
-
-   - [3.8 实际和弦音、重新生成与辅助时间尺 / Performed chord tones, regeneration and auxiliary ruler](#topic-3-8)
-
-   - [3.9 选择、预览与和弦编辑逻辑 / Selection, previews and chord editing](#topic-3-9)
-
-   - [3.10 段落与和弦进行 / Sections and chord progressions](#topic-3-10)
-
-   - [3.11 调式数字与创作提示 / Modal degrees and composition hints](#topic-3-11)
-
-   - [3.12 调式标号、默认力度与和弦选项 / Modal labels, default velocities and chord options](#topic-3-12)
-
-   - [3.13 默认力度与和弦力度 / Default velocities and chord velocity](#topic-3-13)
-
-   - [3.14 密集和弦、八度移动与底五交替 / Close voicing, octave moves and alternating bass](#topic-3-14)
-
-   - [3.15 拍号区间与和弦提示 / Meter regions and chord details](#topic-3-15)
-
-   - [3.16 移动边界、暂存与删除小节 / Movement boundaries, temporary recovery and bar deletion](#topic-3-16)
-
-   - [3.17 右键菜单、选择与节奏型识别 / Context menus, selection and pattern recognition](#topic-3-17)
-
-4. [工作区、导航与快捷键 / Workspace, navigation and shortcuts](#category-4)
-
-   - [4.1 工作区与悬浮窗口 / Workspace and floating windows](#topic-4-1)
-
-   - [4.2 和弦轨联动与高亮 / Chord lane layout and highlighting](#topic-4-2)
-
-   - [4.3 独立窗口与和弦力度 / Floating windows and chord velocity](#topic-4-3)
-
-   - [4.4 时间尺、循环与鼠标拖屏 / Time ruler, loops and mouse navigation](#topic-4-4)
-
-   - [4.5 方向键、三连音与边缘框选 / Arrow navigation, triplets and edge selection](#topic-4-5)
-
-   - [4.6 快捷键与定位线 / Keyboard shortcuts and position marker](#topic-4-6)
-
-   - [4.7 统一快捷键与冲突处理 / Unified shortcuts and reassignment](#topic-4-7)
-
-   - [4.8 颜色与可视区域 / Colors and visibility](#topic-4-8)
-
-   - [4.9 卷帘自定义音高范围 / Custom piano-roll pitch ranges](#topic-4-9)
-
-5. [播放、音源与导出 / Playback, sounds and export](#category-5)
-
-   - [5.1 播放与音源 / Playback and sounds](#topic-5-1)
-
-   - [5.2 统一字号与合成音源 / Global score fonts and synth packs](#topic-5-2)
-
-   - [5.3 按格式导出 / Export by format](#topic-5-3)
-
-   - [5.4 导出与迁移 / Export and migration](#topic-5-4)
-
-6. [制谱、歌词与结构 / Scores, lyrics and structure](#category-6)
-
-   - [6.1 休止符与立体简谱 / Rests and spatial jianpu](#topic-6-1)
-
-   - [6.2 谱面缩放、拍间分隔与更新 / Score zoom, beat groups and refresh](#topic-6-2)
-
-   - [6.3 两端对齐与字号上限 / Justification and font limits](#topic-6-3)
-
-   - [6.4 紧凑传统简谱与 32 分音符对 / Compact traditional rows and isolated 32nd pairs](#topic-6-4)
-
-   - [6.5 谱面选择与局部合行 / Score selection and local systems](#topic-6-5)
-
-   - [6.6 歌词与符号位置 / Lyrics and symbol placement](#topic-6-6)
-
-   - [6.7 反复压缩与跳转 / Repeat compression and jumps](#topic-6-7)
-
-   - [6.8 其他谱面符号 / Other score symbols](#topic-6-8)
-
-   - [6.9 制谱标识与多音连音弧 / Score annotations and multi-note phrase slurs](#topic-6-9)
-
-7. [关于与许可 / About and licensing](#category-7)
+1. [入门与工程 / Start and projects](#category-1)
+    - [1.1 从创作到导出 / From composition to export](#topic-1-1)
+    - [1.2 开始与工程 / Getting started](#topic-1-2)
+    - [1.3 升级与偏好保留 / Upgrades and personal settings](#topic-1-3)
+2. [工作区、导航与快捷键 / Workspace, navigation and shortcuts](#category-2)
+    - [2.1 工作区与悬浮窗口 / Workspace and floating windows](#topic-2-1)
+    - [2.2 快捷键与定位线 / Keyboard shortcuts and position marker](#topic-2-2)
+    - [2.3 统一快捷键与冲突处理 / Unified shortcuts and reassignment](#topic-2-3)
+    - [2.4 时间尺、循环与鼠标拖屏 / Time ruler, loops and mouse navigation](#topic-2-4)
+    - [2.5 方向键、三连音与边缘框选 / Arrow navigation, triplets and edge selection](#topic-2-5)
+    - [2.6 卷帘自定义音高范围 / Custom piano-roll pitch ranges](#topic-2-6)
+3. [旋律编辑与 MIDI 键盘 / Melody editing and MIDI keyboard](#category-3)
+    - [3.1 智能与绘制工具 / Smart and Draw](#topic-3-1)
+    - [3.2 时值、吸附与小节设置 / Duration, snap and bar settings](#topic-3-2)
+    - [3.3 时值跟随与记忆 / Previous note duration and memory](#topic-3-3)
+    - [3.4 音符变换 / Note transformations](#topic-3-4)
+    - [3.5 音符力度与跨和弦合并 / Note velocities and joining across chord regions](#topic-3-5)
+    - [3.6 长音符、隐藏与编辑视角 / Long notes, hiding and edit scrolling](#topic-3-6)
+    - [3.7 MIDI 输入与量化 / MIDI input and quantization](#topic-3-7)
+4. [和弦编配与段落 / Chord arrangement and sections](#category-4)
+    - [4.1 小节、和弦区间与实际音符 / Bars, chord regions and performed notes](#topic-4-1)
+    - [4.2 和弦区间与快速编辑 / Chord regions and quick editing](#topic-4-2)
+    - [4.3 和弦结构与节奏型 / Chord structure and patterns](#topic-4-3)
+    - [4.4 和弦边界与连续音符 / Chord regions and continuous notes](#topic-4-4)
+    - [4.5 低音与和弦转位 / Bass and chord inversion](#topic-4-5)
+    - [4.6 和弦调内移动 / Diatonic chord movement](#topic-4-6)
+    - [4.7 和弦节奏与卷帘联动 / Harmonic rhythm and linked piano rolls](#topic-4-7)
+    - [4.8 密集和弦、八度移动与底五交替 / Close voicing, octave moves and alternating bass](#topic-4-8)
+    - [4.9 段落与和弦进行 / Sections and chord progressions](#topic-4-9)
+    - [4.10 拍号区间与和弦提示 / Meter regions and chord details](#topic-4-10)
+    - [4.11 移动边界、暂存与删除小节 / Movement boundaries, temporary recovery and bar deletion](#topic-4-11)
+5. [和弦识别、标号与力度 / Chord recognition, labels and dynamics](#category-5)
+    - [5.1 属七降五与半减七 / Dominant seventh flat five and half-diminished seventh](#topic-5-1)
+    - [5.2 实际和弦音、重新生成与辅助时间尺 / Performed chord tones, regeneration and auxiliary ruler](#topic-5-2)
+    - [5.3 选择、预览与和弦编辑逻辑 / Selection, previews and chord editing](#topic-5-3)
+    - [5.4 调式数字与创作提示 / Modal degrees and composition hints](#topic-5-4)
+    - [5.5 调式标号、默认力度与和弦选项 / Modal labels, default velocities and chord options](#topic-5-5)
+    - [5.6 默认力度与和弦力度 / Default velocities and chord velocity](#topic-5-6)
+    - [5.7 右键菜单、选择与节奏型识别 / Context menus, selection and pattern recognition](#topic-5-7)
+    - [5.8 和弦轨联动与高亮 / Chord lane layout and highlighting](#topic-5-8)
+    - [5.9 颜色与可视区域 / Colors and visibility](#topic-5-9)
+    - [5.10 独立窗口与和弦力度 / Floating windows and chord velocity](#topic-5-10)
+6. [制谱、歌词与标识 / Scores, lyrics and annotations](#category-6)
+    - [6.1 休止符与立体简谱 / Rests and spatial jianpu](#topic-6-1)
+    - [6.2 谱面缩放、拍间分隔与更新 / Score zoom, beat groups and refresh](#topic-6-2)
+    - [6.3 小节与拍的宽度 / Bar widths and beat spacing](#topic-6-3)
+    - [6.4 两端对齐与字号上限 / Justification and font limits](#topic-6-4)
+    - [6.5 紧凑传统简谱与 32 分音符对 / Compact traditional rows and isolated 32nd pairs](#topic-6-5)
+    - [6.6 谱面选择与局部合行 / Score selection and local systems](#topic-6-6)
+    - [6.7 歌词与符号位置 / Lyrics and symbol placement](#topic-6-7)
+    - [6.8 反复压缩与跳转 / Repeat compression and jumps](#topic-6-8)
+    - [6.9 其他谱面符号 / Other score symbols](#topic-6-9)
+    - [6.10 制谱标识与多音连音弧 / Score annotations and multi-note phrase slurs](#topic-6-10)
+7. [播放、音量与音源 / Playback, volume and sounds](#category-7)
+    - [7.1 播放与音源 / Playback and sounds](#topic-7-1)
+    - [7.2 安装与管理音源 / Install and manage sounds](#topic-7-2)
+8. [文件导入、导出与迁移 / Import, export and interchange](#category-8)
+    - [8.1 导入 MIDI / Import MIDI](#topic-8-1)
+    - [8.2 双旋律、ABC 与 YuE2 / Two melodies, ABC and YuE2](#topic-8-2)
+    - [8.3 按格式导出 / Export by format](#topic-8-3)
+    - [8.4 导出与迁移 / Export and migration](#topic-8-4)
+9. [关于与许可 / About and licensing](#category-9)
 
 <a id="category-1"></a>
 
-## 1. 开始使用与工程 / Start and projects
+## 1. 入门与工程 / Start and projects
 
 <a id="topic-1-1"></a>
 
-### 1.1 开始与工程 / Getting started
+### 1.1 从创作到导出 / From composition to export
+
+**中文**
+
+<ol><li><b>建立工程。</b>用「文件 → 新建」开始，在小节栏调整拍号和调性，再保存为 .lfs。</li><li><b>写旋律与和弦。</b>在创作界面用绘制工具写音符，用智能工具选择和调整。通过「视图」分别打开人声、乐器和和弦卷帘。在和弦轨上编辑名称、低音和节奏型，或在和弦卷帘直接编辑演奏音符。</li><li><b>整理谱面。</b>进入制谱，选择谱式与显示轨道，再从「视图」打开对应歌词或标识面板。</li><li><b>导出所需轨道。</b>在「文件 → 导出」勾选轨道。用 PDF 分享谱面，用 MIDI 或 DAW 迁移包继续制作，用 MusicXML 或 ABC 交换乐谱，用 MP3 分享音频。</li></ol><p>帮助主题按任务分类。可搜索中文或英文，例如「三连音」「和弦转位」或「YuE2」。</p>
+
+**English**
+
+<ol><li><b>Start a project.</b>Choose File → New. Set meter and key on the bar ruler, then save an .lfs project.</li><li><b>Write melodies and chords.</b>In Compose, use Draw to enter notes and Smart to select and adjust them. Open the vocal, instrumental, and chord rolls separately from View. Edit chord names, basses, and patterns in the chord lane, or edit performed notes in the chord roll.</li><li><b>Prepare the score.</b>Switch to Score, choose a notation style and visible tracks, then open the lyrics or annotations panel from View.</li><li><b>Export the tracks you need.</b>Select tracks under File → Export. Share a PDF score or MP3 audio, continue production with MIDI or a DAW bundle, or exchange notation with MusicXML or ABC.</li></ol><p>Browse the categories by task or search in either language, for example “triplet”, “chord inversion”, or “YuE2”.</p>
+
+<a id="topic-1-2"></a>
+
+### 1.2 开始与工程 / Getting started
 
 **中文**
 
@@ -134,9 +97,9 @@ Generated from the in-app help with `python scripts/export_help.py`. In-app help
 
 New projects use 4/4 and C3 Ionian. <b>.lfs</b> stands for Lingfeng Lead Sheet and stores music and page layout. Confirm a title in Edit → Project information to update the displayed score title immediately. Undo and redo update it too, without re-entering Score mode. Open and Save remember the last project folder. New projects and added bars contain one N.C. (no chord) region per bar. Use Ctrl+S to save, Ctrl+Z to undo and Ctrl+Y (or Ctrl+Shift+Z) to redo, including in floating rolls. Undo and redo activate the editor where the operation took place, using its current location after layout changes, without interrupting playback.
 
-<a id="topic-1-2"></a>
+<a id="topic-1-3"></a>
 
-### 1.2 升级与偏好保留 / Upgrades and personal settings
+### 1.3 升级与偏好保留 / Upgrades and personal settings
 
 **中文**
 
@@ -148,391 +111,35 @@ New projects use 4/4 and C3 Ionian. <b>.lfs</b> stands for Lingfeng Lead Sheet a
 
 <a id="category-2"></a>
 
-## 2. 旋律输入与编辑 / Melody input and editing
+## 2. 工作区、导航与快捷键 / Workspace, navigation and shortcuts
 
 <a id="topic-2-1"></a>
 
-### 2.1 智能与绘制工具 / Smart and Draw
+### 2.1 工作区与悬浮窗口 / Workspace and floating windows
 
 **中文**
 
-智能工具：单击选择，空白拖动框选；Ctrl 单击增减，Shift 扩展框选。多选后单击其中一项，释放且未拖动时缩为单选；从已选项开始拖动保留整组。双击空白格内写入，双击音符删除。<br>绘制工具：单击格内写入，单击已有音符删除；拖动已有音符移动，拖动边缘调整时值。绘制中按 Shift 锁定音高。音符实体与琴键用于编辑、选择和试听。单击卷帘格点纵线或相邻音符间的窄缝可吸附定位，不写入音符；先判断音符实体，长音内部仍编辑该音符。智能工具按住空白处后显示十字框选，拖动不定位；绘制工具禁用卷帘左右键框选，含 Ctrl／Shift 组合。创作中单击时间轴下半部时间尺定位，双击从该处播放；制谱中还可单击谱面定位。
+<p>创作界面中，可在「视图」分别显示人声和乐器。右上角的关闭按钮只隐藏当前轨，可从「视图」重新打开。点击悬浮图标只会分离当前轨。另一轨可留在主界面，也可打开为自己的浮窗。点击浮窗标题栏的停靠按钮或关闭浮窗，可将该轨送回主界面。进入制谱时暂时收起创作浮窗，返回创作后恢复。</p>导航器位于播放栏下方、卷帘设置上方，绿色人声与紫色乐器旋律适度分离并保留部分交叠，交叠处优先显示人声颜色。「设置 → 卷帘显示 → 导航器」可勾选显示轨道，默认人声与乐器，空轨自动隐藏。默认高度随显示轨道数量调整；可拖动左侧底部热区调节高度，最小 28 像素，也可在设置中输入高度或恢复自动高度。创作界面继续显示时间轴、旋律钢琴卷帘、和弦轨、和弦钢琴卷帘及轨道音量。顶部“视图”菜单独立控制显隐；和弦卷帘、力度窗格默认隐藏。两个卷帘右上角使用相同的悬浮／停靠图标。悬浮旋律窗口保留下方和弦轨，悬浮和弦窗口在自身时间轴下显示与主轨一致的结构卡片；数据同步，选择与高亮独立。创作与制谱的浮动卷帘均提供独立时间轴、播放／暂停、回放、循环、跟随和速度控件。播放、位置、循环选区和速度全局共享；未同步时跟随独立。在播放栏最右侧“其它选项”分别勾选“同步时间轴”，先采用主界面跟随状态，再与主时间轴双向同步缩放、滚动和跟随开关；取消后独立控制。主时间轴始终保留自身视窗，即使所有卷帘都悬浮也能浏览；停靠卷帘始终双向同步主时间轴，重新停靠时采用主视窗。任一停靠卷帘都有可用的设置栏。<h4>停靠与悬浮的操作</h4>创作中两个卷帘停靠时共用底端水平滚动条，以及音高范围、键高、缩放、智能／绘制工具和网格设置。已用音高取两轨的并集。各浮动卷帘可独立浏览，改变一个窗口的同步开关不会更改另一个。调整键高时，以音符区的纵向中心为锚点，不把标尺和和弦结构栏计入中心；共享键高时两个卷帘分别保留自身中央音高。<h4>制谱面板</h4>制谱面板提供“旋律卷帘／和弦卷帘／人声歌词／乐器歌词／标识”选项卡。右上角悬浮与关闭按钮只操作当前选项卡；浮窗可单独停靠或关闭。首次进入时四个面板全部隐藏，从“视图”分别打开，之后切回制谱恢复上次布局。主界面跟随开关适用于谱面与当前选中的停靠卷帘；切换到原先未选中的卷帘时再更新其跟随位置。悬浮卷帘使用与创作模式相同的独立跟随和同步时间轴选项。“视图”菜单随模式切换，可重新打开各面板。歌词提交、删除和撤销即时更新当前谱面的歌词呈现。右键谱面可直接进入对应卷帘。悬停谱面和弦显示实际和弦音的数字级数、字母音名与八度，以及实际最低音。大小控件支持 +/−，面板之间可拖动分隔线。
 
 **English**
 
-Smart: click to select, drag blank space to marquee, Ctrl-click to add or remove. Clicking a selected member of a group narrows the selection on release if no drag occurred; starting a drag retains the group. Double-click a blank cell to insert or a note to delete.<br>Draw: click a cell to insert and an existing note to delete. Drag existing notes to move or resize their edges. Hold Shift during drawing to lock pitch. Note bodies and piano keys edit, select or audition. Click a vertical grid boundary or the narrow visual gap between adjacent notes to snap the position marker without writing a note. Note bodies take priority, so grid lines inside a sustained note still edit that note. In Smart, holding blank space activates the marquee crosshair; dragging selects without seeking. Draw disables left/right-button piano-roll marquees, including Ctrl/Shift modifiers. In Compose, click the lower time ruler to seek or double-click it to play. The score also supports click-to-seek.
+<p>In Compose, View shows the vocal and instrumental rolls separately. The close button in the editor header hides the current track, which you can reopen from View. Float opens only the current track in its own window. The other track can stay docked or float in a second window. Dock or close the floating window to return its track to the tabs. Score temporarily hides the Compose windows and restores them on return.</p>The overview sits below transport and above piano-roll settings. Green vocal and purple instrumental lines use partly overlapping bands, with vocal color taking priority in overlaps. Settings → Roll display → Navigator selects the visible tracks; vocal and instrumental are enabled by default, and empty tracks are hidden. Height follows the displayed track count automatically. Drag the bottom-left hotspot to resize it (minimum 28 pixels), or enter a height and restore automatic height in settings. Composition continues with the timeline, melody roll, chord lane, chord roll and volumes. View controls visibility; the chord roll and velocity lanes start hidden. Both rolls use the same Float/Dock icon at the upper right. The floating melody roll retains its chord lane. The floating chord roll displays matching chord cards below its own timeline; data is shared, while selection and highlighting remain local. In both Compose and Score, floating rolls have their own timeline and Play/Pause, Replay, Loop range, Follow playhead and Tempo controls. Playback, position, loop selection and tempo are shared. Following is independent when timeline sync is off, and linked to the main view when on. Enable Sync timeline in Other options at the far right of the transport row to link scrolling, zoom and follow-playhead state to the main view in both directions. The main timeline retains its own viewport even with all rolls floating. Docked rolls always synchronize with the main timeline and adopt its viewport when redocked. Every docked roll retains an available settings bar.<h4>Docked and floating controls</h4>Docked composition rolls share a bottom horizontal scrollbar, pitch range, key height, zoom, Smart/Draw tool and grid settings. Used pitches includes both tracks. Floating rolls can be browsed independently; changing one Sync timeline switch does not change the other. Key-height changes preserve the vertical center of the note area, excluding the ruler and chord structure header. Shared key-height changes retain each roll’s own central pitch.<h4>Score panels</h4>Score mode has separate tabs for the melody roll, chord roll, vocal lyrics, instrumental lyrics and annotations. Float or close affects only the current tab. Each floating pane can dock or close independently. Panels start hidden and open separately from View. Subsequent visits restore the previous layout. Main Follow playhead applies to the score and the selected docked roll; switching to an inactive roll updates its followed position then. Floating rolls use the same independent follow and timeline-sync options as Compose. The View menu changes with the mode and reopens individual panels. Applied lyric edits, deletion and undo update the displayed lyric presentation immediately. Right-click the score to open the corresponding roll. Hover over a chord symbol to see its actual tones as scale degrees and letter names with octaves, plus the lowest sounding pitch. Size controls have +/− buttons; drag splitters to resize panels.
 
 <a id="topic-2-2"></a>
 
-### 2.2 时值、吸附与小节设置 / Duration, snap and bar settings
+### 2.2 快捷键与定位线 / Keyboard shortcuts and position marker
 
 **中文**
 
-左侧“时值”控制新音符长度，支持全音符至 1/128、1/2/4/8 小节、“跟随网格”和“上一次时值”。附点与三连音互斥；上一次时值取最近选择、绘制或拉伸的音符。右侧“吸附”在琴键设置旁，独立决定卷帘纵线和时间轴最小单位，支持三连音，没有自适应模式。选中音符后右键“按当前格点量化”，将起点吸附到当前格点，保留时长。<br>时间轴上半部按整小节选择；Ctrl 单击增减不连续小节，Shift 单击从锚点连续选择，Ctrl+Shift 追加范围。下半部为独立时间尺，按吸附格点定位或设置循环。右键“设置所选小节拍号与调性”将选区扩展为整小节并一次应用。普通批量设置仅修改所选小节。只选一个小节时，右键可将其调性或拍号应用至后续所有小节，覆盖后方已有变化；调性包含主音与调式，拍号包含分子与分母，两项独立应用。最后一小节无后续小节时禁用。首小节显示完整标记；后续仅显示与前一小节不同的标记。缩短小节会删除或截断音符时先确认，后方音乐随小节长度顺延。<br>卷帘音符和根音／低音选择控件遵循全局升降号偏好；和弦名称与提示优先使用调式或和弦音程的拼写，谱面音符右键可切换等音降号。主音大调为数字参照，和弦变化不改变主音。
+在主界面与独立卷帘中，Ctrl+C／X／V 复制／剪切／粘贴选中的音符或和弦，Ctrl+A 全选当前编辑目标。复制的音符粘贴时使用目标卷帘的默认力度。文本输入框使用自己的剪贴板与撤销记录。<br>固定 ↑／↓ 升降音符一个半音，Alt+↑／↓ 调内移动一级；和弦轨选中和弦时，↑／↓ 更换根音一个半音，Alt+↑／↓ 调内移动一级；两者均恢复根音低音。C 编辑选中和弦；Tab 选择下一和弦，最后一个之后回到第一个，不定位播放游标。←／→ 按当前吸附网格左右移动音符或和弦。右键音符同时提供半音和调内移动。Q 在智能／绘制工具间切换，E 切换旋律／和弦输入位置（需要时呼出或激活对应窗口）。Ctrl+Tab 按人声、乐器、和弦的顺序循环切换当前已打开的卷帘。停靠和悬浮卷帘均可切换，已关闭的卷帘会跳过。空格播放／暂停，R 回到定位线并保持播放状态，Ctrl+Home 返回曲首并暂停。Shift+S 二等分，Alt+Shift+M 合并，Delete 删除。移动固定使用方向键：Alt+↑／↓ 调内移动，Ctrl+↑／↓ 移动音符八度；镜头移动快捷键暂时留空。设置 → 界面与操作 → 快捷键设置可修改或清空其它可配置键位，输入冲突组合会列出原功能，确认后清除其绑定并转给当前功能；取消保留原设置。歌词、数值、下拉框和对话框输入不会触发编辑命令。<br>右键音符或空白网格，可“在定位线处粘贴音符”；右键某个和弦可“在此和弦开头覆盖粘贴”，从该和弦起点按剪贴板总时长覆盖；另保留“在定位线处粘贴和弦”。右键空白处仍可在该格点粘贴。复制的跨和弦持续音在副本内部保持连续，每次粘贴与源事件及其它副本互相独立。播放中定位线为固定蓝色虚线，暂停时为当前橙色位置线；不会使用正在移动的播放游标。空白卷帘悬停为箭头，开始框选才显示十字。
 
 **English**
 
-Duration on the left sets new note length: whole notes through 1/128, 1/2/4/8 bars, Follow grid or Previous note. Dotted and triplet are mutually exclusive. Previous note uses the most recently selected, drawn or resized note. Snap beside the keyboard settings independently controls vertical grid lines and the smallest timeline unit. It supports triplets, without an adaptive mode. Quantize is available only in the context menu for selected notes and snaps their starts while keeping durations.<br>The upper timeline selects whole bars. Ctrl-click toggles individual bars; Shift-click extends from the anchor; Ctrl+Shift adds a range. The separate lower time ruler uses the snap grid for positioning and loops. Set meter and key for selected bars expands the selection to complete bars and applies it once. The standard batch command changes only selected bars. With one bar selected, its context menu can apply that bar’s key or meter to all following bars, replacing later changes. Key includes tonic and mode; meter includes numerator and denominator. These commands act independently and are disabled at the final bar. The first bar shows the full marker; later bars show only changes. Shortening a bar asks for confirmation if notes would be deleted or cut; subsequent music shifts with bar length.<br>Piano-roll letter names follow the global accidental preference; root/bass letter names follow the same preference. Chord names and tooltips prefer mode-aware or chord-interval spelling; score notes can use enharmonic flats. Numbers reference the parallel major scale; chord changes do not change the tonic.
+In the main and floating editors, Ctrl+C/X/V copy/cut/paste the selected notes or chords; Ctrl+A selects all of the current editing target. Pasted copies use the destination roll’s default velocity. Text fields use their own clipboard and undo history.<br>Fixed movement keys: Up/Down move selected notes by one semitone; Alt+Up/Down move them by one scale step. With chords selected in a chord lane, Up/Down change the root by one semitone; Alt+Up/Down move by scale degree. Both restore root-position bass. C edits the selected chord; Tab selects the next chord, wrapping to the first without seeking. Left/Right move either selection horizontally by the current snap grid. Note context menus offer both semitone and scale-step movement. Q toggles Smart/Draw. E switches melody/chord input focus, revealing or activating the corresponding roll when needed. Ctrl+Tab cycles through open vocal, instrumental and chord rolls in that order, including docked and floating rolls. Space plays/pauses; R returns to the position marker without changing playback state; Ctrl+Home returns to the beginning and pauses. Shift+S splits, Alt+Shift+M merges, and Delete deletes. Alt+Up/Down and Ctrl+Up/Down are fixed scale-step and note-octave movement keys. Camera shortcuts are temporarily unassigned. Settings → Interface and controls → Keyboard shortcuts changes or clears other configurable bindings and lists the actions affected by a conflicting assignment. Confirm to clear their old binding and transfer the key, or cancel to keep the previous settings. Fixed system/input keys remain reserved. Text, numeric, combo-box and dialog input never triggers editing commands.<br>Right-click notes or blank grid space to paste notes at the position marker; right-clicking a chord offers Paste over from this chord start, overwriting from its start for the clipboard duration, plus Paste chords at position marker. Blank chord-lane space retains paste at the snapped point. Cross-region sustains remain continuous inside a copy, with independent identities for the source and each paste. During playback this means the fixed blue dashed anchor, and while paused it means the orange current-position line, never the advancing playhead. Blank roll hover uses an arrow; the crosshair appears only when selecting.
 
 <a id="topic-2-3"></a>
 
-### 2.3 默认时值跟随与属七降五 / Default duration tracking and dominant flat five
-
-**中文**
-
-时值默认选择“上一次时值”。还没有可追踪音符时，新音符暂按起点所在格点长度创建，选项保持不变；之后跟随最近创建、选择或编辑音符的实际时值，包括拉伸、属性修改及撤销。改变格点不会覆盖已记住的时值。旋律与和弦卷帘分别记忆，切换语言或停靠状态保留，新建／打开工程重新从格点起步；手动固定时值和“跟随网格”仍可选。<br><br>新增“7b5 · 属七降五和弦”，组成 1、3、♭5、♭7（0、4、6、10 半音），例如 C7b5 = C、E、G♭、B♭。支持和弦菜单、识别、转位、进行配方（如 V7b5）、MIDI 与工程保存。它与 m7b5（半减七和弦）的区别是三音为大三度。
-
-**English**
-
-Note duration defaults to Previous note. With no tracked note yet, creation temporarily uses the grid cell at its onset without changing the selected mode. It then follows the actual duration of the latest created, selected or edited note, including resizing, property edits and undo. Grid changes do not overwrite the remembered duration. Melody and harmony rolls keep separate histories across language and docking changes; new/open projects start with the grid fallback again. Fixed durations and Follow grid remain available.<br><br>7b5 · Dominant seventh flat five adds degrees 1, 3, flat 5 and flat 7 (0, 4, 6, 10 semitones). C7b5 contains C, E, Gb and Bb. It supports chord menus, recognition, inversions, progression recipes such as V7b5, MIDI and project files. Unlike m7b5 (half-diminished seventh), its third is major.
-
-<a id="topic-2-4"></a>
-
-### 2.4 音符变换 / Note transformations
-
-**中文**
-
-框选后右键：直接复制、逆行（时间反向）、倒影（音高翻转）、逆行倒影。直接复制保留实际音高，包括调外音；含调外音的选区禁止其他三种复制。变换粘贴按落点调式还原音阶级数。等时值 1243 逆行变为 3421，倒影为 4312。<br>Alt+↑／↓ 调内移动（Alt+↑／↓ 同样可用）。相邻同音高音符可合并；右键二等分音符不要求对齐格点，允许分到 1/64；已有 1/64 不可再分，三连音同理。拉伸或粘贴同音高音符时，以新音符覆盖重叠部分；旧音符保留边界外的前段、后段，完全覆盖则移除。仅边界相接不会合并，不同音高可自由叠加。音符的起止与力度分别保留，Ctrl+Z 可撤销。
-
-**English**
-
-After selecting notes, right-click for direct copy, retrograde (time reverse), inversion (pitch flip), or both. Direct copy preserves absolute pitches, including chromatic notes. The other three are disabled if any selected note is outside its scale. Transformed paste uses scale degrees in the destination mode. Equal-length 1243 becomes 3421 in retrograde or 4312 in inversion.<br>Alt+Up/Down moves notes within the scale (Alt+Up/Down also works). Join adjacent same-pitch notes; split notes in half regardless of grid alignment, down to a 1/64 note or 1/64-note triplet. Resizing or pasting a note replaces only overlapping time on the same pitch. Existing notes retain their outside prefixes and suffixes; fully covered notes are removed. Touching boundaries do not merge notes. Different pitches can overlap freely, with separate timing and velocity. Ctrl+Z undoes the edit.
-
-<a id="topic-2-5"></a>
-
-### 2.5 音符力度与跨和弦合并 / Note velocities and joining across chord regions
-
-**中文**
-
-两个卷帘均可右键单个音符或框选多个音符，在“修改力度”中统一修改所选音符的 MIDI 力度。菜单首先提供该卷帘设置中的默认力度，其后为常用值和自定义输入；自定义输入每次从默认值开始，不采用当前音符或上次操作的力度。旋律音符力度窗格、和弦卷帘逐音力度窗格及和弦轨整体力度窗格的右键数值输入也读取相应默认值。所有力度值为 1–127，可撤销，与轨道音量独立。<br>和弦卷帘中，同音高、首尾相接或重叠的选中音符可以跨和弦区间合并为一个连续演奏事件；不要求属于同一和弦。各音高行分别合并，有间隙时不合并。和弦边界保留并重新识别，持续音跨边界播放与 MIDI 导出只有一次起音和止音。
-
-**English**
-
-In either piano roll, right-click one note or a marquee selection and choose Change velocity to set the selected MIDI notes together. The first choice uses that roll’s saved default, followed by common values and custom input. Custom numeric input always starts at the saved default, independently of current notes and the previous operation. Numeric input from the melody-note, chord-note and overall chord velocity lanes uses the corresponding default too. MIDI velocities range from 1–127, support undo and are independent of track volume.<br>In the chord roll, selected notes at the same pitch can join across chord-region boundaries when adjacent or overlapping. Each pitch row joins independently; gaps are rejected. Chord boundaries remain and recognition refreshes. A joined continuous event plays and exports with one note-on and one note-off across those boundaries.
-
-<a id="topic-2-6"></a>
-
-### 2.6 长音符、隐藏与编辑视角 / Long notes, hiding and edit scrolling
-
-**中文**
-
-跨调性／调式的长音符在开头按时间顺序显示音级，例如 1 (3, 2)；相接的和弦长音片段共用标签。设置中的数字显示开关全局生效。<br>主界面卷帘标题右侧的关闭图标用于隐藏，与视图菜单的勾选同步，可再次勾选恢复。<br>键盘或右键移动选中音符时，视角保持不动，直到最后一个可见选中音符将移出视野，才滚动使它完整可见。横向保留音符全长与所在拍号一拍中的较短长度。拖动、拉伸或绘制音符到网格边缘时缓慢滚动；松开鼠标或 Esc 停止，不改变播放位置。<br>时间轴右键在小节前／后插入时可选择数量、拍号、调性，插入空白并顺延音乐，一次撤销整批恢复，工程最多 1000 小节。<br>撤销／重做和弦卷帘音符编辑保留当前时间与音高视角，不再自动跳回旧选中音符；音符、选区和编辑窗口仍按历史恢复。已用音域改变时按可用音高锚点保留位置，达到可滚动边界时正常夹紧。
-
-**English**
-
-Long notes crossing keys or modes display degrees in time order at their start, such as 1 (3, 2). Joined chord-note fragments share the label. The global degree-display setting applies.<br>The close icon beside each docked roll title hides that roll and updates View; check it again to restore the roll.<br>Moving notes with keys or context menus keeps the view still until the last visible selected note is about to leave it. Vertical scrolling keeps that note fully visible; horizontal scrolling keeps the shorter of its full duration and one beat in its local meter visible. Dragging, resizing or drawing near the grid edge scrolls gradually. Release or Esc stops scrolling without seeking playback.<br>Insert bars before/after a bar on the timeline accepts a quantity, meter and key. It inserts silence and shifts later music, with one undo for the whole batch and a maximum of 1,000 bars per project.<br>Undo and redo of chord-roll note edits preserve the current time and pitch view instead of jumping to the former selection. Notes, selection and editing surface still restore from history. Used-pitch range changes retain a pitch anchor, clamping only at available scroll limits.
-
-<a id="topic-2-7"></a>
-
-### 2.7 导入 MIDI / Import MIDI
-
-**中文**
-
-编辑 → 导入 MIDI 到旋律／和弦。选择文件后勾选来源音轨，确认播放游标起点及覆盖范围，再选择是否覆盖拍号、速度。默认保留拍号和速度。导入仅替换目标轨道对应区间，区间外内容及另一轨的音符位置保留，可撤销。跨覆盖边界的已有音符和和弦保留外侧片段。和弦导入生成自定义结构框并识别和弦，跨小节长音保留完整时长。<br>支持 PPQ 制式 MIDI Type 0/1；导入实际音高、起止和力度；保留工程歌词，忽略新 MIDI 的歌词。同音高重叠保留后续发音起点，以后来的音符覆盖交叠部分，避免将连奏误判为持续柱式。88 键范围外的音符不会静默丢弃，会拒绝导入并提示调整音域。覆盖拍号要求从小节边界开始；末个导入小节之后恢复原拍号。不合法的拍号边界会提示取消覆盖拍号。当前工程为固定速度，选择覆盖速度时只使用 MIDI 首个速度；不导入后续速度变化、音色或控制器自动化。
-
-**English**
-
-Edit → Import MIDI into melody/chords. Choose source tracks, review the playhead start and replacement range, then optionally replace meter or tempo. Both options are off by default. Only the corresponding destination range is replaced; outside content and note positions in the other track remain intact. Undo restores the project. Notes and chords crossing the range retain their outside pieces. Chord import creates custom regions and recognizes their tones; notes spanning barlines keep their full duration.<br>Supports PPQ-based MIDI Type 0/1, importing pitch, timing and velocity while retaining existing lyrics and ignoring incoming MIDI lyrics. Same-pitch overlaps retain later note onsets: later notes replace overlapping time rather than merging a legato passage into one sustained block. Notes outside the 88-key range are rejected with an explanation instead of silently discarded. Meter replacement starts at a bar boundary and restores the original meter after the last imported bar. Incompatible meter boundaries can be avoided by leaving meter replacement unchecked. The project has a fixed tempo: replacing it uses only the first MIDI tempo. Later tempo changes, instruments and controller automation are not imported.
-
-<a id="topic-2-8"></a>
-
-### 2.8 MIDI 输入与量化 / MIDI input and quantization
-
-**中文**
-
-设置 → 音源与输入 → MIDI 键盘输入：选择设备及目标轨道后启用。暂停时逐步录入，同时按键形成和弦；连奏与延音踏板保留后续按键的先后起点，松开全部琴键或延音踏板后前进；播放时实时录入，力度来自键盘。起点与结束强制吸附当前目标卷帘格点，包括三连音。设备不会在启动时自动启用。<br>导入窗口单独选择量化格点，可保留原始时间或指定普通／三连音网格。“结合连续节奏识别三连音”要求同一拍内至少两个偏离常规格点的三连音起点，并比较两种网格的误差；时长结合后续音符处理小间隙。单个音符或自由速度段无法可靠推断时，请显式指定网格或保留原始时间。
-
-**English**
-
-Settings → Sound and input → MIDI keyboard input: select a device and destination, then enable recording. Step input while paused groups near-simultaneous keys into a chord, but preserves successive onsets during legato or pedal holds. It advances after all keys and the sustain pedal are released. E switches the target roll and MIDI input track. During playback, input is recorded live with keyboard velocity. Onsets and endings snap to the destination roll’s current grid, including triplets. Devices are not armed automatically at launch.<br>Import has a separate quantization grid: keep original timing or choose a straight/triplet grid. Triplet detection requires at least two off-straight triplet onsets within a beat and compares grid errors. Duration look-ahead closes small performance gaps. Isolated notes and free-tempo passages may require an explicit grid or original timing.
-
-<a id="category-3"></a>
-
-## 3. 和弦与进行 / Chords and progressions
-
-<a id="topic-3-1"></a>
-
-### 3.1 小节、和弦区间与实际音符 / Bars, chord regions and performed notes
-
-**中文**
-
-<h4>1. 小节决定时间结构</h4><p>小节拍号决定一拍的长度与小节边界，调性决定数字音级的参照。连续相同拍号组成一个可编辑区间；调性变化本身不切断实际音符。插入、删除或改变小节长度会移动后续音乐；拍号变化处的和弦区间按边界拆分。</p><h4>2. 和弦轨决定区间操作</h4><p>和弦卡片保存根音、性质、指定低音和生成参数，并控制该区间的生成、替换、移动与裁切。已识别节奏型按各完整小节生成后裁切；锁定的自定义节奏型移动只平移，扩大只留空。静音 N.C. 区间只占位置，不产生音符。</p><h4>3. 和弦卷帘决定实际演奏</h4><p>直接编辑卷帘会改变实际 MIDI，并据此重新识别各区间；识别不补音。连续音符可以跨多个和弦区间。合并相邻和弦只去掉边界；显式分割则切开跨界音符。重新生成或应用节奏型会替换手工音符，执行前先核对选区；可以撤销。</p><h4>4. 谱面与导出</h4><p>播放、音频及 MIDI 导出使用最新实际音符。谱面在进入制谱时同步，编辑过程中保留当前排版；需要更新时回到创作再切入制谱。PDF 使用当前显示谱面。</p>
-
-**English**
-
-<h4>1. Bars define musical time</h4><p>Meter defines beat length and bar boundaries; key and mode define the reference for degree numbers. Consecutive equal meters form one editing region. A key change alone does not cut sounding notes. Inserting, deleting or changing bar lengths shifts later music; chord regions split at meter changes.</p><h4>2. The chord lane controls region operations</h4><p>Chord cards hold root, quality, specified bass and generation settings, and control generation, replacement, movement and cropping in their region. Recognized patterns generate over complete bars and are cropped afterward. Locked Custom patterns only translate on moves, and extension adds silence. N.C. regions occupy time without generating notes.</p><h4>3. The chord roll controls the performance</h4><p>Direct note edits change performed MIDI and refresh recognition in each affected region. Recognition never fills missing voices. A sustained note can cross several chord regions. Merging adjacent chords removes boundaries only; an explicit split cuts crossing notes. Regeneration or applying a pattern replaces manual notes: review the selection first and use Undo if needed.</p><h4>4. Scores and export</h4><p>Playback, audio and MIDI export use the latest performed notes. Engraving synchronizes on entering Score mode and retains its displayed layout during music edits. Return to Compose and re-enter Score when a refresh is needed. PDF uses the displayed score.</p>
-
-<a id="topic-3-2"></a>
-
-### 3.2 和弦区间与快速编辑 / Chord regions and quick editing
-
-**中文**
-
-在和弦轨任意位置右键插入空白和弦；也可选择“在定位线处插入”。自动长度截止当前小节末尾或下个和弦起点，以较近者为准；另有 1／2／3 拍、1／2／3／4 小节。拍按当前位置拍号分母计数，小节按后续实际拍号计时，曲尾截断。占用位置直接覆盖，保留未覆盖片段。和弦轨点击不定位播放游标。右键“编辑和弦”设置根音、性质与节奏型；空白区间确认后生成音符。<br>节奏型统一从和弦右键菜单设置。根音菜单显示“数字级数 · 音名”，以和弦开始处的主音为 1，数字采用主音大调参照并保留调式音级，字母输入遵循卷帘升降号偏好，不随点击点或播放位置改变。已识别的和弦可右键选择十二种根音、常用和弦性质、替换低音和节奏型；设置 → 和弦 → 和弦性质可选择和排序快速和弦性质，并预览全部支持的名称及数字关系。“替换低音”提供十二个音；“和弦转位”提供原位至第四转位，音数不足的转位禁用，两项都即时替换低音声部，保留根音和上方声部，不保留勾选状态；应用节奏型替换手工音符，可撤销。单击和弦与 Tab 切换使用和弦轨音色与音量，试听一小节柱式和弦（至少 650 毫秒）。单选时再次单击取消选择也试听；长按可延长，框选不自动试听。右键“试听和弦”按 MIDI 起止、力度、节奏型播放；多选时按时间顺序紧邻试听。新点击立即替换旧试听，播放状态与位置不变。旋律下方最近的和弦轨悬停或单击选中会在和弦持续范围内高亮旋律卷帘的弦内音背景，包括其它八度。单选时再次单击取消；多选时单击其中一项缩为单选。Shift 单击连续选取，Ctrl 单击增减，Ctrl+Shift 追加连续范围。拖动空白处框选和弦，支持复制、二等分、删除和统一升降半音／八度。二等分下限与音符一致；多个和弦均已识别、名称相同且相邻时可合并，保留实际音符节奏。复制 Ctrl 多选的和弦，粘贴时按原时间顺序紧邻排列，去掉选区间空隙；音符复制仍保留空隙。
-
-**English**
-
-Right-click anywhere in the chord lane to insert an empty chord at the snapped pointer or at the position marker. Auto ends at the nearer bar boundary or next chord start; other choices are 1/2/3 beats or 1/2/3/4 bars. Beats use the local meter denominator; bars use subsequent actual meters, clamped at the song end. Occupied portions are overwritten; uncovered pieces remain. Clicking the chord lane does not seek. Edit chord sets the root, quality and pattern; confirming an empty region generates its notes.<br>Patterns are controlled from chord context menus. Root choices display “degree · note name”, using the tonic at the chord’s start as 1, major-reference numbers with modal degree identity, and sharp letter names. The click position and playhead do not change these labels. Recognized chords offer 12 roots, selected quick qualities, bass replacements and patterns. Settings → Chords → Chord qualities selects and orders qualities, with a full name and degree-formula preview. Replace bass offers all 12 pitches; Chord inversion offers root position through fourth inversion, disabling inversions that require more chord tones. Both are one-shot bass replacements, preserving the chord root and upper voices, with no persistent check mark. Applying a pattern replaces custom notes and can be undone. Click a chord or press Tab to audition a one-bar block chord (at least 650 ms), using the chord track sound and volume. Clicking the sole selected chord again deselects it and still auditions; holding can extend the sound. Marquee selection is silent. Audition actual chords plays MIDI timing, velocities and rhythms; multiple selected regions play consecutively in timeline order without gaps. A new click replaces the old preview without changing playback state or position. In the main window, hover or click to highlight the chord-tone background rows across its duration, including other octaves. Click again to deselect. Shift-click selects a contiguous range, Ctrl-click toggles selection, and Ctrl+Shift adds a range. Drag from empty space to select several chords. Batch commands include copy, split, delete and uniform semitone/octave shifts. Binary splitting has the same minimum duration as notes. Adjacent chords in the same meter region can merge: only the boundary is removed, all MIDI onsets and velocities are retained, and recognition runs again. Chords copied from disjoint Ctrl selections paste consecutively in source time order, removing gaps; note copies retain gaps.
-
-<a id="topic-3-3"></a>
-
-### 3.3 和弦结构与节奏型 / Chord structure and patterns
-
-**中文**
-
-和弦卷帘时间轴下方显示与主和弦轨相同的卡片和区间；数据实时同步。悬浮和弦窗口独立保存选择与悬停状态，不选中主界面和弦，也不高亮旋律。停靠时共享选择。<br>长按结构卡片边缘调整范围：缩短删除范围外音符，不创建新的和弦；扩大自定义区间仅增加空白，原有音符保持绝对时间。已知名称且节奏型可识别的和弦，移动、缩短或扩大时按完整小节生成，再截取区间；每小节重新开始节奏型，按实际拍号计算长度。起于第 2 拍、止于第 4 拍的和弦仅保留第 2–3 拍的片段。移动、伸缩或编辑后即时更新节奏型识别；按实际音符的起止与音高排列匹配，允许八度重叠和不同力度。识别本身不改 MIDI。已识别节奏型在移动、伸缩后重建为和弦默认配器与默认力度，逐音属性重置。自定义节奏型移动只平移，伸缩只裁切，保留剩余音符属性。旧工程打开时保持原演奏，编辑区间或重新应用节奏型后采用新规则。覆盖相邻和弦时，用当前区间的空白或节奏型替换覆盖部分，未覆盖部分保留原音符。移动中部改变和弦位置；已识别节奏型按目标小节位置重建，自定义音符只平移。主和弦轨的拉伸保留原属性；自定义音符不会自动填充。所有操作可撤销。
-
-**English**
-
-Below the chord roll timeline, chord cards show the same data and regions as the main chord lane. Edits synchronize immediately. Floating chord windows keep their own selection and hover state, without selecting main-window chords or highlighting melody rows. Docked selection is shared.<br>Hold and drag a structure-card edge: shortening deletes outside notes without creating leftover regions. Extending custom content adds silence and preserves existing absolute note times. Named chords with recognizable patterns are generated over each complete bar and cropped to the region after moving or resizing. Patterns restart at every bar using its actual meter. A region starting at beat 2 and ending at beat 4 retains only beats 2–3. Recognition updates immediately after moving, resizing or editing. It matches actual note timing and pitch order, allowing octave doublings and varied velocities. Recognition alone does not change MIDI. Moving or resizing a recognized pattern rebuilds notes using the chord’s default voicing, gate and velocity, resetting per-note edits. Custom patterns only translate on moves or crop on resizing, preserving surviving note attributes. Old projects retain their performance on opening and adopt bar phase when regions are edited or patterns reapplied. Covered neighbor portions are replaced by the edited region’s silence or rhythm; uncovered portions retain their performed notes. Dragging the center moves the region: recognized patterns rebuild at the destination bar phase; custom notes translate unchanged. Resizing the main chord lane retains chord attributes; custom notes are not automatically filled. All edits support Undo.
-
-<a id="topic-3-4"></a>
-
-### 3.4 和弦边界与连续音符 / Chord regions and continuous notes
-
-**中文**
-
-和弦边界用于识别和编辑实际 MIDI。在和弦卷帘新建、移动、拉伸或粘贴的音符可以跨越多个和弦块：保留一次起音、一次止音，分别刷新各块识别结果，不自动改动边界。MIDI 导入会延长初始和弦区间，避免导入长音在小节线处被切断。<br>新建／添加小节与移动／缩短和弦后，空余区间自动填为 N.C.，不产生声音。右键合并相邻和弦只取消边界、不改变 MIDI，随后重新识别。二等分和弦或在定位线处分割会真正切开跨越分割点的音符。编辑或替换和弦时按新的和弦区间切开原音符。<br>可识别和弦更改根音或性质会按原有其它参数重新生成；已识别节奏型保持，性质变更恢复根音低音。替换低音与转位仍仅修改最低声部。根音列表按起点调性从 1 开始，改变起点保持所选音高。编辑器只记住上次确认的性质、节奏型和发音长度；力度每次读取设置中的和弦默认力度，跨和弦和重启生效；根音默认起点调号主音，低音默认等于根音。改变根音同步低音，单独改变低音保留根音。起点、时长、伴奏八度取当前和弦，重新生成默认开启，取消不更新记忆。不支持的生成节奏型回退为持续柱式。首次默认勾选重新生成和弦；名称和节奏型均已识别时，更改根音／性质仍会重建。所有已提交音符、区间与 MIDI 输入更改都会刷新识别；识别本身不补音。谱面弦内音圈对手动标记和弦使用标记的根音、性质及指定低音，未标记和弦仍使用实际演奏音级；悬停中的实际音符详情继续依据 MIDI。
-
-**English**
-
-Chord regions identify and edit performed MIDI. Notes created, moved, resized or pasted in the chord roll can span several blocks with one note-on and one note-off. Each region is recognized from its portion without moving its boundaries. MIDI import extends initial chord regions so sustained notes are not cut at bar lines.<br>New/added bars and space vacated by chord moves/resizes receive silent N.C. regions. Merge adjacent chords removes only boundaries, preserving MIDI before recognition. Splitting in half or at the position marker cuts notes at the requested split. Editing or replacing a chord cuts original events at the replacement region.<br>Changing a recognized chord root or quality rebuilds it with the other settings, retaining a recognized pattern. Quality changes reset the bass to the root. Bass replacement and inversion only change the lowest voice. Root lists start at degree 1 in the onset key and retain the selected pitch when the onset changes. Only confirmed quality, pattern, and gate carry over across chords and restarts. Velocity always uses the chord default from Settings. Root starts at the onset key tonic and bass at the root. Root changes also move bass; bass changes leave root untouched. Start, duration and accompaniment octave come from the current chord; regeneration starts enabled. Cancel retains prior defaults. Unsupported generation patterns fall back to Block. Regenerate chord is enabled initially; root/quality changes rebuild when both name and pattern are recognized. Committed note/region edits and MIDI input refresh recognition, which never adds tones by itself. Score chord-tone circles use a manual mark’s root, quality and explicit bass, or actual performed pitch classes for unmarked chords. Performed-note hover details continue to use actual MIDI.
-
-<a id="topic-3-5"></a>
-
-### 3.5 低音与和弦转位 / Bass and chord inversion
-
-**中文**
-
-已识别和弦的右键菜单分为“替换低音”和“和弦转位”。前者提供全部十二个音，后者提供原位至第四转位（九和弦），不足音数的选项禁用。两者都是即时替换最低声部的操作，保留根音、性质、上方声部、节奏和逐音力度；不作为可持续勾选的属性。多选及未识别和弦禁用这两个菜单。
-
-**English**
-
-For recognized chords, the context menu separates Replace bass (all 12 pitches) from Chord inversion (root position through fourth inversion for ninth chords). Inversions requiring more tones than the chord contains are disabled. Each action immediately replaces the lowest voice while retaining root, quality, upper voices, timing and per-note velocities; it is not a persistent checked attribute. Both menus are disabled for multiple or unrecognized chords.
-
-<a id="topic-3-6"></a>
-
-### 3.6 和弦调内移动 / Diatonic chord movement
-
-**中文**
-
-和弦根音与性质可识别时，↑／↓ 更换根音一个半音，保持性质、节奏与其它属性，低音恢复为新根音。Alt+↑／↓ 按和弦开始处的调式移动一级，并调整性质以保持调内，例如 C/E → Dm；同样恢复根音低音，不保留转位。无需先识别转位。只有调内和弦可执行调内移动；目标性质不支持或音高越界时禁用，多选必须全部合法。右键 → 和弦移动提供相同操作，以及独立的固定半音／八度移调分组。快捷键与旋律的调内移动共用设置。
-
-**English**
-
-For recognized chords, Up/Down change the root by one semitone while preserving quality, rhythm and other properties, restoring bass to the new root. Alt+Up/Down move by a scale step in the mode at each chord start, adapting quality to stay diatonic: C/E → Dm. This also restores root-position bass; it does not preserve inversion or require inversion recognition. Diatonic movement is available only for diatonic chords. Unsupported target qualities or out-of-range pitches disable it; all selected chords must be valid. Move chord in the context menu provides these commands and a separate fixed semitone/octave transposition group. Scale-step bindings are shared with melody notes.
-
-<a id="topic-3-7"></a>
-
-### 3.7 和弦节奏、节奏型与独立窗口 / Harmonic rhythm, accompaniment patterns and floating windows
-
-**中文**
-
-和弦节奏（harmonic rhythm）指和弦根音、性质等多久变化一次，由和弦块起止位置体现。和弦节奏型（accompaniment pattern）指一个和弦内部的织体与发音安排，例如持续柱式、反拍或琶音；“自定义”锁定的是节奏型，不是和弦变化频率。<br>旋律和和弦音符的新建、拖动、拉伸和粘贴使用相同覆盖规则：只替换同音高的重叠部分，保留旧音符两侧剩余片段，边界相接不合并。不同音高可以同时发声。长音只有一个连续外形，跨和弦或调性边界时仅改变内部颜色；格线绘制在音符下方。<br>设置 → 卷帘显示 → 卷帘染色：旋律卷帘独立控制和弦匹配、调内音染色；和弦卷帘独立控制旋律匹配、调内音染色。和弦卷帘按整个和弦块内出现或持续经过的旋律音级染色，没有和弦块时不染旋律匹配色。开关只影响卷帘颜色，不改变 MIDI、谱面或手动选择高亮。<br>Shift＋滚轮与 Ctrl＋滚轮均以指针为中心缩放时间轴、和弦轨和卷帘；停靠时三者同步，独立窗口按“同步时间轴”开关决定是否联动。Alt＋滚轮水平浏览；橙色播放游标离开正在浏览的卷帘后才取消跟随。<br>独立卷帘与主窗口共用应用标识，在 Windows 任务栏分组下显示一个图标，悬停可预览各窗口。独立窗口与主窗口互不强制置顶，可分别最小化和恢复；选择主窗口时可将其切至前台。顶部依次为停靠、最小化、最大化／还原、关闭；边框随主题变化。播放栏始终靠右排列在窗口上部；底部提供旋律、和弦的音量与静音，所有窗口双向同步同一组轨道设置。旋律独立窗口播放栏最右侧“其它选项”可显示／隐藏自己的和弦轨，不影响主界面的显示勾选。
-
-**English**
-
-Harmonic rhythm is how often chord roots and qualities change, represented by chord-region boundaries. An accompaniment pattern is the texture and note timing inside a chord, such as sustained blocks, offbeats or arpeggios. Custom locks the accompaniment pattern, not the rate of harmonic change.<br>Creating, moving, resizing and pasting notes use the same overwrite rule in both rolls: replace only overlapping time at the same pitch and preserve the remaining pieces on either side. Touching notes do not merge. Different pitches can sound together. A long note has one continuous outline; only its internal color changes across harmonic or key boundaries. Grid lines stay behind notes.<br>Settings → Piano roll display → Piano roll coloring provides independent chord-match and scale-tone switches for the melody roll, and melody-match and scale-tone switches for the chord roll. Melody pitches sounding anywhere within a chord region tint the entire region; empty regions have no melody-match tint. These options change roll colors only, leaving MIDI, score rendering and selection highlights intact.<br>Shift+wheel and Ctrl+wheel zoom around the pointer over timelines, chord lanes and piano rolls. Docked views stay synchronized; floating views use their Sync timeline setting. Alt+wheel browses horizontally; following is disabled when the orange playhead leaves the piano roll being browsed.<br>Floating rolls share the main application identity: with Windows taskbar grouping enabled, one icon offers previews of every window. Each window can be brought forward, minimized or restored independently. The title bar has Dock, Minimize, Maximize/Restore and Close controls, with a theme-aware border. Transport controls stay at the upper right. The bottom mixer controls melody and chord volumes and mutes, synchronized across all windows. Window options at the floating melody roll’s upper right can show or hide its own chord lane independently of the main View menu.
-
-<a id="topic-3-8"></a>
-
-### 3.8 实际和弦音、重新生成与辅助时间尺 / Performed chord tones, regeneration and auxiliary ruler
-
-**中文**
-
-谱面弦内音圆圈与旋律卷帘的和弦匹配显示采用同一依据：手动标记和弦按标记的根音、性质和指定低音推导音级，即使和弦区间没有实际音符也可圈出相应旋律音；未标记和弦仍按区间实际演奏音级，包含其它八度。谱面和弦悬停中的实际音符详情、播放与 MIDI 始终保留真实演奏。当前识别仍要求精确音高类匹配，不推断省略音。未标记的 IV 片段若只奏低音，其它和弦音不圈出是正常的；手动标记 IV 后则按该标记决定圈音。圈音开关及屏幕／PDF 共用此显示规则，不生成或替换 MIDI 音符。<br>编辑和弦窗口的“重新生成和弦”默认开启。先按实际片段识别节奏型，再按当前根音、性质和低音补齐和弦音，确认后替换实际音符，可撤销。例如低音＋和弦截取的一拍只有带间隙的低音，会识别为四分柱式再补齐和弦。取消勾选保留现有音符编辑；选择新节奏型会重新勾选。<br>右键更换根音或性质也使用更改前实际片段识别的节奏型重新生成。按当前伴奏八度的默认配器生成；性质变更恢复根音低音，逐音编辑恢复默认力度与发音长度。替换低音、转位仅修改低音，不补齐声部。未知或锁定自定义节奏不自动猜测；需要完整重建时，在编辑窗口选择节奏型并勾选重新生成。移动、伸缩继续按完整小节生成再截取。<br>设置 → 卷帘显示 → 和弦轨辅助时间尺默认 1 拍，可关闭或选 1/4 拍、1/2 拍、2 拍、1 小节；拍长按当地拍号计算。刻度上下对称，静止时位于和弦块后方，移动、伸缩预览时随高亮边框显示。它不接受点击、框选或定位，也不控制吸附。<br>当前页面任一停靠卷帘控制主时间轴缩放与吸附格点，新显示或重新停靠的卷帘继承目标页面尺度。独立卷帘保留本地格点；同步时间轴仍控制横向缩放、滚动与跟随。循环只显示两端竖线与中间底色，边缘仍可伸缩。
-
-**English**
-
-Score chord-tone circles and melody-roll chord matching share one source: manually marked chords derive pitch classes from the marked root, quality and explicit bass, even when the chord region has no performed notes; unmarked chords use actual performed pitch classes across octaves. Performed-note details in chord hover, playback and MIDI retain the actual performance. Recognition still requires exact pitch-class matching without inferred omissions. If an unmarked IV fragment plays only its bass, other chord tones remain uncircled; manually marking IV makes its label determine circles instead. The circle option uses the same display rule on screen and in PDF without generating or replacing MIDI notes.<br>Regenerate chord is checked by default in Edit chord. Identify the performed fragment’s pattern first, then fill voices from the current root, quality and bass. Confirming replaces notes and can be undone. A one-beat crop of Bass + chord containing only a gated bass pulse becomes quarter blocks before voices are filled. Uncheck to retain note edits; choosing another pattern rechecks it.<br>Quick root and quality changes also regenerate using the pattern identified from the actual fragment before editing. Voices use the default voicing at the retained accompaniment octave; quality changes reset bass to the root, and per-note edits return to default velocity and gate. Bass replacement and inversion change only the bass. Unknown or locked Custom rhythms are not assigned a guessed pattern; choose a pattern in Edit chord and check Regenerate chord for a complete rebuild. Moving and resizing retain full-bar generation and crop rules.<br>Settings → Piano roll display → Chord lane auxiliary ruler defaults to 1 beat, with Off, 1/4 beat, 1/2 beat, 2 beats and 1 bar options. Beat length follows the local meter. Symmetrical top and bottom ticks sit behind stationary cards and appear with the highlighted border during move/resize previews. It does not handle clicks, selection, positioning or snapping.<br>Either docked roll controls the current page’s timeline zoom and snap grid. Newly shown or redocked rolls inherit the destination page’s scale. Floating rolls retain local grids; Sync timeline still links zoom, scrolling and follow state. Loops use only vertical endpoints and fill, with resizable edges.
-
-<a id="topic-3-9"></a>
-
-### 3.9 选择、预览与和弦编辑逻辑 / Selection, previews and chord editing
-
-**中文**
-
-多选音符或和弦后，普通单击其中一项，松开且未拖动时只选该项；从已选项开始拖动保留整组。Ctrl 单击未选项加入、已选项移除，移除后不启动拖动。此选择规则适用于智能工具音符与和弦；绘制工具单击已有音符仍直接删除。单独选中的和弦再次单击仍取消选择。<br>移动、拉伸时以原位虚影和目标轮廓对照定位，松开后一次提交；Esc 或隐藏卷帘取消尚未提交的手势并清除虚影。拉伸只追踪水平位置，鼠标移到别的音高行也继续捕获；仅上下移动不改变时值。<br>右键更换可识别和弦的性质，保留区间、节奏型、伴奏八度、力度和发音长度，恢复根音低音，按更改前实际片段识别出的节奏型重新生成和弦音。例如两拍 vi 四分柱式改成 vi7 后仍为四分柱式。未知或锁定自定义的事件节奏保持，只重新映射音高；主动应用节奏型才覆盖原手工节奏。和弦节奏表示和声变化频率，节奏型表示柱式、琶音等内部织体。<br>和弦名称与悬停提示优先按当前调式拼写音名，例如 F Ionian 的 IV 写 Bb；调外音按和弦性质音程拼写，如 C 小三和弦的 Eb（b3）。未分类音使用和弦等音偏好。卷帘按全局升降号偏好显示，调内数字保留调式音级；根音与低音输入字母同样遵循卷帘升降号偏好。和弦编辑器根音选项同时显示数字与音名，依据和弦开始处调性计算，开始位置改变后同步更新。<br>简谱延音线连接同一音符的记谱片段。先保留整拍延音横线的原有规则，其余跨拍音符仍按当地拍号的拍界强制拆分并连线。对拍内有音高的片段，能用一个普通、单附点或三连音音值表示时保留单个符号，沿用 ±2 tick 的 MIDI 舍入容差。只有必须分解且跨过当前拍中点（offbeat）的片段，才优先在中点分开并以延音线相连，再分别分解两侧；未跨中点时沿用原分解方式。拍中点随当地拍号及小节位置计算，不固定为 480 tick。休止符不应用新增的中点优先规则。起止、时长、播放与导出 MIDI 均不改变。
-
-**English**
-
-Clicking a member of a multiple note or chord selection narrows it on release if no drag occurred. Dragging from a selected member retains the group. Ctrl-click adds an unselected member or removes a selected one; removal never starts dragging. These selection rules apply to Smart notes and chord cards. Draw still deletes an existing note on click. Clicking the sole selected chord again still deselects it.<br>Move and resize gestures show the original position as a ghost and the target as an outline. Release commits one edit; Escape or hiding the roll cancels the pending gesture and clears its preview. Resizing follows horizontal position even after the pointer moves to another pitch row; vertical motion alone does not change duration.<br>Changing a recognized chord’s quality retains its region, complete voicing registers, bass and other parameters. It regenerates and fills voices using the accompaniment pattern identified from the performed fragment before editing. For example, changing a two-beat vi with quarter blocks to vi7 keeps quarter blocks. Unknown or locked Custom rhythms retain event timing while pitches are remapped. Explicitly applying an accompaniment pattern replaces manual rhythm. Harmonic rhythm means how often the harmony changes; an accompaniment pattern is the internal texture, such as blocks or arpeggios.<br>Chord names and hover details prefer the active mode’s pitch spelling, such as Bb for IV in F Ionian. Chromatic tones use chord-quality interval spelling, such as Eb (b3) in C minor; unclassified tones use the chord’s enharmonic preference. Rolls follow the global accidental preference while preserving in-key modal degree identities; root/bass letter names follow the same preference. The chord editor’s root choices show both degree and pitch name for the chord’s starting key, updating when the start changes.<br>A score tie joins fragments of the same note. Existing whole-beat extension-dash rules remain; other cross-beat notes still split and tie at the local meter’s beat boundaries. Within a beat, a pitched fragment that fits one plain, single-dotted or triplet value stays as one symbol, retaining the existing ±2-tick MIDI rounding tolerance. Only a fragment that must be decomposed and crosses the current beat midpoint (offbeat) splits there first with a tie; each side is then decomposed separately. Fragments that do not cross the midpoint keep the previous decomposition. Midpoints follow the local meter and bar origin rather than a fixed 480-tick grid. Rests do not use the new midpoint-first rule. Actual onsets, durations, playback and exported MIDI remain unchanged.
-
-<a id="topic-3-10"></a>
-
-### 3.10 段落与和弦进行 / Sections and chord progressions
-
-**中文**
-
-时间轴上半部选中小节后右键 → 段落标识，相同名称也可分别成段。右键第二个段落入口“跳转小节”按小节顺序列出现有标识与小节号，点击定位并滚动到该小节；原选区与循环保持。导航器仅以无文字边界线提示段落起点，时间轴仍保留标识文字。“编辑”主菜单不再提供段落标识入口。<br>右键和弦 → 从此处应用和弦进行，按现有块顺序替换，不新增小节。主音列表按实际音高排列，使用 1–7 加升降号标号，1 为起始所选小节主音；默认沿用该主音。整段使用所选主音，即使经过谱面调号变化也不自动重解释。可保留已识别节奏型，或统一节奏、力度、发音长度。<br>保存所选和弦也提供主音选择，自动重算罗马数字，保留性质和指定低音。C 调下 Gm–C–F 相对 C 为 v–I–IV，相对 F 为 ii–V–I。名称留空时使用数字进行；主音不存进配方，也不修改工程调号。<br>检索所选和弦时，改变主音自动重算根音条件；从设置打开时默认游标小节主音。手动输入支持罗马数字或实际和弦名，如 Gm C F。罗马数字保持相对关系，实际和弦名随主音换算。忽略性质、低音、转位，允许中间夹有其它和弦，保留 # 与 b 的区别。检索不修改工程或配方。<br>管理窗口的添加/修改只有罗马数字和可选名称，不设置主音。确认保存库，取消放弃本次管理修改。支持 I/3（指定低音）、V/vi（副属）、V/vi/#5（副属指定低音）。预设按音级排序，共同前缀时短进行在前。包含 21 组公开目录与 5 组原有进行；来源见 docs/PROGRESSIONS.md。
-
-**English**
-
-Select bars in the upper ruler and right-click to assign section markers. Jump to bar lists existing section names and bar numbers in time order. Choose one to seek and scroll there while keeping selections and loops. Navigators show section boundaries without text; the ruler retains section labels. Repeated names still define separate sections. Section markers are no longer offered in the main Edit menu.<br>Apply a progression from a chord context menu to replace existing regions without adding measures. The tonic selector is ordered by pitch and labeled with modal degrees 1–7 and accidentals; 1 is the first selected measure tonic. All target regions use the chosen tonic even across score key changes. Keep recognized rhythms or broadcast a pattern, velocity and gate.<br>Capture also offers a tonic selector and recalculates Roman numerals while preserving quality and bass. Gm–C–F is v–I–IV in C, or ii–V–I in F. Empty names use the recipe. Tonic is never stored in the recipe or written to score keys.<br>Search from selected chords rebases the roots when tonic changes; opening from Settings uses the cursor measure tonic. Type Roman relationships or literal chord names such as Gm C F. Roman queries remain relative; literal chords are reinterpreted. Root search ignores quality, bass and inversion, allows gaps and preserves #/b spelling. Search changes neither music nor recipes.<br>Library Add/Edit contains only Roman relationships and an optional name, with no tonic selector. Confirm saves changes; Cancel discards the session. I/3, V/vi and V/vi/#5 support bass and applied chords. Recipes sort by degrees, shorter matching prefixes first. The library includes 21 public catalogue recipes and 5 existing recipes; see docs/PROGRESSIONS.md for sources.
-
-<a id="topic-3-11"></a>
-
-### 3.11 调式数字与创作提示 / Modal degrees and composition hints
-
-**中文**
-
-调内音优先使用该调式的七个音级；Lydian 为 1、2、3、#4、5、6、7，Aeolian 为 1、2、b3、4、5、b6、b7。全局升降号偏好只改变调外数字的等音写法，以及卷帘和调性选择框中的音名字母；不把调内 #4 改写成 b5。谱面音级遵守同样规则。<br>小节调性选择的主音列表有数字辅助，各调式选项显示完整的数字与音名对应；创作时间轴提示只显示主音、调式和拍号。<br>创作和弦悬浮提示按和弦定义排序、去除八度重复，数字相对和弦根音。新增 mM7（1、b3、5、7）；add2（1、2、3、5）替代 add9，旧生成型迁移后使用密集排列，显式 MIDI 保留实际演奏。M9 保持 1、3、5、7、9。例如 Fmaj7 为 1:F、3:A、5:C、7:E，Cm9 使用 b3:Eb、b7:Bb、9:D。只列实际 MIDI 出现的和弦音，低音单列。未知和弦按实际音高从低到高去重，仅列音名；名称或性质未知时，节奏显示未知节奏型。制谱模式保留完整音区、调性数字和实际低音提示。<br>独立和弦卷帘打开和弦或拍号调性对话框后，确认和取消均留在原窗口，撤销仍回到编辑来源。
-
-**English**
-
-In-key notes keep the seven degrees of their mode: Lydian is 1, 2, 3, #4, 5, 6, 7; Aeolian is 1, 2, b3, 4, 5, b6, b7. The global accidental preference affects chromatic numbers and letter names in the roll and key selector; it never respells an in-key #4 as b5. Score degrees follow the same rule.<br>The tonic selector provides degree hints, and each mode option lists its degrees and letter names. Composition timeline hints show only tonic, mode and meter.<br>Composition chord hints order actual tones by the chord definition and remove octave duplicates. Qualities include mM7 (1, b3, 5, 7) and add2 (1, 2, 3, 5); legacy generated add9 migrates to close position while explicit MIDI is preserved. M9 retains 1, 3, 5, 7, 9. Numbers are relative to the chord root: Fmaj7 shows 1:F, 3:A, 5:C, 7:E; Cm9 uses b3:Eb, b7:Bb, 9:D. Only performed tones appear, with the bass on its own row. Unknown chords list unique letter names from lowest to highest without interval numbers. An unknown chord name or quality always yields Unknown pattern. Score mode keeps full registers, key-relative degrees and actual bass information.<br>Chord and key/meter dialogs opened in a floating chord roll stay with that window on acceptance or cancellation; undo retains the editing origin.
-
-<a id="topic-3-12"></a>
-
-### 3.12 调式标号、默认力度与和弦选项 / Modal labels, default velocities and chord options
-
-**中文**
-
-卷帘音符、和弦根音与低音、进行主音统一使用 1–7 加升降号。调内音按调式定义保留：Aeolian 是 1、2、b3、4、5、b6、b7；Lydian 的 #4 不随降号偏好改成 b5。调外自然音级直接使用数字，其余按卷帘升降号偏好。十二个选项按实际音高从起点小节主音开始排列，C 背景下 F 是 4。<br>设置 → 音符与力度分别设置旋律默认力度与和弦默认力度（1–127），初始为 92、72。和弦力度统一用于全部声部，不另设低音力度。旋律卷帘新建音符使用旋律默认值；和弦卷帘在和弦块内新建音符时使用该块的和弦力度，空白区域使用全局和弦默认值。和弦编辑框每次使用全局和弦默认力度，与当前和弦及上次操作无关；取消重新生成时，实际音符力度保持。编辑仅记住确认的性质、节奏型、发音长度。根音默认起点调号主音，低音默认等于根音；改变根音会同步低音音高，改变低音不改变根音。起点、时长和八度取当前和弦，重新生成默认开启，取消不更新记忆。<br>设置 → 和弦 → 和弦性质独立管理快速和弦性质与完整和弦目录。勾选及拖动排序应用于编辑框和右键性质菜单；完整目录提供名称、根音示例、音名字母和相对于根音的数字关系预览。取消设置不修改偏好。
-
-**English**
-
-Roll notes, chord root/bass choices and progression tonics share degree labels 1–7 with accidentals. Scale tones keep their modal identities: Aeolian uses 1, 2, b3, 4, 5, b6, b7; Lydian keeps #4 even with flat preference. Other tones use natural degrees first, then the roll accidental preference. Twelve choices are pitch-ordered from the anchor tonic; F relative to C is 4.<br>Settings → Notes and velocity saves melody and chord defaults (1–127), initially 92 and 72. Chord velocity applies to every voice without a separate bass value. New melody notes use the melody default. New chord-roll notes use the velocity of the chord region at their onset, or the global chord default in an empty area. Each chord editor opens with the global chord default regardless of the existing chord or last edit. Turning regeneration off preserves performed note velocities. Only confirmed quality, pattern and gate are remembered. Root starts at the onset key tonic and bass at root. Changing root follows it with the bass pitch; changing bass leaves root unchanged. Start, duration and octave come from the current chord, and regeneration starts enabled. Cancel keeps prior memory.<br>Settings → Chords → Chord qualities manages quick qualities and the full reference separately from velocity. Select and reorder quick qualities for editing and context menus; the full reference previews every supported quality, example root, letter notes and root-relative numeric formula. Cancel discards preference changes.
-
-<a id="topic-3-13"></a>
-
-### 3.13 默认力度与和弦力度 / Default velocities and chord velocity
-
-**中文**
-
-设置按“音源与输入”“音符与力度”“和弦”“卷帘显示”“界面与操作”五个模块组织。设置 → 音符与力度组合旋律／和弦默认力度、常用力度列表和当前和弦音源的手动检测；确认后一起保存，取消不更改偏好。检测只在点击按钮后进行。<br>和弦不再单独设置低音力度。编辑和弦使用全局和弦默认值，重新生成时将整体力度用于所有声部。和弦卷帘新建音符取起点所在和弦块的力度，没有和弦块时使用全局和弦默认值。右键“修改力度”或拖动和弦整体力度柱统一全部声部，支持多选与撤销；卷帘逐音编辑仍可保留不同音符的力度。<br>读取含旧低音力度字段的工程时保留原演奏：显式音符继续使用已保存力度，旧生成型和弦先转为具有原力度的实际音符。之后重新生成采用统一和弦力度。新保存的工程不再写入独立低音力度字段。
-
-**English**
-
-Settings groups options into Sound and input, Notes and velocity, Chords, Piano roll display, and Interface and controls. Notes and velocity combines melody/chord defaults, common velocity values and optional inspection of the current chord preset. OK saves them together; Cancel discards preference edits. Only the detection button starts inspection.<br>Chords no longer have a separate bass velocity. Each chord editor uses the global chord default, and regeneration applies one common velocity to every voice. New chord-roll notes use their onset region’s chord velocity, falling back to the global chord default outside a region. Change velocity and the chord velocity stems unify all voices, with multiple selection and undo; individual-note editing can still retain different dynamics.<br>Opening an older project with a bass-velocity field preserves its performance: explicit notes keep saved velocities, while generated chords first become explicit notes with their original dynamics. Later regeneration uses common chord velocity. Newly saved projects omit the separate bass field.
-
-<a id="topic-3-14"></a>
-
-### 3.14 密集和弦、八度移动与底五交替 / Close voicing, octave moves and alternating bass
-
-**中文**
-
-add2 默认上方音按 1、2、3、5 密集排列，例如 Cadd2 为 C3、D3、E3、G3，另有低音 C2。重新应用持续柱式等节奏型或 add2 性质会恢复默认配器；可随后在卷帘人工调整 voicing。读取旧 add9 的生成型时使用该排列；已保存的显式 MIDI 不在加载时改写。<br><br>旋律与和弦卷帘的音符右键菜单新增「上移八度」「下移八度」，默认 Ctrl+↑／Ctrl+↓，可在快捷键设置修改。支持多选、浮窗与撤销，保留起点、时长和力度；任何选中音越过 88 键范围时整体不移动。<br><br>新增「底五交替 · 四分柱式」「底五交替 · 八分柱式」「底五交替 · 反拍柱式」。支持分子为偶数的拍号，分母可为 2、4、8、16：低音每拍按根音、五音交替，每小节重置；例如 4/4 为第 1、3 拍根音，第 2、4 拍五音。上方演奏完整和弦，分别每个四分音符、每个八分音符或每拍后半拍起音。低音按分母定义一拍，2/2 每拍 1920 tick，4/8 每拍 480 tick；反拍随拍号改变。发音长度应用当前 gate，末尾按小节和和弦边界裁切。指定低音可替代根音低音；减／增和弦使用其减／增五音。<br>“持续低音 + 每拍和弦”：每个小节低音从小节开头持续到小节末，上方和弦音按拍号分母每拍触发并持续完整一拍，不受 gate 影响。支持所有当前拍号；和弦只占部分小节时裁切到该区间，跨小节时逐小节重新起音。
-
-**English**
-
-add2 defaults to close-position upper tones 1, 2, 3, 5: C3, D3, E3, G3 above bass C2 for Cadd2. Reapplying a pattern or add2 quality restores the default voicing; adjust individual notes afterward. Legacy generated add9 uses this layout; loading explicit MIDI preserves its voicing.<br><br>Both piano rolls offer Move up/down an octave, default Ctrl+Up/Ctrl+Down, configurable in Settings. Multiple notes, floating windows and undo are supported. Timing and velocities remain unchanged; a selection exceeding the 88-key range is rejected as a whole.<br><br>Alternating bass · Quarter blocks / Eighth blocks / Offbeat blocks support even numerators with denominators 2, 4, 8 or 16. Bass alternates root and fifth on successive meter beats, restarting each bar. Complete upper chords play every quarter note, every eighth note, or on the second half of each meter beat. Thus bass beats last 1920 ticks in 2/2 and 480 ticks in 4/8; offbeats follow the denominator too. Gate applies to both voices, with notes clipped at bar and region ends. A specified bass can replace the root bass; diminished/augmented chords use their altered fifth.<br>Sustained bass + beat chords holds the bass for each complete local bar and plays the upper chord tones on every denominator beat, each lasting a full beat regardless of gate. All supported meters are allowed. Partial chord regions crop the full-bar texture, and each new bar retriggers the bass.
-
-<a id="topic-3-15"></a>
-
-### 3.15 拍号区间与和弦提示 / Meter regions and chord details
-
-**中文**
-
-跨主音或调式的和弦以 → 分隔罗马数字，/ 仅表示指定低音。创作和弦提示按调性分行，去除音区重复并以和弦根音为 1；谱面保持实际音区、调性数字与最低音。<br>连续相同拍号形成一个区间。快捷键左右移动在原区间两端裁切，拉伸与合并也受区间边界限制。鼠标可跨过其它拍号区域拖至相同拍号区间，松开在不同拍号区间不修改。和弦粘贴不要求来源与目标拍号一致；到目标连续拍号区间末尾或工程末尾时裁去超出部分，整批后续内容不再粘贴。不自动增加小节。粘贴保留实际配器、相对起止和逐音力度。已识别节奏型按完整小节重建后截取；未知节奏型平移 MIDI 后重新识别；启用“禁用节奏型识别”时不识别节奏型。<br>节奏型选项依起点拍号启用：持续柱式支持全部拍号；四分柱式支持分母 2／4；八分柱式和上／下行琶音要求完整八分音符单位；阿尔贝蒂、低音 + 和弦、反拍型要求分母 2／4 且含偶数个四分音符。<br>加长小节插入空白，不延长和弦。缩短会删除或截断音符时先确认，取消不改工程，确认可撤销。等时长拍号变更不改旋律时间，但仍按新拍号重新识别和弦。跨拍号分界的和弦自动拆开。<br>卷帘绘成一条的和弦长音片段可整体选中，边缘拖动调整整条外侧，保留内部发音起点与力度。
-
-**English**
-
-Roman numerals across tonic or mode changes are separated by →; / is reserved for bass notes. Hover over a chord to see its actual pitches, scale degrees and bass for each key/mode.<br>Consecutive bars with the same meter form a region. Keyboard movement crops at both ends of its original region; resizing and merging also respect the boundaries. Mouse dragging can pass over other meters to a matching region; releasing over a different meter changes nothing. Chord pastes accept different source and destination meters. The batch is cropped at the end of the destination’s continuous meter region or the project, discarding the remaining content without adding bars. Performed voicing, relative timing and note velocities are retained. Recognized patterns regenerate from full bars and are cropped. Unrecognized patterns translate MIDI and are reidentified; Disable pattern recognition preserves performed notes.<br>Pattern availability follows the start meter: sustain supports all meters; quarter blocks support denominators 2/4; eighth blocks and ascending/descending arpeggios require whole eighth-note units; Alberti, bass + chord and offbeat patterns require an even number of quarter-note units and denominator 2/4.<br>Longer bars insert silence without extending chords. Shortening that removes note time requires confirmation and can be undone. Equal-duration meter changes retain melody timing but still reidentify chords. Chords spanning new meter boundaries are split.<br>Chord-note fragments drawn as a single long note select together. Dragging an outer edge preserves internal MIDI onsets and velocities.
-
-<a id="topic-3-16"></a>
-
-### 3.16 移动边界、暂存与删除小节 / Movement boundaries, temporary recovery and bar deletion
-
-**中文**
-
-连续相同拍号小节形成一个独立编辑区间；曲首、曲尾、拍号更改处都是截断边界。4/4 与 4/8 不相同，3/4 与 6/8 也不相同。剪贴板有和弦时始终允许粘贴，来源拍号不再限制目标；和弦按顺序相邻排列，遇到目标拍号区间边界或工程末尾便裁切当前块并停止。定位线恰在曲尾时不添加内容。<br>同一连续区间内可多选左右移动；跨区间多选禁用左右移动，即使两区间拍号相同。混合调内与调外和弦时禁用 Alt+↑/↓ 调内移动。<br>连续移动保留未裁切的选区原稿。全部移出边界的和弦暂时从演奏与导出中移除；保持选择反向移动可以还原。取消选择、撤销／重做、修改所选和弦或小节结构后结束暂存，此后通过 Ctrl+Z 恢复。暂存不写入工程。<br>拖拽及伸缩过程中仅显示位置预览，松开鼠标才修改 MIDI 并更新识别。键盘移动保持视角，直到最后一个可见选中元素将移出视野；拖拽以光标位置控制边缘滚动。<br>时间轴或谱面右键可删除一个或多个小节。含音符、和弦、歌词或谱面符号时先确认；跨界内容切断，后方音乐前移。受影响的重复压缩会展开，剩余分行与符号重新定位；一次撤销可还原。至少保留一个小节。
-
-**English**
-
-Consecutive bars with an identical meter form one continuous editing span. The song start, end and every meter change are crop boundaries; equal durations do not make signatures equivalent. A nonempty chord clipboard always permits paste, regardless of the source meter. Chords are packed in time order; the current block is cropped and the batch stops at the destination meter-region or project boundary. Pasting exactly at the project end adds nothing.<br>Horizontal multi-selection movement requires one continuous region, including when separated regions share a meter. Alt+Up/Down is disabled for a mixture of diatonic and chromatic chords.<br>Consecutive moves retain unclipped selection originals. Completely cropped chords disappear from performance and export, but reverse movement restores them while selected. Deselecting, undo/redo, editing the selected chords or changing bar structure ends this temporary state; use Ctrl+Z afterwards. Temporary originals are not saved.<br>Dragging and resizing show position previews only; MIDI and recognition update on release. Keyboard movement keeps the view until the last visible selected element is about to leave it; edge scrolling during dragging follows the pointer.<br>Right-click the timeline or score to delete one or more bars. Bars containing notes, chords, lyrics or symbols require confirmation. Crossing content is cut, later music shifts earlier, affected repeat compression expands, and surviving layout and symbols are remapped. One undo restores the edit. Keep at least one bar.
-
-<a id="topic-3-17"></a>
-
-### 3.17 右键菜单、选择与节奏型识别 / Context menus, selection and pattern recognition
-
-**中文**
-
-设置 → 和弦 → 节奏型识别默认开启并跨重启保存。关闭后停止全部自动节奏型识别，和弦轨隐藏节奏型；根音、性质、移动、伸缩、分割合并及拍号编辑使用实际 MIDI，不借识别结果重建。独立和弦的识别开关及 MIDI 保留，重新开启后按原方案分析。手动指定节奏型、重新生成或应用和弦进行仍可生成所选方案。<br>和弦和音符右键菜单按功能排列，复制、粘贴、分割与合并始终直接显示。设置 → 界面与操作 → 右键菜单可拖动调整功能块顺序，并选择和弦属性、音高变换、和弦进行等可分组功能是否折叠为子菜单；取消勾选后直接显示该块命令。恢复本页默认值只影响当前类型的菜单，确认后保存，取消不修改设置。单选、多选、停靠与悬浮卷帘保留相同命令和快捷键，不适用操作禁用。<br>设置 → 卷帘显示 → 显示音符音级数字：全局控制两个卷帘音符上的 1–7 及变化音记号，包含停靠、独立窗口与制谱下栏；默认开启并保存为偏好。不改变键盘名称、和弦名称、谱面或 MIDI。<br>音符与和弦一次只能选择一类；框选音符会取消所有窗口的和弦选择，选和弦会取消音符选择。右键和弦明确选中目标，打开子菜单后仍保持高亮。单选与多选的同类菜单顺序相同，不适用操作禁用：音符属性、和弦属性／根音／性质／低音仅限单选；可识别且拍号相同的和弦支持批量更改内置节奏型；复制、移动、删除、试听与节奏型识别开关可批量操作；合并仅在合法多选时启用。时间轴菜单只有小节拍号、调性、插入及删除小节命令，多选时向后广播与插入禁用。谱面多选小节同样保留完整菜单。<br>节奏型 → 禁用节奏型识别：勾选后不识别节奏型，移动只平移、伸缩只裁切，保留实际音符属性。取消勾选仅恢复动态识别，不改 MIDI。固定半音／八度移动自动勾选，根音半音和调内移动不自动勾选；选择内置节奏型会解除勾选并重建。此状态随工程和复制保存。<br>右键“禁用和弦识别”同时停止和弦及节奏型识别；仅禁用节奏型识别不影响和弦名称识别。“设置和弦标记”只提供 root、quality、bass 与罗马数字和字母预览，确认会同时禁用和弦识别，并让旋律卷帘的弦内音高亮、和弦匹配染色及谱面弦内音圈使用标记的 root／quality／bass；无实际音符的标记区间同样适用，不改变实际音符。取消禁用和弦识别会移除标记，重新根据实际 MIDI 识别。标记和开关支持保存、复制及撤销。<br>在和弦卷帘中编辑会复用已有窗口、切换到对应选项卡并定位，保留播放进度。谱面局部调性与拍号始终在和弦标记上方。
-
-**English**
-
-Settings → Chords → Rhythm recognition is on by default and persists across restarts. Turning it off bypasses all automatic pattern analysis and hides patterns in chord lanes. Root, quality, move, resize, split, merge and meter edits use performed MIDI rather than inferred rhythms. MIDI and per-chord recognition flags remain intact, and turning it back on restores existing rules. Explicit pattern selection, regeneration and progression generation remain available.<br>Chord and note context menus organize commands by function. Copy, paste, split and merge always remain directly visible. Settings → Interface and controls → Context menus lets you drag functional blocks into order and choose whether eligible blocks such as chord properties, pitch transformations and progressions use submenus. Unchecking a block shows its commands directly. Restore defaults applies only to the current menu tab; OK saves and Cancel discards changes. Single selections, multiple selections, docked and floating rolls retain the same commands and shortcuts, disabling unavailable operations.<br>Settings → Piano roll display → Show scale-degree numbers on notes controls 1–7 and accidental labels in both piano rolls, including docked, floating and score-tab views. It defaults to on and is saved as a preference. Keyboard names, chord names, scores and MIDI are unchanged.<br>Only notes or chords can be selected at a time, across all windows. Selecting notes clears chord selections and vice versa. Right-clicking a chord selects it and keeps it highlighted while its menu is open. Menus keep the same order for one or multiple selections, disabling unavailable operations. Note properties and chord properties, root, quality and bass require one target. Recognized chords with the same meter support batch pattern changes. Copy, movement, deletion, audition and pattern-recognition toggles support multiple targets; merging requires a valid group. Timeline menus contain only measure key, meter, insertion and deletion commands; propagation and insertion are disabled for multiple measures. Score measure menus also retain their complete list.<br>Pattern → Disable pattern recognition stops automatic pattern detection: moves translate events, resizing only crops, and note attributes remain intact. Unchecking resumes recognition without altering MIDI. Fixed semitone/octave transposition enables Disable pattern recognition automatically; root and diatonic movement do not. Applying a built-in pattern clears the lock and rebuilds notes. The flag is saved in projects and copied with chords.<br>Edit in chord piano roll reuses the existing window, selects its tab and locates the chord without seeking playback. Local key and meter labels appear above chord symbols in the score.<br>Disable chord recognition in a chord context menu stops both chord and pattern recognition; disabling only pattern recognition still allows chord names to update. Set chord mark offers root, quality and bass only, previews Roman and letter symbols, and automatically disables recognition. Melody-roll chord-tone highlighting, chord-match coloring and score chord-tone circles follow the marked root, quality and bass, including regions with no performed notes; the performed notes stay unchanged. Unchecking Disable chord recognition removes the manual mark and recognizes the actual MIDI again. Marks and flags support undo, save and copy.
-
-<a id="category-4"></a>
-
-## 4. 工作区、导航与快捷键 / Workspace, navigation and shortcuts
-
-<a id="topic-4-1"></a>
-
-### 4.1 工作区与悬浮窗口 / Workspace and floating windows
-
-**中文**
-
-导航器位于播放栏下方、卷帘设置上方，以绿色旋律线与蓝色和弦线同时显示两轨全曲。创作界面继续显示时间轴、旋律钢琴卷帘、和弦轨、和弦钢琴卷帘及轨道音量。顶部“视图”菜单独立控制显隐；和弦卷帘、力度窗格默认隐藏。两个卷帘右上角使用相同的悬浮／停靠图标。悬浮旋律窗口保留下方和弦轨，悬浮和弦窗口在自身时间轴下显示与主轨一致的结构卡片；数据同步，选择与高亮独立。创作与制谱的两个悬浮卷帘均提供独立时间轴、播放／暂停、回放、循环、跟随和速度控件。播放、位置、循环选区和速度全局共享；未同步时跟随独立。在播放栏最右侧“其它选项”分别勾选“同步时间轴”，先采用主界面跟随状态，再与主时间轴双向同步缩放、滚动和跟随开关；取消后独立控制。主时间轴始终保留自身视窗，即使两个卷帘都悬浮也能浏览；停靠卷帘始终双向同步主时间轴，重新停靠时采用主视窗。任一停靠卷帘都有可用的设置栏。<br>创作中两个卷帘停靠时共用底端水平滚动条，以及音高范围、键高、缩放、智能／绘制工具和网格设置。已用音高取两轨的并集。两个悬浮卷帘都可独立浏览，改变一个窗口的同步开关不会更改另一个。调整键高时，以音符区的纵向中心为锚点，不把标尺和和弦结构栏计入中心；共享键高时两个卷帘分别保留自身中央音高。<br>制谱面板提供“旋律卷帘／和弦卷帘／歌词／标识”四类选项卡。右上角悬浮与关闭按钮只操作当前选项卡；浮窗可单独停靠或关闭。首次进入时四个面板全部隐藏，从“视图”分别打开，之后切回制谱恢复上次布局。主界面跟随开关适用于谱面与当前选中的停靠卷帘；切换到原先未选中的卷帘时再更新其跟随位置。悬浮卷帘使用与创作模式相同的独立跟随和同步时间轴选项。“视图”菜单随模式切换，可重新打开各面板。歌词提交、删除和撤销即时更新当前谱面的歌词呈现。右键谱面可直接进入对应卷帘。悬停谱面和弦显示实际和弦音的数字级数、字母音名与八度，以及实际最低音。大小控件支持 +/−，面板之间可拖动分隔线。
-
-**English**
-
-The overview sits below transport and above piano-roll settings. Green melody lines and blue chord lines show both complete tracks. Composition continues with the timeline, melody roll, chord lane, chord roll and volumes. View controls visibility; the chord roll and velocity lanes start hidden. Both rolls use the same Float/Dock icon at the upper right. The floating melody roll retains its chord lane. The floating chord roll displays matching chord cards below its own timeline; data is shared, while selection and highlighting remain local. In both Compose and Score, floating rolls have their own timeline and Play/Pause, Replay, Loop range, Follow playhead and Tempo controls. Playback, position, loop selection and tempo are shared. Following is independent when timeline sync is off, and linked to the main view when on. Enable Sync timeline in Other options at the far right of the transport row to link scrolling, zoom and follow-playhead state to the main view in both directions. The main timeline retains its own viewport even with both rolls floating. Docked rolls always synchronize with the main timeline and adopt its viewport when redocked. Every docked roll retains an available settings bar.<br>Docked composition rolls share a bottom horizontal scrollbar, pitch range, key height, zoom, Smart/Draw tool and grid settings. Used pitches includes both tracks. Both floating rolls can be browsed independently; changing one Sync timeline switch does not change the other. Key-height changes preserve the vertical center of the note area, excluding the ruler and chord structure header. Shared key-height changes retain each roll’s own central pitch.<br>Score mode has four panels: Melody roll, Chord roll, Lyrics and Annotations. Float or close affects only the current tab. Each floating pane can dock or close independently. All four panels start hidden and open separately from View; subsequent visits restore the previous layout. Main Follow playhead applies to the score and the selected docked roll; switching to an inactive roll updates its followed position then. Floating rolls use the same independent follow and timeline-sync options as Compose. The View menu changes with the mode and reopens individual panels. Applied lyric edits, deletion and undo update the displayed lyric presentation immediately. Right-click the score to open the corresponding roll. Hover over a chord symbol to see its actual tones as scale degrees and letter names with octaves, plus the lowest sounding pitch. Size controls have +/− buttons; drag splitters to resize panels.
-
-<a id="topic-4-2"></a>
-
-### 4.2 和弦轨联动与高亮 / Chord lane layout and highlighting
-
-**中文**
-
-显示／停靠和弦卷帘时取消视图 → 和弦轨的勾选，悬浮后恢复勾选。关闭独立卷帘只隐藏窗口；再次勾选视图中的对应卷帘会将它放回主界面。两个卷帘的悬浮、停靠和显隐变化恢复每个窗口一条和弦轨的默认布局，普通刷新不重设，用户可手动显示两条。悬浮旋律自带和弦轨，独立于主界面勾选，音乐数据同步。旋律高亮只取下方最近的和弦轨：主和弦轨显示时优先，隐藏时取同一窗口的和弦卷帘结构轨；悬浮旋律只取自己的和弦轨。独立和弦窗口不影响旋律高亮。手动标记和弦的弦内音高亮使用标记的根音、性质及指定低音，空白标记区间也能显示；普通和弦继续使用实际演奏音级。此规则同样适用于停靠与悬浮旋律卷帘，不改变实际 MIDI。
-
-**English**
-
-Showing or docking the chord roll unchecks View → Chord lane; floating it checks the main lane again. Closing a floating roll hides it; checking that roll in View brings it back to the main page. Changes to roll visibility or docking restore one default chord lane per window. Ordinary refreshes preserve manual overrides, so both main-window lanes can be shown. A floating melody roll has its own synchronized chord lane, independent of the main checkbox. Melody highlighting uses only the nearest lane below it: the main lane when shown, otherwise the docked chord roll structure lane. A floating melody uses only its own lane. The floating chord window never highlights the melody. For a manually marked chord, chord-tone highlighting uses its marked root, quality and explicit bass, even in an empty marked region. Ordinary chords continue to use performed pitch classes. The same rule applies to docked and floating melody rolls without changing actual MIDI.
-
-<a id="topic-4-3"></a>
-
-### 4.3 独立窗口与和弦力度 / Floating windows and chord velocity
-
-**中文**
-
-独立窗口顶部依次为停靠、最小化、最大化／还原、关闭；下方播放栏最右侧为“其它选项”。视图中的卷帘勾选仅表示它在主界面显示：悬浮自动取消勾选，停靠自动勾选。关闭任一独立卷帘只隐藏它；勾选视图总是将卷帘显示在主界面。右键进入卷帘、E 切换输入轨和撤销定位沿用已有独立窗口；语言切换和制谱往返保留布局与显隐。主窗口和独立卷帘共用任务栏应用标识，Windows 合并任务栏按钮时，一个图标可预览全部窗口。<br>和弦轨右键、主界面视图或独立窗口其它选项中可显示“和弦轨力度窗格”。每个和弦一根力度柱；拖动会统一设置其内部所有音符的力度，多选时同时修改所选和弦，支持撤销。和弦卷帘底部的力度窗格仍用于逐音调整。力度改变 MIDI 发音强度，与底部轨道音量独立。<br>右键一个和弦或多选和弦 → 修改力度，可选 32、48、64、80、96、112、127 或输入 1–127 的自定义值；统一设置所选和弦及内部音符，保留音高、节奏和区间，可撤销。设置 → 音符与力度可编辑常用列表，确认后跨重启保存，取消不修改。只有点击“检测当前和弦音源并生成选项”才读取当前工程和弦轨音色，不在启动或切换音源时检测。SFZ／SF2 按采样力度区间生成中间值建议，重复区域不重复计数；键位差异、交叉层及控制器会影响实际分层。原生合成与外部 MIDI 无法查询层数时保留选项；单层音色仍可用不同力度控制强弱。
-
-**English**
-
-Floating title bars contain Dock, Minimize, Maximize/Restore and Close, in that order. Other options sits at the right end of the transport row below. A roll is checked in View only when shown on the main page: floating unchecks it and docking checks it. Closing either floating roll hides it; checking View always shows it on the main page. Edit in piano roll, E and undo navigation reuse existing floating windows. Language and workspace changes retain layout and visibility. All windows use one application identity: Windows taskbar grouping presents one icon with previews of all windows.<br>Show Chord lane velocity from its context menu, the main View menu, or floating Other options. One stem per chord sets all its notes to the same velocity; multiple selections are edited together. Undo is supported. The velocity lane below the chord piano roll still edits individual notes. Velocity affects MIDI note dynamics independently of track volume.<br>Right-click one or several chords → Change velocity to choose 32, 48, 64, 80, 96, 112, 127 or a custom value from 1–127. This sets each selected chord and its notes together, retaining pitches, timing and regions, with undo support. Settings → Notes and velocity edits the saved list; Cancel discards changes. Only Detect current chord sound and generate options inspects the current project’s chord preset. Startup and sound changes never trigger detection. SFZ/SF2 sampling ranges produce midpoint suggestions with duplicate regions removed. Key-specific mappings, crossfades and controllers can affect actual layers. Native synths and external MIDI cannot report sampling layers and keep the existing list. Single-layer sounds still respond to velocity.
-
-<a id="topic-4-4"></a>
-
-### 4.4 时间尺、循环与鼠标拖屏 / Time ruler, loops and mouse navigation
-
-**中文**
-
-时间轴上半部第一行显示小节号及段落标识，第二行显示拍号及调性，两行分别水平对齐；相同拍号与调性不重复显示。上半部以整小节框选和右键编辑；下半部时间尺有独立背景与分隔线。时间尺单击吸附定位，不改变播放或暂停状态；拖动只设置循环、不移动定位线，同时开启“循环选区”。Shift 连续扩展，Ctrl 不追加离散循环；框选后可拖动左右边界伸缩。关闭循环清除范围，重新开启不会恢复旧选区。框选其它音符、和弦、小节均保留循环。时间尺不提供右键操作。<br>时间轴上半部、智能工具的卷帘和和弦轨支持右键拖动框选，松开后打开对应菜单；不拖动时为普通右键。卷帘和和弦轨中键按住拖屏；卷帘可横纵移动，和弦轨只追踪水平。手动浏览卷帘时，橙色播放游标离开正在浏览的卷帘后才取消跟随；仍在视野内时不立即拉回视角。谱面浏览改为检查游标所在小节：该小节完全离开谱面视口便取消跟随，不受下方卷帘是否仍显示游标影响。框选拖至左右边缘会持续滚动，卷帘还支持上下边缘滚动；时间轴上下两区都支持边缘滚动。<br>所有窗口底部共用一行信息与音量控制，旋律、和弦音量与静音同步。信息最多 80 字符，窄窗口按宽度省略，不换行。“设置 → 界面与操作 → 显示底部信息提示”默认开启，可单独关闭提示而保留音量。
-
-**English**
-
-The upper timeline places bar numbers and sections on its first row, with meter and key aligned on its second row. Unchanged meter/key labels remain suppressed. Select complete bars here for editing. A divider and distinct background separate the lower time ruler. Click it to snap the position marker without changing playback state. Drag to set a loop without moving the position marker; this enables Loop selection. Shift extends a continuous range; Ctrl does not add disjoint ranges. Drag either loop edge to resize. Disabling Loop clears the range; enabling it again never restores the old range. Note, chord and bar selections preserve the loop. The lower ruler has no right-click actions.<br>Right-drag in the upper timeline, a Smart-tool piano roll or chord lane selects a range and opens its context menu on release. A stationary right-click opens the usual menu. Middle-drag pans both axes in piano rolls and horizontally in chord lanes. Manual piano-roll browsing disables following when the orange playhead leaves that roll; the view does not jump back while the cursor remains visible. Score browsing instead checks the measure containing the playhead: following stops once that measure leaves the score viewport completely, regardless of whether a docked roll still shows the playhead. Selection near an edge scrolls continuously: horizontally in both timeline bands and chord lanes, and on both axes in piano rolls.<br>Every window shares a single footer row with status and synchronized melody/chord volume and mute controls. Hints are limited to 80 characters and elided to fit narrow windows without wrapping. Settings → Interface and controls → Show footer hints is on by default; turning it off keeps the mixer controls.
-
-<a id="topic-4-5"></a>
-
-### 4.5 方向键、三连音与边缘框选 / Arrow navigation, triplets and edge selection
-
-**中文**
-
-方向键 ←／→ 固定按当前格点移动选中元素，↑／↓ 固定升降音符半音或和弦根音；Alt+↑／↓ 调内移动，Ctrl+↑／↓ 移动音符八度。镜头移动快捷键暂时留空，可通过中键拖屏、Alt+滚轮或滚动条浏览。视角在最后一个可见选中元素将移出视野时跟随。Shift+3 切换吸附格点三连音，不改变输入音符时值；停靠卷帘共享设置，悬浮卷帘保留各自设置。移动方向键及其修饰组合固定，不能被其它命令占用；其它可配置按键可在设置 → 界面与操作 → 快捷键设置中修改。文字输入框内不触发编辑命令。<br>从空白处拖动框选和弦或音符，将指针停留在视角边缘时缓慢滚动：和弦轨横向滚动，卷帘可横向和纵向滚动。选区起点固定在音乐时间和音高行，已经滚出视角的元素仍可保留选中。松开鼠标、按 Esc 或隐藏编辑器会停止边缘滚动并清除框选框。<br>所选和弦全部可识别且拍号相同时，右键 → 节奏型可批量应用，即使它们被不同拍号的小节隔开。拍号必须完全相同，例如 3/4 与 6/8 不等同；不支持该拍号的节奏型禁用。保留各和弦的根音、性质、低音、区间和默认力度，按小节节奏型重建实际音符并解除自定义锁定。整批修改只需一次撤销。
-
-**English**
-
-Left/Right always move selected events by the snap grid; Up/Down move notes or chord roots by a semitone. Alt+Up/Down moves by scale degree, and Ctrl+Up/Down moves notes by an octave. These movement bindings are fixed. Camera shortcuts are temporarily unassigned; browse with middle-button dragging, Alt+wheel or scrollbars. The view follows the trailing selection extremity when needed. Shift+3 toggles triplet snapping without changing input note duration. Docked rolls share settings; floating rolls keep their own. Other configurable keys can be changed in Settings → Interface and controls → Keyboard shortcuts. Movement combinations cannot be reassigned to other commands, and editing commands do not trigger inside text fields.<br>Drag from empty space to select chords or notes. Holding the pointer near an edge scrolls gradually: horizontally in chord lanes, horizontally and vertically in piano rolls. The selection origin stays anchored to musical time and pitch rows, retaining selected events that have scrolled out of view. Release, Escape or hiding the editor stops scrolling and clears the rectangle.<br>If all selected chords are recognized and share exactly the same meter, Pattern supports batch changes, even in regions separated by a different meter. 3/4 and 6/8 are distinct. Unsupported patterns are disabled. Each chord retains its root, quality, bass, region and default velocity; performed notes are rebuilt from the bar pattern and Custom locks are cleared. One undo restores the entire batch.
-
-<a id="topic-4-6"></a>
-
-### 4.6 快捷键与定位线 / Keyboard shortcuts and position marker
-
-**中文**
-
-在主界面与独立卷帘中，Ctrl+C／X／V 复制／剪切／粘贴选中的音符或和弦，Ctrl+A 全选当前编辑目标。文本输入框使用自己的剪贴板与撤销记录。<br>固定 ↑／↓ 升降音符一个半音，Alt+↑／↓ 调内移动一级；和弦轨选中和弦时，↑／↓ 更换根音一个半音，Alt+↑／↓ 调内移动一级；两者均恢复根音低音。C 编辑选中和弦；Tab 选择下一和弦，最后一个之后回到第一个，不定位播放游标。←／→ 按当前吸附网格左右移动音符或和弦。右键音符同时提供半音和调内移动。Q 在智能／绘制工具间切换，E 切换旋律／和弦输入位置（需要时呼出或激活对应窗口）。空格播放／暂停，R 回到定位线并保持播放状态，Ctrl+Home 返回曲首并暂停。Shift+S 二等分，Alt+Shift+M 合并，Delete 删除。移动固定使用方向键：Alt+↑／↓ 调内移动，Ctrl+↑／↓ 移动音符八度；镜头移动快捷键暂时留空。设置 → 界面与操作 → 快捷键设置可修改或清空其它可配置键位，输入冲突组合会列出原功能，确认后清除其绑定并转给当前功能；取消保留原设置。歌词、数值、下拉框和对话框输入不会触发编辑命令。<br>右键音符或空白网格，可“在定位线处粘贴音符”；右键某个和弦可“在此和弦开头覆盖粘贴”，从该和弦起点按剪贴板总时长覆盖；另保留“在定位线处粘贴和弦”。右键空白处仍可在该格点粘贴。复制的跨和弦持续音在副本内部保持连续，每次粘贴与源事件及其它副本互相独立。播放中定位线为固定蓝色虚线，暂停时为当前橙色位置线；不会使用正在移动的播放游标。空白卷帘悬停为箭头，开始框选才显示十字。
-
-**English**
-
-In the main and floating editors, Ctrl+C/X/V copy/cut/paste the selected notes or chords; Ctrl+A selects all of the current editing target. Text fields use their own clipboard and undo history.<br>Fixed movement keys: Up/Down move selected notes by one semitone; Alt+Up/Down move them by one scale step. With chords selected in a chord lane, Up/Down change the root by one semitone; Alt+Up/Down move by scale degree. Both restore root-position bass. C edits the selected chord; Tab selects the next chord, wrapping to the first without seeking. Left/Right move either selection horizontally by the current snap grid. Note context menus offer both semitone and scale-step movement. Q toggles Smart/Draw; E switches melody/chord input focus, revealing or activating the corresponding roll when needed. Space plays/pauses; R returns to the position marker without changing playback state; Ctrl+Home returns to the beginning and pauses. Shift+S splits, Alt+Shift+M merges, and Delete deletes. Alt+Up/Down and Ctrl+Up/Down are fixed scale-step and note-octave movement keys. Camera shortcuts are temporarily unassigned. Settings → Interface and controls → Keyboard shortcuts changes or clears other configurable bindings and lists the actions affected by a conflicting assignment. Confirm to clear their old binding and transfer the key, or cancel to keep the previous settings. Fixed system/input keys remain reserved. Text, numeric, combo-box and dialog input never triggers editing commands.<br>Right-click notes or blank grid space to paste notes at the position marker; right-clicking a chord offers Paste over from this chord start, overwriting from its start for the clipboard duration, plus Paste chords at position marker. Blank chord-lane space retains paste at the snapped point. Cross-region sustains remain continuous inside a copy, with independent identities for the source and each paste. During playback this means the fixed blue dashed anchor, and while paused it means the orange current-position line, never the advancing playhead. Blank roll hover uses an arrow; the crosshair appears only when selecting.
-
-<a id="topic-4-7"></a>
-
-### 4.7 统一快捷键与冲突处理 / Unified shortcuts and reassignment
+### 2.3 统一快捷键与冲突处理 / Unified shortcuts and reassignment
 
 **中文**
 
@@ -542,21 +149,33 @@ In the main and floating editors, Ctrl+C/X/V copy/cut/paste the selected notes o
 
 Settings → Interface and controls → Keyboard shortcuts includes file, clipboard, selection, Tab and alternate bindings. Main and context menus show the current keys in an aligned column, including alternatives; clearing a binding removes its label. Changes apply immediately in main and floating windows. Conflicts name the affected actions: confirm to clear their previous binding and transfer the key, or cancel to restore the old value. Canceling the entire dialog discards all changes. Text fields retain their own editing behavior; fixed keys such as Esc, Enter, Shift+Tab and Alt+F4 are listed read-only at the bottom. Movement arrows and their Alt/Ctrl combinations are fixed and read-only; camera bindings are temporarily blank. Loading older settings migrates movement keys and clears other assignments using the fixed combinations.
 
-<a id="topic-4-8"></a>
+<a id="topic-2-4"></a>
 
-### 4.8 颜色与可视区域 / Colors and visibility
+### 2.4 时间尺、循环与鼠标拖屏 / Time ruler, loops and mouse navigation
 
 **中文**
 
-旋律卷帘：普通和弦取整个区间实际出现过的和弦音级；手动标记和弦改用标记的根音、性质和指定低音推导音级，即使该区间没有实际音符，也按标记显示弦内音。和弦匹配染色与悬停／选中和弦后的弦内音高亮都采用此规则，覆盖区间全长及其它八度；修改、撤销或删除标记后同步更新。和弦卷帘：取当前和弦块内出现过或持续经过的旋律音级，覆盖整个和弦块；没有和弦块时不标记旋律匹配音。两者再与当前调式组合成四色。谱面弦内音圈也采用标记的根音、性质及指定低音，未标记仍依据实际和弦演奏；实际 MIDI 与和弦卷帘的旋律匹配依据保持。<br>设置 → 卷帘显示 → 卷帘染色 → 自定义色彩方案，分别设置浅色／深色的背景色与音符色。文字自动选择深浅色。力度窗格默认隐藏；顶部“视图”菜单控制页面元素与各卷帘的力度窗格；全部 88 键／已用音高／自定义音高范围、键高和缩放位于卷帘上方。<br>鼠标放在时间轴、和弦轨或卷帘上时，Ctrl／Shift＋滚轮以鼠标下的时间位置为中心横向缩放，三处规则一致；右上角 −／＋ 以音符网格可视区中央为中心。到达曲首后固定左边界缩小。最大每四分音符 2048 像素，六十四分音符宽 128 像素（相应三连音约 85 像素）。高倍率时间标尺显示“小节.拍＋拍内分数”，例如 1.2+1/16 表示第一小节第二拍之后的十六分之一拍。Alt＋滚轮水平滚动。曲尾之后的留白只供浏览，不添加小节。
+时间轴上半部第一行显示小节号及段落标识，第二行显示拍号及调性，两行分别水平对齐；相同拍号与调性不重复显示。上半部以整小节框选和右键编辑；下半部时间尺有独立背景与分隔线。时间尺单击吸附定位，不改变播放或暂停状态；拖动只设置循环、不移动定位线，同时开启“循环选区”。Shift 连续扩展，Ctrl 不追加离散循环；框选后可拖动左右边界伸缩。关闭循环清除范围，重新开启不会恢复旧选区。框选其它音符、和弦、小节均保留循环。时间尺不提供右键操作。<br>时间轴上半部、智能工具的卷帘和和弦轨支持右键拖动框选，松开后打开对应菜单；不拖动时为普通右键。卷帘和和弦轨中键按住拖屏；卷帘可横纵移动，和弦轨只追踪水平。手动浏览卷帘时，橙色播放游标离开正在浏览的卷帘后才取消跟随；仍在视野内时不立即拉回视角。谱面浏览改为检查游标所在小节：该小节完全离开谱面视口便取消跟随，不受下方卷帘是否仍显示游标影响。框选拖至左右边缘会持续滚动，卷帘还支持上下边缘滚动；时间轴上下两区都支持边缘滚动。<br>所有窗口底部共用一行信息与音量控制，旋律、和弦音量与静音同步。信息最多 80 字符，窄窗口按宽度省略，不换行。“设置 → 界面与操作 → 显示底部信息提示”默认开启，可单独关闭提示而保留音量。
 
 **English**
 
-Melody roll: ordinary chords use pitch classes actually played across the entire region. Manually marked chords instead derive them from the marked root, quality and explicit bass, including marked regions without performed notes. Chord-match coloring and chord-tone row highlighting on hover or selection both follow this rule across the full region and other octaves, updating when a mark is edited, undone or removed. Chord roll: melody pitch classes sounding anywhere within a chord region color that entire region; empty regions have no melody-match tint. Both combine these sets with the active scale into four categories. Score chord-tone circles also follow the marked root, quality and explicit bass, while unmarked chords retain the performed-pitch rule. Actual MIDI and the melody-match data used in the chord roll remain unchanged.<br>Settings → Piano roll display → Piano roll coloring → Custom colors edits background and note colors separately for light and dark themes. Text contrast adapts automatically. Velocity is hidden by default. The top View menu controls page elements and each velocity lane. Pitch range, key height and zoom sit above each roll.<br>Ctrl/Shift+wheel over the timeline, chord lane or a piano roll zooms time around the pointer with the same rules; the upper-right −/+ buttons zoom around the visible note grid’s center. Once the beginning is reached, zooming out keeps the left edge fixed. The maximum is 2048 pixels per quarter note: 128 pixels per 64th note, or about 85 for a 64th-note triplet. At fine zoom, labels use bar.beat + a fraction of that beat: 1.2+1/16 means one sixteenth of a beat after beat 2 in bar 1. Alt+wheel scrolls horizontally. Blank viewing space beyond the end does not add bars.
+The upper timeline places bar numbers and sections on its first row, with meter and key aligned on its second row. Unchanged meter/key labels remain suppressed. Select complete bars here for editing. A divider and distinct background separate the lower time ruler. Click it to snap the position marker without changing playback state. Drag to set a loop without moving the position marker; this enables Loop selection. Shift extends a continuous range; Ctrl does not add disjoint ranges. Drag either loop edge to resize. Disabling Loop clears the range; enabling it again never restores the old range. Note, chord and bar selections preserve the loop. The lower ruler has no right-click actions.<br>Right-drag in the upper timeline, a Smart-tool piano roll or chord lane selects a range and opens its context menu on release. A stationary right-click opens the usual menu. Middle-drag pans both axes in piano rolls and horizontally in chord lanes. Manual piano-roll browsing disables following when the orange playhead leaves that roll; the view does not jump back while the cursor remains visible. Score browsing instead checks the measure containing the playhead: following stops once that measure leaves the score viewport completely, regardless of whether a docked roll still shows the playhead. Selection near an edge scrolls continuously: horizontally in both timeline bands and chord lanes, and on both axes in piano rolls.<br>Every window shares a single footer row with status and synchronized melody/chord volume and mute controls. Hints are limited to 80 characters and elided to fit narrow windows without wrapping. Settings → Interface and controls → Show footer hints is on by default; turning it off keeps the mixer controls.
 
-<a id="topic-4-9"></a>
+<a id="topic-2-5"></a>
 
-### 4.9 卷帘自定义音高范围 / Custom piano-roll pitch ranges
+### 2.5 方向键、三连音与边缘框选 / Arrow navigation, triplets and edge selection
+
+**中文**
+
+方向键 ←／→ 固定按当前格点移动选中元素，↑／↓ 固定升降音符半音或和弦根音；Alt+↑／↓ 调内移动，Ctrl+↑／↓ 移动音符八度。镜头移动快捷键暂时留空，可通过中键拖屏、Alt+滚轮或滚动条浏览。视角在最后一个可见选中元素将移出视野时跟随。Shift+3 切换吸附格点三连音，不改变输入音符时值；停靠卷帘共享设置，悬浮卷帘保留各自设置。移动方向键及其修饰组合固定，不能被其它命令占用；其它可配置按键可在设置 → 界面与操作 → 快捷键设置中修改。文字输入框内不触发编辑命令。<br>从空白处拖动框选和弦或音符，将指针停留在视角边缘时缓慢滚动：和弦轨横向滚动，卷帘可横向和纵向滚动。选区起点固定在音乐时间和音高行，已经滚出视角的元素仍可保留选中。松开鼠标、按 Esc 或隐藏编辑器会停止边缘滚动并清除框选框。<br>所选和弦全部可识别且拍号相同时，右键 → 节奏型可批量应用，即使它们被不同拍号的小节隔开。拍号必须完全相同，例如 3/4 与 6/8 不等同；不支持该拍号的节奏型禁用。保留各和弦的根音、性质、低音、区间和默认力度，按小节节奏型重建实际音符并解除自定义锁定。整批修改只需一次撤销。
+
+**English**
+
+Left/Right always move selected events by the snap grid; Up/Down move notes or chord roots by a semitone. Alt+Up/Down moves by scale degree, and Ctrl+Up/Down moves notes by an octave. These movement bindings are fixed. Camera shortcuts are temporarily unassigned; browse with middle-button dragging, Alt+wheel or scrollbars. The view follows the trailing selection extremity when needed. Shift+3 toggles triplet snapping without changing input note duration. Docked rolls share settings; floating rolls keep their own. Other configurable keys can be changed in Settings → Interface and controls → Keyboard shortcuts. Movement combinations cannot be reassigned to other commands, and editing commands do not trigger inside text fields.<br>Drag from empty space to select chords or notes. Holding the pointer near an edge scrolls gradually: horizontally in chord lanes, horizontally and vertically in piano rolls. The selection origin stays anchored to musical time and pitch rows, retaining selected events that have scrolled out of view. Release, Escape or hiding the editor stops scrolling and clears the rectangle.<br>If all selected chords are recognized and share exactly the same meter, Pattern supports batch changes, even in regions separated by a different meter. 3/4 and 6/8 are distinct. Unsupported patterns are disabled. Each chord retains its root, quality, bass, region and default velocity; performed notes are rebuilt from the bar pattern and Custom locks are cleared. One undo restores the entire batch.
+
+<a id="topic-2-6"></a>
+
+### 2.6 卷帘自定义音高范围 / Custom piano-roll pitch ranges
 
 **中文**
 
@@ -566,61 +185,357 @@ Melody roll: ordinary chords use pitch classes actually played across the entire
 
 Above each roll, choose All 88 keys, Used pitches or Custom pitch range. Pick the lowest and highest note inclusively: C3–C5 means MIDI 48–72. Bounds must stay within A0–C8 (MIDI 21–108), with the lowest no higher than the highest; a single-key range is valid. The control displays the active range. Select it again to edit its endpoints; Cancel retains the view.<br>This filters keyboard and note display only. It neither deletes nor transposes hidden notes and leaves selection, playback, MIDI and exports intact. Mouse input uses visible pitches; explicit pitch transformations still use the complete 88-key bounds. Docked rolls share a range, with Used pitches taken from both tracks. Floating rolls retain independent pitch filters even when timeline sync is enabled. Language changes and docking preserve the applicable session state. Display ranges are not stored in the project.
 
+<a id="category-3"></a>
+
+## 3. 旋律编辑与 MIDI 键盘 / Melody editing and MIDI keyboard
+
+<a id="topic-3-1"></a>
+
+### 3.1 智能与绘制工具 / Smart and Draw
+
+**中文**
+
+智能工具：单击选择，空白拖动框选；Ctrl 单击增减，Shift 扩展框选。多选后单击其中一项，释放且未拖动时缩为单选；从已选项开始拖动保留整组。双击空白格内写入，双击音符删除。<br>绘制工具：单击格内写入，单击已有音符删除；拖动已有音符移动，拖动边缘调整时值。绘制中按 Shift 锁定音高。音符实体与琴键用于编辑、选择和试听。单击卷帘格点纵线或相邻音符间的窄缝可吸附定位，不写入音符；先判断音符实体，长音内部仍编辑该音符。智能工具按住空白处后显示十字框选，拖动不定位；绘制工具禁用卷帘左右键框选，含 Ctrl／Shift 组合。创作中单击时间轴下半部时间尺定位，双击从该处播放；制谱中还可单击谱面定位。
+
+**English**
+
+Smart: click to select, drag blank space to marquee, Ctrl-click to add or remove. Clicking a selected member of a group narrows the selection on release if no drag occurred; starting a drag retains the group. Double-click a blank cell to insert or a note to delete.<br>Draw: click a cell to insert and an existing note to delete. Drag existing notes to move or resize their edges. Hold Shift during drawing to lock pitch. Note bodies and piano keys edit, select or audition. Click a vertical grid boundary or the narrow visual gap between adjacent notes to snap the position marker without writing a note. Note bodies take priority, so grid lines inside a sustained note still edit that note. In Smart, holding blank space activates the marquee crosshair; dragging selects without seeking. Draw disables left/right-button piano-roll marquees, including Ctrl/Shift modifiers. In Compose, click the lower time ruler to seek or double-click it to play. The score also supports click-to-seek.
+
+<a id="topic-3-2"></a>
+
+### 3.2 时值、吸附与小节设置 / Duration, snap and bar settings
+
+**中文**
+
+左侧“时值”控制新音符长度，支持全音符至 1/128、1/2/4/8 小节、“跟随网格”和“上一次时值”。附点与三连音互斥；上一次时值取最近选择、绘制或拉伸的音符。右侧“吸附”在琴键设置旁，独立决定卷帘纵线和时间轴最小单位，支持三连音，没有自适应模式。选中音符后右键“按当前格点量化”，将起点吸附到当前格点，保留时长。<br>时间轴上半部按整小节选择；Ctrl 单击增减不连续小节，Shift 单击从锚点连续选择，Ctrl+Shift 追加范围。下半部为独立时间尺，按吸附格点定位或设置循环。右键“设置所选小节拍号与调性”将选区扩展为整小节并一次应用。普通批量设置仅修改所选小节。只选一个小节时，右键可将其调性或拍号应用至后续所有小节，覆盖后方已有变化；调性包含主音与调式，拍号包含分子与分母，两项独立应用。最后一小节无后续小节时禁用。首小节显示完整标记；后续仅显示与前一小节不同的标记。缩短小节会删除或截断音符时先确认，后方音乐随小节长度顺延。<br>卷帘音符和根音／低音选择控件遵循全局升降号偏好；和弦名称与提示优先使用调式或和弦音程的拼写，谱面音符右键可切换等音降号。主音大调为数字参照，和弦变化不改变主音。
+
+**English**
+
+Duration on the left sets new note length: whole notes through 1/128, 1/2/4/8 bars, Follow grid or Previous note. Dotted and triplet are mutually exclusive. Previous note uses the most recently selected, drawn or resized note. Snap beside the keyboard settings independently controls vertical grid lines and the smallest timeline unit. It supports triplets, without an adaptive mode. Quantize is available only in the context menu for selected notes and snaps their starts while keeping durations.<br>The upper timeline selects whole bars. Ctrl-click toggles individual bars; Shift-click extends from the anchor; Ctrl+Shift adds a range. The separate lower time ruler uses the snap grid for positioning and loops. Set meter and key for selected bars expands the selection to complete bars and applies it once. The standard batch command changes only selected bars. With one bar selected, its context menu can apply that bar’s key or meter to all following bars, replacing later changes. Key includes tonic and mode; meter includes numerator and denominator. These commands act independently and are disabled at the final bar. The first bar shows the full marker; later bars show only changes. Shortening a bar asks for confirmation if notes would be deleted or cut; subsequent music shifts with bar length.<br>Piano-roll letter names follow the global accidental preference; root/bass letter names follow the same preference. Chord names and tooltips prefer mode-aware or chord-interval spelling; score notes can use enharmonic flats. Numbers reference the parallel major scale; chord changes do not change the tonic.
+
+<a id="topic-3-3"></a>
+
+### 3.3 时值跟随与记忆 / Previous note duration and memory
+
+**中文**
+
+时值默认选择“上一次时值”。首次输入按起点所在格点长度创建，之后跟随最近创建、选择或编辑音符的实际时值，包括拉伸、属性修改及撤销。改变格点会保留已记住的时值。旋律与和弦卷帘分别记忆，切换语言或停靠状态保留，新建／打开工程重新从格点起步。也可手动选择固定时值或“跟随网格”。
+
+**English**
+
+Note duration defaults to Previous note. With no tracked note yet, creation temporarily uses the grid cell at its onset without changing the selected mode. It then follows the actual duration of the latest created, selected or edited note, including resizing, property edits and undo. Grid changes do not overwrite the remembered duration. Melody and harmony rolls keep separate histories across language and docking changes; new/open projects start with the grid fallback again. You can also choose a fixed duration or Follow grid.
+
+<a id="topic-3-4"></a>
+
+### 3.4 音符变换 / Note transformations
+
+**中文**
+
+选中音符后右键可剪切、直接复制、逆行（时间反向）、倒影（音高翻转）或逆行倒影。剪切与 Ctrl+X 共用剪贴板。粘贴会自动选中新音符和和弦，选区粘贴会分别保留两条旋律的选中结果。直接复制保留实际音高，包括调外音；含调外音的选区禁止其他三种复制。变换粘贴按落点调式还原音阶级数。等时值 1243 逆行变为 3421，倒影为 4312。<br>Alt+↑／↓ 调内移动（Alt+↑／↓ 同样可用）。相邻同音高音符可合并；右键二等分音符不要求对齐格点，允许分到 1/64；已有 1/64 不可再分，三连音同理。拉伸或粘贴同音高音符时，以新音符覆盖重叠部分；旧音符保留边界外的前段、后段，完全覆盖则移除。仅边界相接不会合并，不同音高可自由叠加。音符的起止与力度分别保留，Ctrl+Z 可撤销。
+
+**English**
+
+After selecting notes, right-click to cut, copy directly, reverse timing, invert pitch, or combine the two transformations. Cut shares the Ctrl+X clipboard. Paste selects the new notes and chords, and a range paste keeps the selection on each melody track. Direct copy preserves absolute pitches, including chromatic notes. The other three are disabled if any selected note is outside its scale. Transformed paste uses scale degrees in the destination mode. Equal-length 1243 becomes 3421 in retrograde or 4312 in inversion.<br>Alt+Up/Down moves notes within the scale (Alt+Up/Down also works). Join adjacent same-pitch notes; split notes in half regardless of grid alignment, down to a 1/64 note or 1/64-note triplet. Resizing or pasting a note replaces only overlapping time on the same pitch. Existing notes retain their outside prefixes and suffixes; fully covered notes are removed. Touching boundaries do not merge notes. Different pitches can overlap freely, with separate timing and velocity. Ctrl+Z undoes the edit.
+
+<a id="topic-3-5"></a>
+
+### 3.5 音符力度与跨和弦合并 / Note velocities and joining across chord regions
+
+**中文**
+
+两个卷帘均可右键单个音符或框选多个音符，在“修改力度”中统一修改所选音符的 MIDI 力度。菜单首先提供该卷帘设置中的默认力度，其后为常用值和自定义输入；自定义输入每次从默认值开始，不采用当前音符或上次操作的力度。旋律音符力度窗格、和弦卷帘逐音力度窗格及和弦轨整体力度窗格的右键数值输入也读取相应默认值。所有力度值为 1–127，可撤销，与轨道音量独立。<br>和弦卷帘中，同音高、首尾相接或重叠的选中音符可以跨和弦区间合并为一个连续演奏事件；不要求属于同一和弦。各音高行分别合并，有间隙时不合并。和弦边界保留并重新识别，持续音跨边界播放与 MIDI 导出只有一次起音和止音。
+
+**English**
+
+In either piano roll, right-click one note or a marquee selection and choose Change velocity to set the selected MIDI notes together. The first choice uses that roll’s saved default, followed by common values and custom input. Custom numeric input always starts at the saved default, independently of current notes and the previous operation. Numeric input from the melody-note, chord-note and overall chord velocity lanes uses the corresponding default too. MIDI velocities range from 1–127, support undo and are independent of track volume.<br>In the chord roll, selected notes at the same pitch can join across chord-region boundaries when adjacent or overlapping. Each pitch row joins independently; gaps are rejected. Chord boundaries remain and recognition refreshes. A joined continuous event plays and exports with one note-on and one note-off across those boundaries.
+
+<a id="topic-3-6"></a>
+
+### 3.6 长音符、隐藏与编辑视角 / Long notes, hiding and edit scrolling
+
+**中文**
+
+跨调性／调式的长音符在开头按时间顺序显示音级，例如 1 (3, 2)；相接的和弦长音片段共用标签。设置中的数字显示开关全局生效。<br>主界面卷帘标题右侧的关闭图标用于隐藏，与视图菜单的勾选同步，可再次勾选恢复。<br>键盘或右键移动选中音符时，视角保持不动，直到最后一个可见选中音符将移出视野，才滚动使它完整可见。横向保留音符全长与所在拍号一拍中的较短长度。拖动、拉伸或绘制音符到网格边缘时缓慢滚动；松开鼠标或 Esc 停止，不改变播放位置。<br>时间轴右键在小节前／后插入时可选择数量、拍号、调性，插入空白并顺延音乐，一次撤销整批恢复，工程最多 1000 小节。<br>撤销／重做和弦卷帘音符编辑保留当前时间与音高视角，不再自动跳回旧选中音符；音符、选区和编辑窗口仍按历史恢复。已用音域改变时按可用音高锚点保留位置，达到可滚动边界时正常夹紧。
+
+**English**
+
+Long notes crossing keys or modes display degrees in time order at their start, such as 1 (3, 2). Joined chord-note fragments share the label. The global degree-display setting applies.<br>The close icon beside each docked roll title hides that roll and updates View; check it again to restore the roll.<br>Moving notes with keys or context menus keeps the view still until the last visible selected note is about to leave it. Vertical scrolling keeps that note fully visible; horizontal scrolling keeps the shorter of its full duration and one beat in its local meter visible. Dragging, resizing or drawing near the grid edge scrolls gradually. Release or Esc stops scrolling without seeking playback.<br>Insert bars before/after a bar on the timeline accepts a quantity, meter and key. It inserts silence and shifts later music, with one undo for the whole batch and a maximum of 1,000 bars per project.<br>Undo and redo of chord-roll note edits preserve the current time and pitch view instead of jumping to the former selection. Notes, selection and editing surface still restore from history. Used-pitch range changes retain a pitch anchor, clamping only at available scroll limits.
+
+<a id="topic-3-7"></a>
+
+### 3.7 MIDI 输入与量化 / MIDI input and quantization
+
+**中文**
+
+设置 → 音源与输入 → MIDI 键盘输入：选择设备及目标轨道后启用。暂停时逐步录入，同时按键形成和弦；连奏与延音踏板保留后续按键的先后起点，松开全部琴键或延音踏板后前进；播放时实时录入，力度来自键盘。起点与结束强制吸附当前目标卷帘格点，包括三连音。设备不会在启动时自动启用。<br>导入窗口单独选择量化格点，可保留原始时间或指定普通／三连音网格。“结合连续节奏识别三连音”要求同一拍内至少两个偏离常规格点的三连音起点，并比较两种网格的误差；时长结合后续音符处理小间隙。单个音符或自由速度段无法可靠推断时，请显式指定网格或保留原始时间。
+
+**English**
+
+Settings → Sound and input → MIDI keyboard input: select a device and destination, then enable recording. Step input while paused groups near-simultaneous keys into a chord, but preserves successive onsets during legato or pedal holds. It advances after all keys and the sustain pedal are released. E switches the target roll and MIDI input track. During playback, input is recorded live with keyboard velocity. Onsets and endings snap to the destination roll’s current grid, including triplets. Devices are not armed automatically at launch.<br>Import has a separate quantization grid: keep original timing or choose a straight/triplet grid. Triplet detection requires at least two off-straight triplet onsets within a beat and compares grid errors. Duration look-ahead closes small performance gaps. Isolated notes and free-tempo passages may require an explicit grid or original timing.
+
+<a id="category-4"></a>
+
+## 4. 和弦编配与段落 / Chord arrangement and sections
+
+<a id="topic-4-1"></a>
+
+### 4.1 小节、和弦区间与实际音符 / Bars, chord regions and performed notes
+
+**中文**
+
+<h4>1. 小节决定时间结构</h4><p>小节拍号决定一拍的长度与小节边界，调性决定数字音级的参照。连续相同拍号组成一个可编辑区间；调性变化本身不切断实际音符。插入、删除或改变小节长度会移动后续音乐；拍号变化处的和弦区间按边界拆分。</p><h4>2. 和弦轨决定区间操作</h4><p>和弦卡片保存根音、性质、指定低音和生成参数，并控制该区间的生成、替换、移动与裁切。已识别节奏型按各完整小节生成后裁切；锁定的自定义节奏型移动只平移，扩大只留空。静音 N.C. 区间只占位置，不产生音符。</p><h4>3. 和弦卷帘决定实际演奏</h4><p>直接编辑卷帘会改变实际 MIDI，并据此重新识别各区间；识别不补音。连续音符可以跨多个和弦区间。合并相邻和弦只去掉边界；显式分割则切开跨界音符。重新生成或应用节奏型会替换手工音符，执行前先核对选区；可以撤销。</p><h4>4. 谱面与导出</h4><p>播放、音频及 MIDI 导出使用最新实际音符。谱面在进入制谱时同步，编辑过程中保留当前排版；需要更新时回到创作再切入制谱。PDF 使用当前显示谱面。</p>
+
+**English**
+
+<h4>1. Bars define musical time</h4><p>Meter defines beat length and bar boundaries; key and mode define the reference for degree numbers. Consecutive equal meters form one editing region. A key change alone does not cut sounding notes. Inserting, deleting or changing bar lengths shifts later music; chord regions split at meter changes.</p><h4>2. The chord lane controls region operations</h4><p>Chord cards hold root, quality, specified bass and generation settings, and control generation, replacement, movement and cropping in their region. Recognized patterns generate over complete bars and are cropped afterward. Locked Custom patterns only translate on moves, and extension adds silence. N.C. regions occupy time without generating notes.</p><h4>3. The chord roll controls the performance</h4><p>Direct note edits change performed MIDI and refresh recognition in each affected region. Recognition never fills missing voices. A sustained note can cross several chord regions. Merging adjacent chords removes boundaries only; an explicit split cuts crossing notes. Regeneration or applying a pattern replaces manual notes: review the selection first and use Undo if needed.</p><h4>4. Scores and export</h4><p>Playback, audio and MIDI export use the latest performed notes. Engraving synchronizes on entering Score mode and retains its displayed layout during music edits. Return to Compose and re-enter Score when a refresh is needed. PDF uses the displayed score.</p>
+
+<a id="topic-4-2"></a>
+
+### 4.2 和弦区间与快速编辑 / Chord regions and quick editing
+
+**中文**
+
+在和弦轨任意位置右键插入空白和弦；也可选择“在定位线处插入”。自动长度截止当前小节末尾或下个和弦起点，以较近者为准；另有 1／2／3 拍、1／2／3／4 小节。拍按当前位置拍号分母计数，小节按后续实际拍号计时，曲尾截断。占用位置直接覆盖，保留未覆盖片段。和弦轨点击不定位播放游标。右键“编辑和弦”设置根音、性质与节奏型；空白区间确认后生成音符。<br>节奏型统一从和弦右键菜单设置。根音菜单显示“数字级数 · 音名”，以和弦开始处的主音为 1，数字采用主音大调参照并保留调式音级，字母输入遵循卷帘升降号偏好，不随点击点或播放位置改变。已识别的和弦可右键选择十二种根音、常用和弦性质、替换低音和节奏型；设置 → 和弦 → 和弦性质可选择和排序快速和弦性质，并预览全部支持的名称及数字关系。“替换低音”提供十二个音；“和弦转位”提供原位至第四转位，音数不足的转位禁用，两项都即时替换低音声部，保留根音和上方声部，不保留勾选状态；应用节奏型替换手工音符，可撤销。单击和弦与 Tab 切换使用和弦轨音色与音量，试听一小节柱式和弦（至少 650 毫秒）。单选时再次单击取消选择也试听；长按可延长，框选不自动试听。右键“试听和弦”按 MIDI 起止、力度、节奏型播放；多选时按时间顺序紧邻试听。新点击立即替换旧试听，播放状态与位置不变。旋律下方最近的和弦轨悬停或单击选中会在和弦持续范围内高亮旋律卷帘的弦内音背景，包括其它八度。单选时再次单击取消；多选时单击其中一项缩为单选。Shift 单击连续选取，Ctrl 单击增减，Ctrl+Shift 追加连续范围。拖动空白处框选和弦，支持复制、二等分、删除和统一升降半音／八度。二等分下限与音符一致；多个和弦均已识别、名称相同且相邻时可合并，保留实际音符节奏。复制 Ctrl 多选的和弦，粘贴时按原时间顺序紧邻排列，去掉选区间空隙；音符复制仍保留空隙。
+
+**English**
+
+Right-click anywhere in the chord lane to insert an empty chord at the snapped pointer or at the position marker. Auto ends at the nearer bar boundary or next chord start; other choices are 1/2/3 beats or 1/2/3/4 bars. Beats use the local meter denominator; bars use subsequent actual meters, clamped at the song end. Occupied portions are overwritten; uncovered pieces remain. Clicking the chord lane does not seek. Edit chord sets the root, quality and pattern; confirming an empty region generates its notes.<br>Patterns are controlled from chord context menus. Root choices display “degree · note name”, using the tonic at the chord’s start as 1, major-reference numbers with modal degree identity, and sharp letter names. The click position and playhead do not change these labels. Recognized chords offer 12 roots, selected quick qualities, bass replacements and patterns. Settings → Chords → Chord qualities selects and orders qualities, with a full name and degree-formula preview. Replace bass offers all 12 pitches; Chord inversion offers root position through fourth inversion, disabling inversions that require more chord tones. Both are one-shot bass replacements, preserving the chord root and upper voices, with no persistent check mark. Applying a pattern replaces custom notes and can be undone. Click a chord or press Tab to audition a one-bar block chord (at least 650 ms), using the chord track sound and volume. Clicking the sole selected chord again deselects it and still auditions; holding can extend the sound. Marquee selection is silent. Audition actual chords plays MIDI timing, velocities and rhythms; multiple selected regions play consecutively in timeline order without gaps. A new click replaces the old preview without changing playback state or position. In the main window, hover or click to highlight the chord-tone background rows across its duration, including other octaves. Click again to deselect. Shift-click selects a contiguous range, Ctrl-click toggles selection, and Ctrl+Shift adds a range. Drag from empty space to select several chords. Batch commands include copy, split, delete and uniform semitone/octave shifts. Binary splitting has the same minimum duration as notes. Adjacent chords in the same meter region can merge: only the boundary is removed, all MIDI onsets and velocities are retained, and recognition runs again. Chords copied from disjoint Ctrl selections paste consecutively in source time order, removing gaps; note copies retain gaps.
+
+<a id="topic-4-3"></a>
+
+### 4.3 和弦结构与节奏型 / Chord structure and patterns
+
+**中文**
+
+和弦卷帘时间轴下方显示与主和弦轨相同的卡片和区间；数据实时同步。悬浮和弦窗口独立保存选择与悬停状态，不选中主界面和弦，也不高亮旋律。停靠时共享选择。<br>长按结构卡片边缘调整范围：缩短删除范围外音符，不创建新的和弦；扩大自定义区间仅增加空白，原有音符保持绝对时间。已知名称且节奏型可识别的和弦，移动、缩短或扩大时按完整小节生成，再截取区间；每小节重新开始节奏型，按实际拍号计算长度。起于第 2 拍、止于第 4 拍的和弦仅保留第 2–3 拍的片段。移动、伸缩或编辑后即时更新节奏型识别；按实际音符的起止与音高排列匹配，允许八度重叠和不同力度。识别本身不改 MIDI。已识别节奏型在移动、伸缩后重建为和弦默认配器与默认力度，逐音属性重置。自定义节奏型移动只平移，伸缩只裁切，保留剩余音符属性。旧工程打开时保持原演奏，编辑区间或重新应用节奏型后采用新规则。覆盖相邻和弦时，用当前区间的空白或节奏型替换覆盖部分，未覆盖部分保留原音符。移动中部改变和弦位置；已识别节奏型按目标小节位置重建，自定义音符只平移。主和弦轨的拉伸保留原属性；自定义音符不会自动填充。所有操作可撤销。
+
+**English**
+
+Below the chord roll timeline, chord cards show the same data and regions as the main chord lane. Edits synchronize immediately. Floating chord windows keep their own selection and hover state, without selecting main-window chords or highlighting melody rows. Docked selection is shared.<br>Hold and drag a structure-card edge: shortening deletes outside notes without creating leftover regions. Extending custom content adds silence and preserves existing absolute note times. Named chords with recognizable patterns are generated over each complete bar and cropped to the region after moving or resizing. Patterns restart at every bar using its actual meter. A region starting at beat 2 and ending at beat 4 retains only beats 2–3. Recognition updates immediately after moving, resizing or editing. It matches actual note timing and pitch order, allowing octave doublings and varied velocities. Recognition alone does not change MIDI. Moving or resizing a recognized pattern rebuilds notes using the chord’s default voicing, gate and velocity, resetting per-note edits. Custom patterns only translate on moves or crop on resizing, preserving surviving note attributes. Old projects retain their performance on opening and adopt bar phase when regions are edited or patterns reapplied. Covered neighbor portions are replaced by the edited region’s silence or rhythm; uncovered portions retain their performed notes. Dragging the center moves the region: recognized patterns rebuild at the destination bar phase; custom notes translate unchanged. Resizing the main chord lane retains chord attributes; custom notes are not automatically filled. All edits support Undo.
+
+<a id="topic-4-4"></a>
+
+### 4.4 和弦边界与连续音符 / Chord regions and continuous notes
+
+**中文**
+
+和弦边界用于识别和编辑实际 MIDI。在和弦卷帘新建、移动、拉伸或粘贴的音符可以跨越多个和弦块：保留一次起音、一次止音，分别刷新各块识别结果，不自动改动边界。MIDI 导入会延长初始和弦区间，避免导入长音在小节线处被切断。<br>新建／添加小节与移动／缩短和弦后，空余区间自动填为 N.C.，不产生声音。右键合并相邻和弦只取消边界、不改变 MIDI，随后重新识别。二等分和弦或在定位线处分割会真正切开跨越分割点的音符。编辑或替换和弦时按新的和弦区间切开原音符。<br>可识别和弦更改根音或性质会按原有其它参数重新生成；已识别节奏型保持，性质变更恢复根音低音。替换低音与转位仍仅修改最低声部。根音列表按起点调性从 1 开始，改变起点保持所选音高。编辑器只记住上次确认的性质、节奏型和发音长度；力度每次读取设置中的和弦默认力度，跨和弦和重启生效；根音默认起点调号主音，低音默认等于根音。改变根音同步低音，单独改变低音保留根音。起点、时长、伴奏八度取当前和弦，重新生成默认开启，取消不更新记忆。不支持的生成节奏型回退为持续柱式。首次默认勾选重新生成和弦；名称和节奏型均已识别时，更改根音／性质仍会重建。所有已提交音符、区间与 MIDI 输入更改都会刷新识别；识别本身不补音。谱面弦内音圈对手动标记和弦使用标记的根音、性质及指定低音，未标记和弦仍使用实际演奏音级；悬停中的实际音符详情继续依据 MIDI。
+
+**English**
+
+Chord regions identify and edit performed MIDI. Notes created, moved, resized or pasted in the chord roll can span several blocks with one note-on and one note-off. Each region is recognized from its portion without moving its boundaries. MIDI import extends initial chord regions so sustained notes are not cut at bar lines.<br>New/added bars and space vacated by chord moves/resizes receive silent N.C. regions. Merge adjacent chords removes only boundaries, preserving MIDI before recognition. Splitting in half or at the position marker cuts notes at the requested split. Editing or replacing a chord cuts original events at the replacement region.<br>Changing a recognized chord root or quality rebuilds it with the other settings, retaining a recognized pattern. Quality changes reset the bass to the root. Bass replacement and inversion only change the lowest voice. Root lists start at degree 1 in the onset key and retain the selected pitch when the onset changes. Only confirmed quality, pattern, and gate carry over across chords and restarts. Velocity always uses the chord default from Settings. Root starts at the onset key tonic and bass at the root. Root changes also move bass; bass changes leave root untouched. Start, duration and accompaniment octave come from the current chord; regeneration starts enabled. Cancel retains prior defaults. Unsupported generation patterns fall back to Block. Regenerate chord is enabled initially; root/quality changes rebuild when both name and pattern are recognized. Committed note/region edits and MIDI input refresh recognition, which never adds tones by itself. Score chord-tone circles use a manual mark’s root, quality and explicit bass, or actual performed pitch classes for unmarked chords. Performed-note hover details continue to use actual MIDI.
+
+<a id="topic-4-5"></a>
+
+### 4.5 低音与和弦转位 / Bass and chord inversion
+
+**中文**
+
+已识别和弦的右键菜单分为“替换低音”和“和弦转位”。前者提供全部十二个音，后者提供原位至第四转位（九和弦），不足音数的选项禁用。两者都是即时替换最低声部的操作，保留根音、性质、上方声部、节奏和逐音力度；不作为可持续勾选的属性。多选及未识别和弦禁用这两个菜单。
+
+**English**
+
+For recognized chords, the context menu separates Replace bass (all 12 pitches) from Chord inversion (root position through fourth inversion for ninth chords). Inversions requiring more tones than the chord contains are disabled. Each action immediately replaces the lowest voice while retaining root, quality, upper voices, timing and per-note velocities; it is not a persistent checked attribute. Both menus are disabled for multiple or unrecognized chords.
+
+<a id="topic-4-6"></a>
+
+### 4.6 和弦调内移动 / Diatonic chord movement
+
+**中文**
+
+和弦根音与性质可识别时，↑／↓ 更换根音一个半音，保持性质、节奏与其它属性，低音恢复为新根音。Alt+↑／↓ 按和弦开始处的调式移动一级，并调整性质以保持调内，例如 C/E → Dm；同样恢复根音低音，不保留转位。无需先识别转位。只有调内和弦可执行调内移动；目标性质不支持或音高越界时禁用，多选必须全部合法。右键 → 和弦移动提供相同操作，以及独立的固定半音／八度移调分组。快捷键与旋律的调内移动共用设置。
+
+**English**
+
+For recognized chords, Up/Down change the root by one semitone while preserving quality, rhythm and other properties, restoring bass to the new root. Alt+Up/Down move by a scale step in the mode at each chord start, adapting quality to stay diatonic: C/E → Dm. This also restores root-position bass; it does not preserve inversion or require inversion recognition. Diatonic movement is available only for diatonic chords. Unsupported target qualities or out-of-range pitches disable it; all selected chords must be valid. Move chord in the context menu provides these commands and a separate fixed semitone/octave transposition group. Scale-step bindings are shared with melody notes.
+
+<a id="topic-4-7"></a>
+
+### 4.7 和弦节奏与卷帘联动 / Harmonic rhythm and linked piano rolls
+
+**中文**
+
+和弦节奏（harmonic rhythm）指和弦根音、性质等多久变化一次，由和弦块起止位置体现。和弦节奏型（accompaniment pattern）指一个和弦内部的织体与发音安排，例如持续柱式、反拍或琶音；“自定义”锁定的是节奏型，不是和弦变化频率。<br>旋律和和弦音符的新建、拖动、拉伸和粘贴使用相同覆盖规则：只替换同音高的重叠部分，保留旧音符两侧剩余片段，边界相接不合并。不同音高可以同时发声。长音只有一个连续外形，跨和弦或调性边界时仅改变内部颜色；格线绘制在音符下方。<br>设置 → 卷帘显示 → 卷帘染色：旋律卷帘独立控制和弦匹配、调内音染色；和弦卷帘独立控制旋律匹配、调内音染色。和弦卷帘按整个和弦块内出现或持续经过的旋律音级染色。展开「和弦卷帘 → 背景颜色提示」，可选择仅人声旋律（默认）、仅乐器旋律或人声与乐器旋律；组合选项汇总两轨音级。开关只影响卷帘颜色，不改变 MIDI、谱面或手动选择高亮。<br>Shift＋滚轮与 Ctrl＋滚轮均以指针为中心缩放时间轴、和弦轨和卷帘；停靠时三者同步，独立窗口按“同步时间轴”开关决定是否联动。Alt＋滚轮水平浏览；橙色播放游标离开正在浏览的卷帘后才取消跟随。<br>独立卷帘与主窗口共用应用标识，在 Windows 任务栏分组下显示一个图标，悬停可预览各窗口。独立窗口与主窗口互不强制置顶，可分别最小化和恢复；选择主窗口时可将其切至前台。顶部依次为停靠、最小化、最大化／还原、关闭；边框随主题变化。播放栏始终靠右排列在窗口上部；底部提供旋律、和弦的音量与静音，所有窗口双向同步同一组轨道设置。旋律独立窗口播放栏最右侧“其它选项”可显示／隐藏自己的和弦轨，不影响主界面的显示勾选。
+
+**English**
+
+Harmonic rhythm is how often chord roots and qualities change, represented by chord-region boundaries. An accompaniment pattern is the texture and note timing inside a chord, such as sustained blocks, offbeats or arpeggios. Custom locks the accompaniment pattern, not the rate of harmonic change.<br>Creating, moving, resizing and pasting notes use the same overwrite rule in both rolls: replace only overlapping time at the same pitch and preserve the remaining pieces on either side. Touching notes do not merge. Different pitches can sound together. A long note has one continuous outline; only its internal color changes across harmonic or key boundaries. Grid lines stay behind notes.<br>Settings → Piano roll display → Piano roll coloring provides independent chord-match and scale-tone switches for the melody roll, and melody-match and scale-tone switches for the chord roll. Melody pitches sounding anywhere within a chord region tint the entire region. Under Chord piano roll → Background highlighting, choose Vocal melody only (default), Instrumental melody only, or Vocal and instrumental melodies to combine both pitch sets. These options change roll colors only, leaving MIDI, score rendering and selection highlights intact.<br>Shift+wheel and Ctrl+wheel zoom around the pointer over timelines, chord lanes and piano rolls. Docked views stay synchronized; floating views use their Sync timeline setting. Alt+wheel browses horizontally; following is disabled when the orange playhead leaves the piano roll being browsed.<br>Floating rolls share the main application identity: with Windows taskbar grouping enabled, one icon offers previews of every window. Each window can be brought forward, minimized or restored independently. The title bar has Dock, Minimize, Maximize/Restore and Close controls, with a theme-aware border. Transport controls stay at the upper right. The bottom mixer controls melody and chord volumes and mutes, synchronized across all windows. Window options at the floating melody roll’s upper right can show or hide its own chord lane independently of the main View menu.
+
+<a id="topic-4-8"></a>
+
+### 4.8 密集和弦、八度移动与底五交替 / Close voicing, octave moves and alternating bass
+
+**中文**
+
+add2 默认上方音按 1、2、3、5 密集排列，例如 Cadd2 为 C3、D3、E3、G3，另有低音 C2。重新应用持续柱式等节奏型或 add2 性质会恢复默认配器；可随后在卷帘人工调整 voicing。读取旧 add9 的生成型时使用该排列；已保存的显式 MIDI 不在加载时改写。<br><br>旋律与和弦卷帘的音符右键菜单新增「上移八度」「下移八度」，默认 Ctrl+↑／Ctrl+↓，可在快捷键设置修改。支持多选、浮窗与撤销，保留起点、时长和力度；任何选中音越过 88 键范围时整体不移动。<br><br>新增「底五交替 · 四分柱式」「底五交替 · 八分柱式」「底五交替 · 反拍柱式」。支持分子为偶数的拍号，分母可为 2、4、8、16：低音每拍按根音、五音交替，每小节重置；例如 4/4 为第 1、3 拍根音，第 2、4 拍五音。上方演奏完整和弦，分别每个四分音符、每个八分音符或每拍后半拍起音。低音按分母定义一拍，2/2 每拍 1920 tick，4/8 每拍 480 tick；反拍随拍号改变。发音长度应用当前 gate，末尾按小节和和弦边界裁切。指定低音可替代根音低音；减／增和弦使用其减／增五音。<br>“持续低音 + 每拍和弦”：每个小节低音从小节开头持续到小节末，上方和弦音按拍号分母每拍触发并持续完整一拍，不受 gate 影响。支持所有当前拍号；和弦只占部分小节时裁切到该区间，跨小节时逐小节重新起音。
+
+**English**
+
+add2 defaults to close-position upper tones 1, 2, 3, 5: C3, D3, E3, G3 above bass C2 for Cadd2. Reapplying a pattern or add2 quality restores the default voicing; adjust individual notes afterward. Legacy generated add9 uses this layout; loading explicit MIDI preserves its voicing.<br><br>Both piano rolls offer Move up/down an octave, default Ctrl+Up/Ctrl+Down, configurable in Settings. Multiple notes, floating windows and undo are supported. Timing and velocities remain unchanged; a selection exceeding the 88-key range is rejected as a whole.<br><br>Alternating bass · Quarter blocks / Eighth blocks / Offbeat blocks support even numerators with denominators 2, 4, 8 or 16. Bass alternates root and fifth on successive meter beats, restarting each bar. Complete upper chords play every quarter note, every eighth note, or on the second half of each meter beat. Thus bass beats last 1920 ticks in 2/2 and 480 ticks in 4/8; offbeats follow the denominator too. Gate applies to both voices, with notes clipped at bar and region ends. A specified bass can replace the root bass; diminished/augmented chords use their altered fifth.<br>Sustained bass + beat chords holds the bass for each complete local bar and plays the upper chord tones on every denominator beat, each lasting a full beat regardless of gate. All supported meters are allowed. Partial chord regions crop the full-bar texture, and each new bar retriggers the bass.
+
+<a id="topic-4-9"></a>
+
+### 4.9 段落与和弦进行 / Sections and chord progressions
+
+**中文**
+
+“工具 → 和弦进行预览”按段落显示和弦名和罗马数字。每段可加入进行库，或关闭预览并跳到段落起始小节。<br>时间轴上半部选中小节后右键 → 段落标识，相同名称也可分别成段。右键第二个段落入口“跳转小节”按小节顺序列出现有标识与小节号，点击定位并滚动到该小节；原选区与循环保持。导航器仅以无文字边界线提示段落起点，时间轴仍保留标识文字。“编辑”主菜单不再提供段落标识入口。<br>右键和弦 → 从此处应用和弦进行，按现有块顺序替换，不新增小节。主音列表按实际音高排列，使用 1–7 加升降号标号，1 为起始所选小节主音；默认沿用该主音。整段使用所选主音，即使经过谱面调号变化也不自动重解释。可保留已识别节奏型，或统一节奏、力度、发音长度。<br>保存所选和弦也提供主音选择，自动重算罗马数字，保留性质和指定低音。C 调下 Gm–C–F 相对 C 为 v–I–IV，相对 F 为 ii–V–I。名称留空时使用数字进行；主音不存进配方，也不修改工程调号。<br>检索所选和弦时，改变主音自动重算根音条件；从设置打开时默认游标小节主音。手动输入支持罗马数字或实际和弦名，如 Gm C F。罗马数字保持相对关系，实际和弦名随主音换算。忽略性质、低音、转位，允许中间夹有其它和弦，保留 # 与 b 的区别。检索不修改工程或配方。<br>管理窗口的添加/修改只有罗马数字和可选名称，不设置主音。确认保存库，取消放弃本次管理修改。支持 I/3（指定低音）、V/vi（副属）、V/vi/#5（副属指定低音）。预设按音级排序，共同前缀时短进行在前。包含 21 组公开目录与 5 组原有进行；来源见 docs/PROGRESSIONS.md。
+
+**English**
+
+Tools → Chord progression preview lists chord names and Roman numerals by section. Add a section to the progression library, or close the preview and jump to its first bar.<br>Select bars in the upper ruler and right-click to assign section markers. Jump to bar lists existing section names and bar numbers in time order. Choose one to seek and scroll there while keeping selections and loops. Navigators show section boundaries without text; the ruler retains section labels. Repeated names still define separate sections. Section markers are no longer offered in the main Edit menu.<br>Apply a progression from a chord context menu to replace existing regions without adding measures. The tonic selector is ordered by pitch and labeled with modal degrees 1–7 and accidentals; 1 is the first selected measure tonic. All target regions use the chosen tonic even across score key changes. Keep recognized rhythms or broadcast a pattern, velocity and gate.<br>Capture also offers a tonic selector and recalculates Roman numerals while preserving quality and bass. Gm–C–F is v–I–IV in C, or ii–V–I in F. Empty names use the recipe. Tonic is never stored in the recipe or written to score keys.<br>Search from selected chords rebases the roots when tonic changes; opening from Settings uses the cursor measure tonic. Type Roman relationships or literal chord names such as Gm C F. Roman queries remain relative; literal chords are reinterpreted. Root search ignores quality, bass and inversion, allows gaps and preserves #/b spelling. Search changes neither music nor recipes.<br>Library Add/Edit contains only Roman relationships and an optional name, with no tonic selector. Confirm saves changes; Cancel discards the session. I/3, V/vi and V/vi/#5 support bass and applied chords. Recipes sort by degrees, shorter matching prefixes first. The library includes 21 public catalogue recipes and 5 existing recipes; see docs/PROGRESSIONS.md for sources.
+
+<a id="topic-4-10"></a>
+
+### 4.10 拍号区间与和弦提示 / Meter regions and chord details
+
+**中文**
+
+跨主音或调式的和弦以 → 分隔罗马数字，/ 仅表示指定低音。创作和弦提示按调性分行，去除音区重复并以和弦根音为 1；谱面保持实际音区、调性数字与最低音。<br>连续相同拍号形成一个区间。快捷键左右移动在原区间两端裁切，拉伸与合并也受区间边界限制。鼠标可跨过其它拍号区域拖至相同拍号区间，松开在不同拍号区间不修改。和弦粘贴不要求来源与目标拍号一致；到目标连续拍号区间末尾或工程末尾时裁去超出部分，整批后续内容不再粘贴。不自动增加小节。粘贴保留实际配器、相对起止和逐音力度。已识别节奏型按完整小节重建后截取；未知节奏型平移 MIDI 后重新识别；启用“禁用节奏型识别”时不识别节奏型。<br>节奏型选项依起点拍号启用：持续柱式支持全部拍号；四分柱式支持分母 2／4；八分柱式和上／下行琶音要求完整八分音符单位；阿尔贝蒂、低音 + 和弦、反拍型要求分母 2／4 且含偶数个四分音符。<br>加长小节插入空白，不延长和弦。缩短会删除或截断音符时先确认，取消不改工程，确认可撤销。等时长拍号变更不改旋律时间，但仍按新拍号重新识别和弦。跨拍号分界的和弦自动拆开。<br>卷帘绘成一条的和弦长音片段可整体选中，边缘拖动调整整条外侧，保留内部发音起点与力度。
+
+**English**
+
+Roman numerals across tonic or mode changes are separated by →; / is reserved for bass notes. Hover over a chord to see its actual pitches, scale degrees and bass for each key/mode.<br>Consecutive bars with the same meter form a region. Keyboard movement crops at both ends of its original region; resizing and merging also respect the boundaries. Mouse dragging can pass over other meters to a matching region; releasing over a different meter changes nothing. Chord pastes accept different source and destination meters. The batch is cropped at the end of the destination’s continuous meter region or the project, discarding the remaining content without adding bars. Performed voicing, relative timing and note velocities are retained. Recognized patterns regenerate from full bars and are cropped. Unrecognized patterns translate MIDI and are reidentified; Disable pattern recognition preserves performed notes.<br>Pattern availability follows the start meter: sustain supports all meters; quarter blocks support denominators 2/4; eighth blocks and ascending/descending arpeggios require whole eighth-note units; Alberti, bass + chord and offbeat patterns require an even number of quarter-note units and denominator 2/4.<br>Longer bars insert silence without extending chords. Shortening that removes note time requires confirmation and can be undone. Equal-duration meter changes retain melody timing but still reidentify chords. Chords spanning new meter boundaries are split.<br>Chord-note fragments drawn as a single long note select together. Dragging an outer edge preserves internal MIDI onsets and velocities.
+
+<a id="topic-4-11"></a>
+
+### 4.11 移动边界、暂存与删除小节 / Movement boundaries, temporary recovery and bar deletion
+
+**中文**
+
+连续相同拍号小节形成一个独立编辑区间；曲首、曲尾、拍号更改处都是截断边界。4/4 与 4/8 不相同，3/4 与 6/8 也不相同。剪贴板有和弦时始终允许粘贴，来源拍号不再限制目标；和弦按顺序相邻排列，遇到目标拍号区间边界或工程末尾便裁切当前块并停止。定位线恰在曲尾时不添加内容。<br>同一连续区间内可多选左右移动；跨区间多选禁用左右移动，即使两区间拍号相同。混合调内与调外和弦时禁用 Alt+↑/↓ 调内移动。<br>连续移动保留未裁切的选区原稿。全部移出边界的和弦暂时从演奏与导出中移除；保持选择反向移动可以还原。取消选择、撤销／重做、修改所选和弦或小节结构后结束暂存，此后通过 Ctrl+Z 恢复。暂存不写入工程。<br>拖拽及伸缩过程中仅显示位置预览，松开鼠标才修改 MIDI 并更新识别。键盘移动保持视角，直到最后一个可见选中元素将移出视野；拖拽以光标位置控制边缘滚动。<br>时间轴或谱面右键可删除一个或多个小节。含音符、和弦、歌词或谱面符号时先确认；跨界内容切断，后方音乐前移。受影响的重复压缩会展开，剩余分行与符号重新定位；一次撤销可还原。至少保留一个小节。
+
+**English**
+
+Consecutive bars with an identical meter form one continuous editing span. The song start, end and every meter change are crop boundaries; equal durations do not make signatures equivalent. A nonempty chord clipboard always permits paste, regardless of the source meter. Chords are packed in time order; the current block is cropped and the batch stops at the destination meter-region or project boundary. Pasting exactly at the project end adds nothing.<br>Horizontal multi-selection movement requires one continuous region, including when separated regions share a meter. Alt+Up/Down is disabled for a mixture of diatonic and chromatic chords.<br>Consecutive moves retain unclipped selection originals. Completely cropped chords disappear from performance and export, but reverse movement restores them while selected. Deselecting, undo/redo, editing the selected chords or changing bar structure ends this temporary state; use Ctrl+Z afterwards. Temporary originals are not saved.<br>Dragging and resizing show position previews only; MIDI and recognition update on release. Keyboard movement keeps the view until the last visible selected element is about to leave it; edge scrolling during dragging follows the pointer.<br>Right-click the timeline or score to delete one or more bars. Bars containing notes, chords, lyrics or symbols require confirmation. Crossing content is cut, later music shifts earlier, affected repeat compression expands, and surviving layout and symbols are remapped. One undo restores the edit. Keep at least one bar.
+
 <a id="category-5"></a>
 
-## 5. 播放、音源与导出 / Playback, sounds and export
+## 5. 和弦识别、标号与力度 / Chord recognition, labels and dynamics
 
 <a id="topic-5-1"></a>
 
-### 5.1 播放与音源 / Playback and sounds
+### 5.1 属七降五与半减七 / Dominant seventh flat five and half-diminished seventh
 
 **中文**
 
-编辑音符、和弦、拍号、速度和排版，以及撤销／重做时，播放继续；未受影响的长音保持，后续事件在提交编辑后更新。空格播放／暂停。回放按钮单击返回已记录的播放起点；播放中继续播放，暂停时保持暂停。双击返回开头并暂停。播放时蓝色虚线保留起点，橙色实线随当前进度移动；暂停后只显示当前位置。同一主界面的视图始终共用“跟随播放游标”。创作中控制主时间轴与停靠卷帘；制谱中控制谱面和当前选中的停靠卷帘选项卡，未选中的卷帘可在切换到该页时再跟随。两种模式的独立卷帘浮窗均有自己的跟随开关；取消“同步时间轴”后独立浏览，勾选时先采用主界面的跟随状态，此后跟随开关双向联动。拖动滑块、导航器、中键拖屏、滚轮浏览后，按操作来源决定是否取消跟随。浏览谱面时，游标所在小节只要还有部分出现在谱面视口中便保留跟随；小节完全离开谱面视口即取消，下方卷帘可见的游标不再阻止取消。浏览卷帘时，橙色播放游标离开该卷帘即取消，制谱与创作使用同一机制，避免被谱面拉回最左侧。拖住谱面滑块时暂缓自动跟随；轻微浏览保留手动视角，不立即拉回。蓝色虚线起点不参与判定。同步的浮窗共用跟随状态；独立浮窗只影响自身。播放位置、记录起点与播放状态均不变；需要恢复时重新勾选。循环只使用时间尺的独立选区，不使用小节或音符选区。关闭循环会清除该选区，重新勾选时需重新框选时间尺。播放中取消循环会从当前位置顺着越过选区末尾，继续到曲尾，持续音不重触发。播放中开启循环时，尚未经过选区末尾则在该末尾开始重复；已经经过末尾则本次继续，下一次从选区开始播放时生效。旋律和和弦各有音量与静音。设置中选择 MIDI 音源和 GM 音色。Windows MIDI 打开音源和停止时会清理本程序所用通道的持续音状态，避免高音在松键或停止后残留；仅停止播放时不切断要求保留的试听。Windows MIDI 的具体音色由系统或设备提供。点击试听至少约 650 毫秒，按住琴键或 Smart 音符持续发声；Draw 新建按住可延长试听，删除不发声。新点击立即替换旧试听。单击和弦或 Tab 切换试听一小节柱式和弦，至少 650 毫秒，长按可延长。右键“试听和弦”才按实际 MIDI 播放；多选按时间顺序紧邻试听。在时间轴或制谱谱面点击新位置时，播放中继续、暂停时保持暂停，虚线起点随点击更新。卷帘音符实体、琴键、和弦轨及其右键菜单不改变播放位置；卷帘格点纵线的窄缝单击可定位。静音只影响本机播放与试听，轨道音量与音色写入 MIDI。
+属七降五（7b5）的音级为 1、3、♭5、♭7，例如 C7b5 = C、E、G♭、B♭。半减七（m7b5）的三音为 ♭3。两种性质均可识别、转位并用于和弦进行，例如 V7b5。
 
 **English**
 
-Editing notes, chords, meter, tempo or layout, and undo/redo, keeps playback running. Unchanged sustains are retained and upcoming events update after the edit is committed. Space plays or pauses. Replay returns to the recorded anchor without changing the playing or paused state. Double-click to return to the beginning and pause. During playback a blue dashed line marks the anchor, while an orange line shows the current position. The anchor line disappears when paused. Views on the same main page always share Follow playhead. In Compose it controls the main timeline and docked rolls. In Score it controls the score and the selected docked piano-roll tab; an inactive roll can catch up when its tab is selected. In both modes, each floating roll has its own follow switch. With Sync timeline off it can browse independently; enabling sync copies the main follow state and then links the switches in both directions. After scrollbar, overview, middle-drag, wheel or arrow-key navigation, cancellation depends on the view being browsed. In the score, following stays enabled while any part of the measure containing the playhead remains in the score viewport; it stops once that measure leaves completely, even if a docked roll still shows the playhead. In a piano roll, following stops when the orange playhead leaves that roll. Compose and Score use the same roll behavior, preventing the score from pulling the cursor back to the left edge. Automatic score following pauses while its scrollbar is held. Small manual adjustments remain in place without an immediate jump back. The blue dashed anchor does not count. Synchronized floats share follow state; an independent float affects only itself. Playback position, anchor and state remain unchanged. Check Follow playhead again to resume following. Loop uses the separate time-ruler selection, never bar or note selections. Disabling Loop clears its range; re-enabling it requires a new ruler selection. Turning it off during playback continues through the former boundary to the end of the song without retriggering sustained notes. Turning it on before the selection ends repeats at that end; if playback has already passed the end, the current pass continues and looping applies the next time playback starts in the selection. Melody and chords have independent volumes and mute. Choose MIDI devices and GM programs in Settings. Windows MIDI clears sustain and sounding-note state on the channels used by this application when opening or stopping, preventing held high notes from remaining after release or Stop. Stopping playback alone retains auditions when requested. The actual Windows MIDI timbre is supplied by the system or device. Click audition lasts at least about 650 ms; holding piano keys, Smart notes or newly drawn notes sustains it. Draw deletion is silent. A new click immediately replaces the previous audition. Clicking a chord or pressing Tab previews a one-bar block chord; Audition actual chords plays real MIDI timing, velocities and patterns, consecutively for multiple selections. Clicking a new timeline or score position preserves the playing or paused state and moves the dashed anchor. Note bodies, piano keys, chord lanes and chord context menus never seek. A stationary click in a narrow vertical grid gap can seek. Mute affects local playback and audition; track volume and programs are exported to MIDI.
+A dominant seventh flat five (7b5) uses degrees 1, 3, flat 5, and flat 7. C7b5 contains C, E, Gb, and Bb. The half-diminished seventh (m7b5) uses a minor third. Both qualities support recognition, inversion and progression recipes such as V7b5.
 
 <a id="topic-5-2"></a>
 
-### 5.2 统一字号与合成音源 / Global score fonts and synth packs
+### 5.2 实际和弦音、重新生成与辅助时间尺 / Performed chord tones, regeneration and auxiliary ruler
 
 **中文**
 
-每拍宽度按该小节最密一拍的可见起点数分配，小节总宽再乘实际拍数。2/4 的 [2,2] 与 4/4 的 [2,2,2,2] 每拍等宽，小节总宽为 1:2；同为 4/4 的 [1,2,3,4] 与 [2,2,2,2] 仍为 4:2。拍按拍号分母划分，同刻多音共用一列，空拍至少占一列；不足整拍的实际时长按比例计入。三种谱式、强制合行、定位和 PDF 共用，不改变音符起止、力度或 MIDI。<br><br>随包提供“轻量钢琴与电钢琴”：Kawai 原声钢琴、明亮原声钢琴、Rhodes、Wurlitzer、CP80、Pianet T。原有三组 STK 的 37 个合成预设继续保留。全新设置优先使用小型钢琴；已有工程和已保存的新工程默认音色不会被覆盖。<br><br>设置 → 音源与输入 → 音源与音色 → 下载／添加音源，可按需下载 Greg Sullivan 电钢琴合集、完整 GM 键盘音源，以及 Salamander 音乐会钢琴（约 182 MiB 下载，完整音源约 238 MiB），也可从本地 ZIP 添加完整伶风音源包。下载在后台运行，显示进度，可取消；固定版本与 SHA-256 校验通过后才安装，不覆盖已有音源。添加成功后自动扫描。下载需要联网；已安装音源可离线使用。<br><br>也可把完整音源文件夹复制到程序同级 synths/，再“重新扫描并保存”，或添加额外扫描目录。索引和默认选择保存，下次启动读取缓存。替换 DLL 前关闭程序。播放、试听、监听与离线 MP3 使用同一音源；采样音源离线导出等待完整读取。缺失音源不妨碍打开工程、编辑或 PDF/MIDI 导出。<br><br>音源全部免费，CC BY 样本分发需保留作者署名，CC0 样本无署名要求。包内保留许可、来源、修改说明和引擎源码；MP3 导出保留 .mp3.licenses.txt。作品、歌词及其他素材权利另行适用。普通 VST/CLAP 不能直接复制加载，详见 docs/SOUNDBANKS.md。<br><br>播放或试听需要首次加载采样音源时，显示加载窗口与等待时间，可取消。加载在后台运行，窗口继续响应；成功后复用已建立的播放和试听通道。播放中添加音符保留时钟及未受影响的长音，新事件送入现有播放进程，不重新载入整套样本。
+谱面弦内音圆圈与旋律卷帘的和弦匹配显示采用同一依据：手动标记和弦按标记的根音、性质和指定低音推导音级，即使和弦区间没有实际音符也可圈出相应旋律音；未标记和弦仍按区间实际演奏音级，包含其它八度。谱面和弦悬停中的实际音符详情、播放与 MIDI 始终保留真实演奏。当前识别仍要求精确音高类匹配，不推断省略音。未标记的 IV 片段若只奏低音，其它和弦音不圈出是正常的；手动标记 IV 后则按该标记决定圈音。圈音开关及屏幕／PDF 共用此显示规则，不生成或替换 MIDI 音符。<br>编辑和弦窗口的“重新生成和弦”默认开启。先按实际片段识别节奏型，再按当前根音、性质和低音补齐和弦音，确认后替换实际音符，可撤销。例如低音＋和弦截取的一拍只有带间隙的低音，会识别为四分柱式再补齐和弦。取消勾选保留现有音符编辑；选择新节奏型会重新勾选。<br>右键更换根音或性质也使用更改前实际片段识别的节奏型重新生成。按当前伴奏八度的默认配器生成；性质变更恢复根音低音，逐音编辑恢复默认力度与发音长度。替换低音、转位仅修改低音，不补齐声部。未知或锁定自定义节奏不自动猜测；需要完整重建时，在编辑窗口选择节奏型并勾选重新生成。移动、伸缩继续按完整小节生成再截取。<br>设置 → 卷帘显示 → 和弦轨辅助时间尺默认 1 拍，可关闭或选 1/4 拍、1/2 拍、2 拍、1 小节；拍长按当地拍号计算。刻度上下对称，静止时位于和弦块后方，移动、伸缩预览时随高亮边框显示。它不接受点击、框选或定位，也不控制吸附。<br>当前页面任一停靠卷帘控制主时间轴缩放与吸附格点，新显示或重新停靠的卷帘继承目标页面尺度。独立卷帘保留本地格点；同步时间轴仍控制横向缩放、滚动与跟随。循环只显示两端竖线与中间底色，边缘仍可伸缩。
 
 **English**
 
-Beat width follows the busiest beat's visible onset count in its bar; total bar width also includes the actual beat count. A 2/4 [2,2] bar and a 4/4 [2,2,2,2] bar have equal beat widths and a 1:2 bar-width ratio. The original equal-meter example remains 4:2. Beats follow the meter denominator; simultaneous notes share a column, empty beats have at least one, and fractional beats retain their duration ratio. Screen, hit testing and PDF share the layout without changing MIDI.<br><br>The release includes Piano & Electric Essentials: Kawai acoustic, bright acoustic, Rhodes, Wurlitzer, CP80 and Pianet T. The three STK packs with 37 synth presets remain available. Fresh settings prefer the small piano; existing projects and saved defaults are preserved.<br><br>Settings → Sound and input → Sound sources and instruments → Download / add sounds offers Greg Sullivan electric pianos, a full GM keyboard bank and an optional Salamander Concert Grand (about 182 MiB download, 238 MiB installed) and installation from a complete local Lingfeng pack ZIP. Background downloads show progress, support cancellation, verify a pinned revision and SHA-256, and never overwrite existing pack folders. Installation automatically refreshes the index. Downloads need a network connection; installed sounds work offline.<br><br>You can also copy complete folders into synths/ beside the executable and rescan, or add extra scan directories. The index and defaults persist across restarts. Close Lingfeng before replacing DLLs. Playback, audition, monitoring and offline MP3 share one engine; offline sampling waits for streaming reads. Missing sounds do not prevent editing or PDF/MIDI export.<br><br>All sounds are free. Redistributed CC BY samples retain attribution; CC0 samples need none. Packs include licenses, sources, modifications and engine source. MP3 exports retain a .mp3.licenses.txt sidecar. Rights in compositions, lyrics and other material apply separately. Standard VST/CLAP plugins cannot be copied directly into this host; see docs/SOUNDBANKS.md.<br><br>Initial sampled-sound loading shows a responsive window with elapsed time and cancellation. Loaded playback/audition channels are reused. Adding notes during playback updates the existing worker while preserving its clock and unaffected sustains; it does not reload the sample library.
+Score chord-tone circles and melody-roll chord matching share one source: manually marked chords derive pitch classes from the marked root, quality and explicit bass, even when the chord region has no performed notes; unmarked chords use actual performed pitch classes across octaves. Performed-note details in chord hover, playback and MIDI retain the actual performance. Recognition still requires exact pitch-class matching without inferred omissions. If an unmarked IV fragment plays only its bass, other chord tones remain uncircled; manually marking IV makes its label determine circles instead. The circle option uses the same display rule on screen and in PDF without generating or replacing MIDI notes.<br>Regenerate chord is checked by default in Edit chord. Identify the performed fragment’s pattern first, then fill voices from the current root, quality and bass. Confirming replaces notes and can be undone. A one-beat crop of Bass + chord containing only a gated bass pulse becomes quarter blocks before voices are filled. Uncheck to retain note edits; choosing another pattern rechecks it.<br>Quick root and quality changes also regenerate using the pattern identified from the actual fragment before editing. Voices use the default voicing at the retained accompaniment octave; quality changes reset bass to the root, and per-note edits return to default velocity and gate. Bass replacement and inversion change only the bass. Unknown or locked Custom rhythms are not assigned a guessed pattern; choose a pattern in Edit chord and check Regenerate chord for a complete rebuild. Moving and resizing retain full-bar generation and crop rules.<br>Settings → Piano roll display → Chord lane auxiliary ruler defaults to 1 beat, with Off, 1/4 beat, 1/2 beat, 2 beats and 1 bar options. Beat length follows the local meter. Symmetrical top and bottom ticks sit behind stationary cards and appear with the highlighted border during move/resize previews. It does not handle clicks, selection, positioning or snapping.<br>Either docked roll controls the current page’s timeline zoom and snap grid. Newly shown or redocked rolls inherit the destination page’s scale. Floating rolls retain local grids; Sync timeline still links zoom, scrolling and follow state. Loops use only vertical endpoints and fill, with resizable edges.
 
 <a id="topic-5-3"></a>
 
-### 5.3 按格式导出 / Export by format
+### 5.3 选择、预览与和弦编辑逻辑 / Selection, previews and chord editing
 
 **中文**
 
-文件 → 导出提供 PDF、MIDI、MP3，各自打开独立导出窗口并暂停播放。PDF 只按当前谱面页码范围导出，不使用小节、循环或段落范围。立体／紧凑简谱允许多声部；传统简谱在旋律有重叠时禁用导出，保留已有目标文件。<br>MIDI 与 MP3 可选旋律、和弦或两轨，范围可选全部、小节、当前循环；已有段落标识时还可按段落导出。范围内音符裁切到边界，输出从零开始；工程不变。MIDI 保留音色、音量、速度、拍号和段落标识。<br>MP3 提供两种方式：所选合成音源离线渲染，保留逐音力度和轨道音量；导出前显示商用版权提示，并保存署名文件；Windows MIDI 实时录制使用默认系统音源与输出回录，需等待整段时长，同一输出设备上的其它声音也会录入，导出前请停止其它声音。两种方式均可取消；取消不替换已有文件。录音、混音和母带制作建议在 Cakewalk Next 等专业 DAW 中继续。
+多选音符或和弦后，普通单击其中一项，松开且未拖动时只选该项；从已选项开始拖动保留整组。Ctrl 单击未选项加入、已选项移除，移除后不启动拖动。此选择规则适用于智能工具音符与和弦；绘制工具单击已有音符仍直接删除。单独选中的和弦再次单击仍取消选择。<br>移动、拉伸时以原位虚影和目标轮廓对照定位，松开后一次提交；Esc 或隐藏卷帘取消尚未提交的手势并清除虚影。拉伸只追踪水平位置，鼠标移到别的音高行也继续捕获；仅上下移动不改变时值。<br>右键更换可识别和弦的性质，保留区间、节奏型、伴奏八度、力度和发音长度，恢复根音低音，按更改前实际片段识别出的节奏型重新生成和弦音。例如两拍 vi 四分柱式改成 vi7 后仍为四分柱式。未知或锁定自定义的事件节奏保持，只重新映射音高；主动应用节奏型才覆盖原手工节奏。和弦节奏表示和声变化频率，节奏型表示柱式、琶音等内部织体。<br>和弦名称与悬停提示优先按当前调式拼写音名，例如 F Ionian 的 IV 写 Bb；调外音按和弦性质音程拼写，如 C 小三和弦的 Eb（b3）。未分类音使用和弦等音偏好。卷帘按全局升降号偏好显示，调内数字保留调式音级；根音与低音输入字母同样遵循卷帘升降号偏好。和弦编辑器根音选项同时显示数字与音名，依据和弦开始处调性计算，开始位置改变后同步更新。<br>简谱延音线连接同一音符的记谱片段。先保留整拍延音横线的原有规则，其余跨拍音符仍按当地拍号的拍界强制拆分并连线。对拍内有音高的片段，能用一个普通、单附点或三连音音值表示时保留单个符号，沿用 ±2 tick 的 MIDI 舍入容差。只有必须分解且跨过当前拍中点（offbeat）的片段，才优先在中点分开并以延音线相连，再分别分解两侧；未跨中点时沿用原分解方式。拍中点随当地拍号及小节位置计算，不固定为 480 tick。休止符不应用新增的中点优先规则。起止、时长、播放与导出 MIDI 均不改变。
 
 **English**
 
-File → Export provides PDF, MIDI and MP3, each opening a separate export dialog and pausing playback. PDF exports a page range from the current score layout only, without bar, loop or section ranges. Spatial and Compact allow polyphony; PDF export is disabled for Traditional with melody overlaps, preserving any existing target file.<br>MIDI and MP3 export melody, chords or both, over all music, selected bar numbers or the current loop; section export is available when markers exist. Notes are clipped to the range and output starts at time zero without changing the project. MIDI retains programs, volumes, tempo, meters and section markers.<br>MP3 offers two methods: selected-synth offline rendering preserves velocities and track volumes, displays commercial-use conditions and writes a credits file. Windows MIDI real-time capture uses the default system sound source and output loopback, taking the full duration; other audio on the same device is also captured, so stop it first. Both methods support cancellation without replacing an existing file. Continue audio recording, mixing and mastering in a dedicated DAW such as Cakewalk Next.
+Clicking a member of a multiple note or chord selection narrows it on release if no drag occurred. Dragging from a selected member retains the group. Ctrl-click adds an unselected member or removes a selected one; removal never starts dragging. These selection rules apply to Smart notes and chord cards. Draw still deletes an existing note on click. Clicking the sole selected chord again still deselects it.<br>Move and resize gestures show the original position as a ghost and the target as an outline. Release commits one edit; Escape or hiding the roll cancels the pending gesture and clears its preview. Resizing follows horizontal position even after the pointer moves to another pitch row; vertical motion alone does not change duration.<br>Changing a recognized chord’s quality retains its region, complete voicing registers, bass and other parameters. It regenerates and fills voices using the accompaniment pattern identified from the performed fragment before editing. For example, changing a two-beat vi with quarter blocks to vi7 keeps quarter blocks. Unknown or locked Custom rhythms retain event timing while pitches are remapped. Explicitly applying an accompaniment pattern replaces manual rhythm. Harmonic rhythm means how often the harmony changes; an accompaniment pattern is the internal texture, such as blocks or arpeggios.<br>Chord names and hover details prefer the active mode’s pitch spelling, such as Bb for IV in F Ionian. Chromatic tones use chord-quality interval spelling, such as Eb (b3) in C minor; unclassified tones use the chord’s enharmonic preference. Rolls follow the global accidental preference while preserving in-key modal degree identities; root/bass letter names follow the same preference. The chord editor’s root choices show both degree and pitch name for the chord’s starting key, updating when the start changes.<br>A score tie joins fragments of the same note. Existing whole-beat extension-dash rules remain; other cross-beat notes still split and tie at the local meter’s beat boundaries. Within a beat, a pitched fragment that fits one plain, single-dotted or triplet value stays as one symbol, retaining the existing ±2-tick MIDI rounding tolerance. Only a fragment that must be decomposed and crosses the current beat midpoint (offbeat) splits there first with a tie; each side is then decomposed separately. Fragments that do not cross the midpoint keep the previous decomposition. Midpoints follow the local meter and bar origin rather than a fixed 480-tick grid. Rests do not use the new midpoint-first rule. Actual onsets, durations, playback and exported MIDI remain unchanged.
 
 <a id="topic-5-4"></a>
 
-### 5.4 导出与迁移 / Export and migration
+### 5.4 调式数字与创作提示 / Modal degrees and composition hints
 
 **中文**
 
-PDF 使用与屏幕相同的矢量排版，始终白底。MIDI 支持旋律／和弦独立输出或合并分轨；DAW 迁移包含独立分轨和时间轴说明。谱面压缩、强制合行和演奏提示均不修改 MIDI 音符。分发时保留 Lingfeng.exe 与 _internal 文件夹。
+调内音优先使用该调式的七个音级；Lydian 为 1、2、3、#4、5、6、7，Aeolian 为 1、2、b3、4、5、b6、b7。全局升降号偏好只改变调外数字的等音写法，以及卷帘和调性选择框中的音名字母；不把调内 #4 改写成 b5。谱面音级遵守同样规则。<br>小节调性选择的主音列表有数字辅助，各调式选项显示完整的数字与音名对应；创作时间轴提示只显示主音、调式和拍号。<br>创作和弦悬浮提示按和弦定义排序、去除八度重复，数字相对和弦根音。新增 mM7（1、b3、5、7）；add2（1、2、3、5）替代 add9，旧生成型迁移后使用密集排列，显式 MIDI 保留实际演奏。M9 保持 1、3、5、7、9。例如 Fmaj7 为 1:F、3:A、5:C、7:E，Cm9 使用 b3:Eb、b7:Bb、9:D。只列实际 MIDI 出现的和弦音，低音单列。未知和弦按实际音高从低到高去重，仅列音名；名称或性质未知时，节奏显示未知节奏型。制谱模式保留完整音区、调性数字和实际低音提示。<br>独立和弦卷帘打开和弦或拍号调性对话框后，确认和取消均留在原窗口，撤销仍回到编辑来源。
 
 **English**
 
-PDF uses the same vector layout as the screen, always on white paper. Export melody, chords or a multi-track MIDI file; the DAW bundle includes separate tracks and a timeline guide. Score compression, forced systems and directions never change MIDI notes. Keep Lingfeng.exe together with its _internal folder when distributing.
+In-key notes keep the seven degrees of their mode: Lydian is 1, 2, 3, #4, 5, 6, 7; Aeolian is 1, 2, b3, 4, 5, b6, b7. The global accidental preference affects chromatic numbers and letter names in the roll and key selector; it never respells an in-key #4 as b5. Score degrees follow the same rule.<br>The tonic selector provides degree hints, and each mode option lists its degrees and letter names. Composition timeline hints show only tonic, mode and meter.<br>Composition chord hints order actual tones by the chord definition and remove octave duplicates. Qualities include mM7 (1, b3, 5, 7) and add2 (1, 2, 3, 5); legacy generated add9 migrates to close position while explicit MIDI is preserved. M9 retains 1, 3, 5, 7, 9. Numbers are relative to the chord root: Fmaj7 shows 1:F, 3:A, 5:C, 7:E; Cm9 uses b3:Eb, b7:Bb, 9:D. Only performed tones appear, with the bass on its own row. Unknown chords list unique letter names from lowest to highest without interval numbers. An unknown chord name or quality always yields Unknown pattern. Score mode keeps full registers, key-relative degrees and actual bass information.<br>Chord and key/meter dialogs opened in a floating chord roll stay with that window on acceptance or cancellation; undo retains the editing origin.
+
+<a id="topic-5-5"></a>
+
+### 5.5 调式标号、默认力度与和弦选项 / Modal labels, default velocities and chord options
+
+**中文**
+
+卷帘音符、和弦根音与低音、进行主音统一使用 1–7 加升降号。调内音按调式定义保留：Aeolian 是 1、2、b3、4、5、b6、b7；Lydian 的 #4 不随降号偏好改成 b5。调外自然音级直接使用数字，其余按卷帘升降号偏好。十二个选项按实际音高从起点小节主音开始排列，C 背景下 F 是 4。<br>在「设置 → 音符与力度」可分别设定人声、乐器与和弦的默认力度（1–127），初始为 92、80、72。和弦力度统一用于全部声部，不另设低音力度。人声和乐器卷帘新建音符使用各自默认值，复制的音符粘贴时使用目标卷帘的默认值；和弦卷帘在和弦块内新建音符时使用该块的和弦力度，空白区域使用全局和弦默认值。和弦编辑框每次使用全局和弦默认力度，与当前和弦及上次操作无关；取消重新生成时，实际音符力度保持。编辑仅记住确认的性质、节奏型、发音长度。根音默认起点调号主音，低音默认等于根音；改变根音会同步低音音高，改变低音不改变根音。起点、时长和八度取当前和弦，重新生成默认开启，取消不更新记忆。<br>设置 → 和弦 → 和弦性质独立管理快速和弦性质与完整和弦目录。勾选及拖动排序应用于编辑框和右键性质菜单；完整目录提供名称、根音示例、音名字母和相对于根音的数字关系预览。取消设置不修改偏好。
+
+**English**
+
+Roll notes, chord root/bass choices and progression tonics share degree labels 1–7 with accidentals. Scale tones keep their modal identities: Aeolian uses 1, 2, b3, 4, 5, b6, b7; Lydian keeps #4 even with flat preference. Other tones use natural degrees first, then the roll accidental preference. Twelve choices are pitch-ordered from the anchor tonic; F relative to C is 4.<br>Settings → Notes and velocity saves separate defaults (1–127) for vocal, instrumental and chords, initially 92, 80 and 72. Chord velocity applies to every voice without a separate bass value. New melody notes use their own track’s default. Copied notes use the destination roll’s default when pasted. New chord-roll notes use the velocity of the chord region at their onset, or the global chord default in an empty area. Each chord editor opens with the global chord default regardless of the existing chord or last edit. Turning regeneration off preserves performed note velocities. Only confirmed quality, pattern and gate are remembered. Root starts at the onset key tonic and bass at root. Changing root follows it with the bass pitch; changing bass leaves root unchanged. Start, duration and octave come from the current chord, and regeneration starts enabled. Cancel keeps prior memory.<br>Settings → Chords → Chord qualities manages quick qualities and the full reference separately from velocity. Select and reorder quick qualities for editing and context menus; the full reference previews every supported quality, example root, letter notes and root-relative numeric formula. Cancel discards preference changes.
+
+<a id="topic-5-6"></a>
+
+### 5.6 默认力度与和弦力度 / Default velocities and chord velocity
+
+**中文**
+
+设置按“音源与输入”“音符与力度”“和弦”“卷帘显示”“界面与操作”五个模块组织。设置 → 音符与力度组合人声、乐器和和弦的默认力度、常用力度列表和当前和弦音源的手动检测；确认后一起保存，取消不更改偏好。检测只在点击按钮后进行。<br>和弦不再单独设置低音力度。编辑和弦使用全局和弦默认值，重新生成时将整体力度用于所有声部。和弦卷帘新建音符取起点所在和弦块的力度，没有和弦块时使用全局和弦默认值。右键“修改力度”或拖动和弦整体力度柱统一全部声部，支持多选与撤销；卷帘逐音编辑仍可保留不同音符的力度。<br>读取含旧低音力度字段的工程时保留原演奏：显式音符继续使用已保存力度，旧生成型和弦先转为具有原力度的实际音符。之后重新生成采用统一和弦力度。新保存的工程不再写入独立低音力度字段。
+
+**English**
+
+Settings groups options into Sound and input, Notes and velocity, Chords, Piano roll display, and Interface and controls. Notes and velocity combines the three track defaults, common velocity values and optional inspection of the current chord preset. OK saves them together; Cancel discards preference edits. Only the detection button starts inspection.<br>Chords no longer have a separate bass velocity. Each chord editor uses the global chord default, and regeneration applies one common velocity to every voice. New chord-roll notes use their onset region’s chord velocity, falling back to the global chord default outside a region. Change velocity and the chord velocity stems unify all voices, with multiple selection and undo; individual-note editing can still retain different dynamics.<br>Opening an older project with a bass-velocity field preserves its performance: explicit notes keep saved velocities, while generated chords first become explicit notes with their original dynamics. Later regeneration uses common chord velocity. Newly saved projects omit the separate bass field.
+
+<a id="topic-5-7"></a>
+
+### 5.7 右键菜单、选择与节奏型识别 / Context menus, selection and pattern recognition
+
+**中文**
+
+设置 → 和弦 → 节奏型识别默认开启并跨重启保存。关闭后停止全部自动节奏型识别，和弦轨隐藏节奏型；根音、性质、移动、伸缩、分割合并及拍号编辑使用实际 MIDI，不借识别结果重建。独立和弦的识别开关及 MIDI 保留，重新开启后按原方案分析。手动指定节奏型、重新生成或应用和弦进行仍可生成所选方案。<br>和弦和音符右键菜单按功能排列，复制、粘贴、分割与合并始终直接显示。设置 → 界面与操作 → 右键菜单可拖动调整功能块顺序，并选择和弦属性、音高变换、和弦进行等可分组功能是否折叠为子菜单；取消勾选后直接显示该块命令。恢复本页默认值只影响当前类型的菜单，确认后保存，取消不修改设置。单选、多选、停靠与悬浮卷帘保留相同命令和快捷键，不适用操作禁用。<br>设置 → 卷帘显示 → 显示音符音级数字：全局控制两个卷帘音符上的 1–7 及变化音记号，包含停靠、独立窗口与制谱下栏；默认开启并保存为偏好。不改变键盘名称、和弦名称、谱面或 MIDI。<br>手动选音符会取消所有窗口的和弦选择，选和弦会取消音符选择。粘贴混合选区时，新音符和和弦会同时高亮。右键和弦明确选中目标，打开子菜单后仍保持高亮。单选与多选的同类菜单顺序相同，不适用操作禁用：音符属性、和弦属性／根音／性质／低音仅限单选；可识别且拍号相同的和弦支持批量更改内置节奏型；复制、移动、删除、试听与节奏型识别开关可批量操作；合并仅在合法多选时启用。时间轴菜单只有小节拍号、调性、插入及删除小节命令，多选时向后广播与插入禁用。谱面多选小节同样保留完整菜单。<br>节奏型 → 禁用节奏型识别：勾选后不识别节奏型，移动只平移、伸缩只裁切，保留实际音符属性。取消勾选仅恢复动态识别，不改 MIDI。固定半音／八度移动自动勾选，根音半音和调内移动不自动勾选；选择内置节奏型会解除勾选并重建。此状态随工程和复制保存。<br>右键“禁用和弦识别”同时停止和弦及节奏型识别；仅禁用节奏型识别不影响和弦名称识别。“设置和弦标记”只提供 root、quality、bass 与罗马数字和字母预览，确认会同时禁用和弦识别，并让旋律卷帘的弦内音高亮、和弦匹配染色及谱面弦内音圈使用标记的 root／quality／bass；无实际音符的标记区间同样适用，不改变实际音符。取消禁用和弦识别会移除标记，重新根据实际 MIDI 识别。标记和开关支持保存、复制及撤销。<br>在和弦卷帘中编辑会复用已有窗口、切换到对应选项卡并定位，保留播放进度。谱面局部调性与拍号始终在和弦标记上方。
+
+**English**
+
+Settings → Chords → Rhythm recognition is on by default and persists across restarts. Turning it off bypasses all automatic pattern analysis and hides patterns in chord lanes. Root, quality, move, resize, split, merge and meter edits use performed MIDI rather than inferred rhythms. MIDI and per-chord recognition flags remain intact, and turning it back on restores existing rules. Explicit pattern selection, regeneration and progression generation remain available.<br>Chord and note context menus organize commands by function. Copy, paste, split and merge always remain directly visible. Settings → Interface and controls → Context menus lets you drag functional blocks into order and choose whether eligible blocks such as chord properties, pitch transformations and progressions use submenus. Unchecking a block shows its commands directly. Restore defaults applies only to the current menu tab; OK saves and Cancel discards changes. Single selections, multiple selections, docked and floating rolls retain the same commands and shortcuts, disabling unavailable operations.<br>Settings → Piano roll display → Show scale-degree numbers on notes controls 1–7 and accidental labels in both piano rolls, including docked, floating and score-tab views. It defaults to on and is saved as a preference. Keyboard names, chord names, scores and MIDI are unchanged.<br>Manually selecting notes clears chord selections across all windows, and selecting chords clears notes. Pasting a mixed range highlights its new notes and chords. Right-clicking a chord selects it and keeps it highlighted while its menu is open. Menus keep the same order for one or multiple selections, disabling unavailable operations. Note properties and chord properties, root, quality and bass require one target. Recognized chords with the same meter support batch pattern changes. Copy, movement, deletion, audition and pattern-recognition toggles support multiple targets; merging requires a valid group. Timeline menus contain only measure key, meter, insertion and deletion commands; propagation and insertion are disabled for multiple measures. Score measure menus also retain their complete list.<br>Pattern → Disable pattern recognition stops automatic pattern detection: moves translate events, resizing only crops, and note attributes remain intact. Unchecking resumes recognition without altering MIDI. Fixed semitone/octave transposition enables Disable pattern recognition automatically; root and diatonic movement do not. Applying a built-in pattern clears the lock and rebuilds notes. The flag is saved in projects and copied with chords.<br>Edit in chord piano roll reuses the existing window, selects its tab and locates the chord without seeking playback. Local key and meter labels appear above chord symbols in the score.<br>Disable chord recognition in a chord context menu stops both chord and pattern recognition; disabling only pattern recognition still allows chord names to update. Set chord mark offers root, quality and bass only, previews Roman and letter symbols, and automatically disables recognition. Melody-roll chord-tone highlighting, chord-match coloring and score chord-tone circles follow the marked root, quality and bass, including regions with no performed notes; the performed notes stay unchanged. Unchecking Disable chord recognition removes the manual mark and recognizes the actual MIDI again. Marks and flags support undo, save and copy.
+
+<a id="topic-5-8"></a>
+
+### 5.8 和弦轨联动与高亮 / Chord lane layout and highlighting
+
+**中文**
+
+<p>主界面或浮窗中，鼠标移到和弦轨左侧、和弦文字上方时，光标会变为上下调整箭头。此时拖动可重新分配和弦轨与钢琴卷帘的空间；左侧分割线也可调整，分割线其余区域和轨道空白保持普通光标。缩至较矮时，和弦轨只保留罗马数字及少量上下留白。也可在「设置 → 卷帘显示 → 和弦轨高度」中输入高度。</p><p>和弦轨右键先显示复制，再显示剪切。剪切把原和弦保留在剪贴板，原位置留下 N.C.，保留区间与节奏设置；粘贴可恢复原和弦内容，撤销可恢复原位置。</p>显示／停靠和弦卷帘时取消视图 → 和弦轨的勾选，悬浮后恢复勾选。关闭独立和弦卷帘会隐藏其窗口，从「视图」可将它停靠回主界面。两个卷帘的悬浮、停靠和显隐变化恢复每个窗口一条和弦轨的默认布局，普通刷新不重设，用户可手动显示两条。悬浮旋律自带和弦轨，独立于主界面勾选，音乐数据同步。旋律高亮只取下方最近的和弦轨：主和弦轨显示时优先，隐藏时取同一窗口的和弦卷帘结构轨；悬浮旋律只取自己的和弦轨。独立和弦窗口不影响旋律高亮。手动标记和弦的弦内音高亮使用标记的根音、性质及指定低音，空白标记区间也能显示；普通和弦继续使用实际演奏音级。此规则同样适用于停靠与悬浮旋律卷帘，不改变实际 MIDI。
+
+**English**
+
+<p>Move the pointer to the left edge above the chord text. When it becomes a vertical resize cursor, drag to redistribute space between the chord lane and piano roll. The left end of the divider also resizes the lane; the rest of the divider and empty lane space keep the normal pointer. This works in the main window and floating windows. At small heights, the lane keeps the Roman numeral with a little padding. You can also enter a height in Settings → Roll display → Chord lane height.</p><p>Copy appears before Cut in the chord context menu. Cut keeps the original chords in the clipboard and leaves N.C. regions with the same timing and rhythm settings. Paste retains the original chord content; Undo restores it in place.</p>Showing or docking the chord roll unchecks View → Chord lane; floating it checks the main lane again. Closing the floating chord roll hides it. Selecting it in View docks it on the main page. Changes to roll visibility or docking restore one default chord lane per window. Ordinary refreshes preserve manual overrides, so both main-window lanes can be shown. A floating melody roll has its own synchronized chord lane, independent of the main checkbox. Melody highlighting uses only the nearest lane below it: the main lane when shown, otherwise the docked chord roll structure lane. A floating melody uses only its own lane. The floating chord window never highlights the melody. For a manually marked chord, chord-tone highlighting uses its marked root, quality and explicit bass, even in an empty marked region. Ordinary chords continue to use performed pitch classes. The same rule applies to docked and floating melody rolls without changing actual MIDI.
+
+<a id="topic-5-9"></a>
+
+### 5.9 颜色与可视区域 / Colors and visibility
+
+**中文**
+
+旋律卷帘：普通和弦取整个区间实际出现过的和弦音级；手动标记和弦改用标记的根音、性质和指定低音推导音级，即使该区间没有实际音符，也按标记显示弦内音。和弦匹配染色与悬停／选中和弦后的弦内音高亮都采用此规则，覆盖区间全长及其它八度；修改、撤销或删除标记后同步更新。和弦卷帘：背景提示按当前和弦块内出现或持续经过的所选旋律音级着色，覆盖整个和弦块。背景默认参考人声，可在卷帘染色设置中改用乐器或两条旋律。两者再与当前调式组合成四色。谱面弦内音圈也采用标记的根音、性质及指定低音，未标记仍依据实际和弦演奏；实际 MIDI 与和弦卷帘的旋律匹配依据保持。<br>设置 → 界面与操作 → 外观 → 自定义色彩方案，分别设置浅色／深色的背景色与音符色。文字自动选择深浅色。力度窗格默认隐藏；顶部“视图”菜单控制页面元素与各卷帘的力度窗格；全部 88 键／已用音高／自定义音高范围、键高和缩放位于卷帘上方。<br>鼠标放在时间轴、和弦轨或卷帘上时，Ctrl／Shift＋滚轮以鼠标下的时间位置为中心横向缩放，三处规则一致；右上角 −／＋ 以音符网格可视区中央为中心。到达曲首后固定左边界缩小。最大每四分音符 2048 像素，六十四分音符宽 128 像素（相应三连音约 85 像素）。高倍率时间标尺显示“小节.拍＋拍内分数”，例如 1.2+1/16 表示第一小节第二拍之后的十六分之一拍。Alt＋滚轮水平滚动。曲尾之后的留白只供浏览，不添加小节。
+
+**English**
+
+Melody roll: ordinary chords use pitch classes actually played across the entire region. Manually marked chords instead derive them from the marked root, quality and explicit bass, including marked regions without performed notes. Chord-match coloring and chord-tone row highlighting on hover or selection both follow this rule across the full region and other octaves, updating when a mark is edited, undone or removed. Chord roll: pitch classes sounding in the selected melody tracks color the background across the entire chord region. Choose vocal, instrumental or both under Piano roll coloring. Both combine these sets with the active scale into four categories. Score chord-tone circles also follow the marked root, quality and explicit bass, while unmarked chords retain the performed-pitch rule. Actual MIDI and the melody-match data used in the chord roll remain unchanged.<br>Settings → Piano roll display → Piano roll coloring → Custom colors edits background and note colors separately for light and dark themes. Text contrast adapts automatically. Velocity is hidden by default. The top View menu controls page elements and each velocity lane. Pitch range, key height and zoom sit above each roll.<br>Ctrl/Shift+wheel over the timeline, chord lane or a piano roll zooms time around the pointer with the same rules; the upper-right −/+ buttons zoom around the visible note grid’s center. Once the beginning is reached, zooming out keeps the left edge fixed. The maximum is 2048 pixels per quarter note: 128 pixels per 64th note, or about 85 for a 64th-note triplet. At fine zoom, labels use bar.beat + a fraction of that beat: 1.2+1/16 means one sixteenth of a beat after beat 2 in bar 1. Alt+wheel scrolls horizontally. Blank viewing space beyond the end does not add bars.
+
+<a id="topic-5-10"></a>
+
+### 5.10 独立窗口与和弦力度 / Floating windows and chord velocity
+
+**中文**
+
+独立窗口顶部依次为停靠、最小化、最大化／还原、关闭；下方播放栏最右侧为“其它选项”。创作中的人声和乐器分别悬浮与停靠。「视图」中取消勾选只隐藏对应轨，重新勾选会恢复其停靠或悬浮位置。使用浮窗标题栏的停靠按钮可返回主界面。右键进入卷帘、E 切换输入轨和撤销定位沿用已有独立窗口；语言切换和制谱往返保留布局与显隐。主窗口和独立卷帘共用任务栏应用标识，Windows 合并任务栏按钮时，一个图标可预览全部窗口。<br>和弦轨右键、主界面视图或独立窗口其它选项中可显示“和弦轨力度窗格”。每个和弦一根力度柱；拖动会统一设置其内部所有音符的力度，多选时同时修改所选和弦，支持撤销。和弦卷帘底部的力度窗格仍用于逐音调整。力度改变 MIDI 发音强度，与底部轨道音量独立。<br>右键一个和弦或多选和弦 → 修改力度，可选 32、48、64、80、96、112、127 或输入 1–127 的自定义值；统一设置所选和弦及内部音符，保留音高、节奏和区间，可撤销。设置 → 音符与力度可编辑常用列表，确认后跨重启保存，取消不修改。只有点击“检测当前和弦音源并生成选项”才读取当前工程和弦轨音色，不在启动或切换音源时检测。SFZ／SF2 按采样力度区间生成中间值建议，重复区域不重复计数；键位差异、交叉层及控制器会影响实际分层。原生合成与外部 MIDI 无法查询层数时保留选项；单层音色仍可用不同力度控制强弱。
+
+**English**
+
+Floating title bars contain Dock, Minimize, Maximize/Restore and Close, in that order. Other options sits at the right end of the transport row below. In Compose, each melody can float or dock independently. Uncheck a melody in View to hide it. Recheck it to restore its docked or floating position. Use the floating title bar to dock it. Edit in piano roll, E and undo navigation reuse existing floating windows. Language and workspace changes retain layout and visibility. All windows use one application identity: Windows taskbar grouping presents one icon with previews of all windows.<br>Show Chord lane velocity from its context menu, the main View menu, or floating Other options. One stem per chord sets all its notes to the same velocity; multiple selections are edited together. Undo is supported. The velocity lane below the chord piano roll still edits individual notes. Velocity affects MIDI note dynamics independently of track volume.<br>Right-click one or several chords → Change velocity to choose 32, 48, 64, 80, 96, 112, 127 or a custom value from 1–127. This sets each selected chord and its notes together, retaining pitches, timing and regions, with undo support. Settings → Notes and velocity edits the saved list; Cancel discards changes. Only Detect current chord sound and generate options inspects the current project’s chord preset. Startup and sound changes never trigger detection. SFZ/SF2 sampling ranges produce midpoint suggestions with duplicate regions removed. Key-specific mappings, crossfades and controllers can affect actual layers. Native synths and external MIDI cannot report sampling layers and keep the existing list. Single-layer sounds still respond to velocity.
 
 <a id="category-6"></a>
 
-## 6. 制谱、歌词与结构 / Scores, lyrics and structure
+## 6. 制谱、歌词与标识 / Scores, lyrics and annotations
 
 <a id="topic-6-1"></a>
 
@@ -628,11 +543,11 @@ PDF uses the same vector layout as the screen, always on white paper. Export mel
 
 **中文**
 
-旋律含同时发声或相互重叠的音符时，仍可进入制谱，使用立体简谱或立体简谱 · 紧凑；传统简谱选项暂不可用。传统简谱要求严格单声部：同刻多音、1 tick 重叠和连奏短尾均算重叠，首尾恰好相接不算。检查不会自动裁剪或删除音符。<br>载入工程、恢复制谱布局或编辑、撤销／重做后，若传统简谱与旋律复音不兼容，自动改用立体简谱并保留制谱模式；全部音符和 MIDI 保持。将旋律修复为单声部后，传统简谱恢复可选。当前显示的旧谱面仍有复音而最新音乐已修复时，切换传统简谱会同步修复后的音乐；其它音乐编辑仍在回到创作后重新进入制谱时同步。<br>立体与紧凑简谱可导出多声部 PDF；传统简谱在旋律有重叠时不能导出，不会覆盖已有目标 PDF。<br><br>三种谱式均以 0 填充休止，包括开头和全休止小节。立体／紧凑的休止符与说唱 x 位于谱行音域中间；紧凑音域逐行计算，保留包住音域的 1／5 边界。默认仅画 1／5 横线，可在谱面选项开启其它调内线。立体／紧凑谱按每小节最密拍的起点数量乘实际拍数分配小节宽度，小节内部各拍等宽。三种谱式保留跨拍强制拆分连线与整拍延音横线。拍内可用普通、单附点或三连音音值表示的片段保持一个符号；必须分解的有音高片段若跨过当前拍中点（offbeat），优先在那里拆分加连线。屏幕、点击定位和 PDF 共用布局，不改变源音符和 MIDI。
+旋律含同时发声或相互重叠的音符时，仍可进入制谱，使用立体简谱或立体简谱 · 紧凑。传统简谱始终可选，选择时只检查右上角谱面选项中已勾选的旋律轨道；未勾选的乐器旋律不参与检查。发现多声部时弹出兼容性报告，说明问题轨道与位置，保留原谱式。传统简谱要求已勾选旋律严格单声部：同刻多音、1 tick 重叠和连奏短尾均算重叠，首尾恰好相接不算。检查不会自动裁剪或删除音符。<br>载入工程、恢复制谱布局或编辑、撤销／重做后，若传统简谱与已勾选旋律的复音不兼容，自动改用立体简谱并保留制谱模式；全部音符和 MIDI 保持。传统简谱下，多声部旋律轨道禁止勾选；修复为单声部或切换到立体／紧凑简谱后恢复勾选。当前显示的旧谱面仍有复音而最新音乐已修复时，切换传统简谱会同步修复后的音乐；其它音乐编辑仍在回到创作后重新进入制谱时同步。<br>立体与紧凑简谱可导出多声部 PDF；传统简谱在已勾选旋律有重叠时不能导出，不会覆盖已有目标 PDF。<br><br>三种谱式均以 0 填充休止，包括开头和全休止小节。立体／紧凑的休止符与说唱 x 位于谱行音域中间；紧凑音域逐行计算，保留包住音域的 1／5 边界。默认仅画 1／5 横线，可在谱面选项开启其它调内线。立体／紧凑谱按每小节最密拍的起点数量乘实际拍数分配小节宽度，小节内部各拍等宽。三种谱式保留跨拍连线与整拍延音横线。立体／紧凑谱上，延音横线和同位置的音高数字相遇时，以该音高数字承接延音，并用连线跨过前面的横线。拍内可用普通、单附点或三连音音值表示的片段保持一个符号；必须分解的有音高片段若跨过当前拍中点（offbeat），优先在那里拆分加连线。屏幕、点击定位和 PDF 共用布局，不改变源音符和 MIDI。
 
 **English**
 
-Melodies with simultaneous or overlapping notes can enter Score using Spatial or Spatial · Compact; Traditional is unavailable while overlaps remain. Traditional requires strict monophony: simultaneous attacks, one-tick overlaps and legato tails all count, while exact adjacent boundaries do not. Checks never trim or delete notes.<br>If loading a project, restoring Score layout, editing, undo or redo makes Traditional incompatible with the melody, the app switches to Spatial and stays in Score. All notes and MIDI remain intact. Traditional becomes available again after the melody is made monophonic. If the displayed score still has polyphony but the latest music has been fixed, choosing Traditional synchronizes the corrected music. Other music edits still synchronize when returning to Compose and re-entering Score.<br>Spatial and Compact can export polyphonic PDFs. Traditional cannot export while melody notes overlap, and an existing target PDF is preserved.<br><br>All styles fill silence with 0, including leading rests and silent bars. Spatial and compact scores center rests and unpitched rap x symbols in each row’s pitch range. Compact ranges preserve enclosing 1/5 boundaries. Only 1/5 lines appear by default; other scale lines are optional. Spatial and compact bar widths follow the busiest beat’s onset count multiplied by the actual beat count, with equal beat widths within each bar. All three styles retain cross-beat splits and ties plus ordinary whole-beat extension dashes. Within a beat, one plain, single-dotted or triplet value remains one symbol; a pitched fragment requiring decomposition splits first at the beat midpoint (offbeat) if it crosses it. Screen, hit testing and PDF share the layout without changing source notes or MIDI.
+Melodies with simultaneous or overlapping notes can enter Score using Spatial or Spatial · Compact. Traditional is always selectable and checks only the melody tracks selected in the upper-right score options. Unselected instrumental notes are ignored. If a selected track is polyphonic, a compatibility report identifies its track and location while keeping the current style. Selected melodies require strict monophony: simultaneous attacks, one-tick overlaps and legato tails all count, while exact adjacent boundaries do not. Checks never trim or delete notes.<br>If loading a project, restoring Score layout, editing, undo or redo makes Traditional incompatible with a selected melody, the app switches to Spatial and stays in Score. All notes and MIDI remain intact. In Traditional, polyphonic melody tracks cannot be checked. Correct their notes or switch to Spatial or Compact to select them again. If the displayed score still has polyphony but the latest music has been fixed, choosing Traditional synchronizes the corrected music. Other music edits still synchronize when returning to Compose and re-entering Score.<br>Spatial and Compact can export polyphonic PDFs. Traditional cannot export while selected melody notes overlap, and an existing target PDF is preserved.<br><br>All styles fill silence with 0, including leading rests and silent bars. Spatial and compact scores center rests and unpitched rap x symbols in each row’s pitch range. Compact ranges preserve enclosing 1/5 boundaries. Only 1/5 lines appear by default; other scale lines are optional. Spatial and compact bar widths follow the busiest beat’s onset count multiplied by the actual beat count, with equal beat widths within each bar. All three styles retain cross-beat ties and whole-beat extension dashes. In spatial and compact scores, when a dash meets a digit at the same pitch and time, the digit carries the continuation and a tie spans the preceding dashes. Within a beat, one plain, single-dotted or triplet value remains one symbol; a pitched fragment requiring decomposition splits first at the beat midpoint (offbeat) if it crosses it. Screen, hit testing and PDF share the layout without changing source notes or MIDI.
 
 <a id="topic-6-2"></a>
 
@@ -648,7 +563,19 @@ Traditional notation uses one numeric cell width throughout the score, adjacent 
 
 <a id="topic-6-3"></a>
 
-### 6.3 两端对齐与字号上限 / Justification and font limits
+### 6.3 小节与拍的宽度 / Bar widths and beat spacing
+
+**中文**
+
+<p>立体与紧凑简谱按实际发音起点分配宽度。每小节以最密一拍的起点数为基准，小节内各拍等宽。同一时点的多个音共用一列，空小节每拍至少一列。</p><p>例如，起点数同为每拍 2 个时，2/4 和 4/4 的每拍宽度相同，小节总宽为 1:2。传统简谱使用数字和节奏符号的字符格预算，详见「两端对齐与字号上限」。</p>
+
+**English**
+
+<p>Spatial and Compact jianpu allocate width from actual onsets. The busiest beat sets the width of every beat in its bar. Simultaneous notes share a column, and an empty bar has at least one column per beat.</p><p>At two onsets per beat, 2/4 and 4/4 have the same beat width and a 1:2 bar-width ratio. Traditional jianpu uses a cell budget for digits and rhythm symbols. See Justification and font limits.</p>
+
+<a id="topic-6-4"></a>
+
+### 6.4 两端对齐与字号上限 / Justification and font limits
 
 **中文**
 
@@ -658,9 +585,9 @@ Traditional notation uses one numeric cell width throughout the score, adjacent 
 
 Traditional cells reserve the circled-note outer width. Digits, rests, rap x symbols, beat/bar fragments and extension dashes each count as one cell, including with circles hidden. A character uses 1 unit, an inter-beat gap 2 units, and each barline side or row edge 1 unit: the complete row budget is N + 2B.<br><br>The heaviest ordinary row determines the integer font recommendation, rounded down within 1–72. Other ordinary rows retain that font and distribute spare space in the 2:1 gap ratio. Forced rows recount every visible fragment and dash, binding their font to min(1, reference budget / merged budget) times the global font. If all rows are forced, the current unmerged partition and explicit line breaks supply the reference.<br><br>Changes to bars per row, traditional style, line breaks, forced merges or restored rows apply the new recommendation in the same undo step. Changed music budgets are recomputed on re-entering Score; oversized initial traditional fonts are reduced. Ordinary refresh/save retains manual choices, including fractional values; Recommend font reapplies the advice.<br><br>Whole-row scaling is removed; measure numbers, section headings and grids retain their natural size. Traditional rhythm underlines share a row-wide height based on the lowest lower-octave dots. Spatial and compact notation retain their ink-based recommendations and merge ratios.
 
-<a id="topic-6-4"></a>
+<a id="topic-6-5"></a>
 
-### 6.4 紧凑传统简谱与 32 分音符对 / Compact traditional rows and isolated 32nd pairs
+### 6.5 紧凑传统简谱与 32 分音符对 / Compact traditional rows and isolated 32nd pairs
 
 **中文**
 
@@ -670,9 +597,9 @@ Traditional cells reserve the circled-note outer width. Digits, rests, rap x sym
 
 All three score styles still split and tie cross-beat fragments at the local meter’s beat boundaries, preserving the ordinary whole-beat extension-dash exception. Within a beat, a pitched fragment fitting one plain, single-dotted or triplet value stays whole, including the existing ±2-tick tolerance. If decomposition is necessary and the fragment crosses the beat midpoint (offbeat), it splits and ties there first, then decomposes each side. The midpoint follows the local meter and bar origin, rather than a fixed grid. These are display changes only; playback and MIDI keep their original timing.<br><br>All score styles apply an isolated 32nd-pair spacing rule. Within a meter-denominator beat containing no sixteenths and exactly two consecutive 32nds, visual space is borrowed from an adjacent dotted-eighth portion. Dotted eighth + 32nd + 32nd occupies the same space as eighth + sixteenth + sixteenth. The companion dot is omitted, but both 32nds retain three underlines. A corresponding portion of a sustained note is split off and tied; dotted rests are supported too. Groups with sixteenths, extra 32nds or nonconsecutive pairs retain their original engraving.<br><br>This changes engraving and dot display only. Actual onsets, durations, velocities, playback and MIDI remain intact; clicks and the playhead still refer to real time.<br><br>Triplets follow the original attacks, durations and contiguous groups. Three source notes keep one horizontal bracket and numeral 3 above the whole group, even when beat boundaries create more displayed fragments. The bracket clears notes, octave dots and ties and is continued in separate row segments. Short fragments of ordinary notes do not create false triplets.
 
-<a id="topic-6-5"></a>
+<a id="topic-6-6"></a>
 
-### 6.5 谱面选择与局部合行 / Score selection and local systems
+### 6.6 谱面选择与局部合行 / Score selection and local systems
 
 **中文**
 
@@ -682,21 +609,21 @@ All three score styles still split and tie cross-beat fragments at the local met
 
 Choose Measure or Beat selection, then click, Ctrl-click, Shift-click or drag a marquee. Right-click acts on the selection. Consecutive measures beginning at a system boundary can be forced into one row. Traditional merge fonts bind to the complete visible-symbol and gap budget relative to ordinary rows, rather than a simple bar-count ratio or whole-row transform. Global font changes carry through to merged fonts; restoring rows recalculates the recommendation in the same undo step. Spatial and compact styles retain their saved merge ratio and pitch layout.
 
-<a id="topic-6-6"></a>
+<a id="topic-6-7"></a>
 
-### 6.6 歌词与符号位置 / Lyrics and symbol placement
+### 6.7 歌词与符号位置 / Lyrics and symbol placement
 
 **中文**
 
-歌词在制谱下栏编辑，首次打开会自动回填已有歌词。选择起始小节、小节数量与段次，或点击“使用谱面选区”，自动回填该范围已有歌词；确认与删除只影响所选范围和段次，保留范围外歌词与其他段次。允许只填部分起点，不能超出范围。节奏点取旋律 MIDI 的全部唯一音符起点；同刻多音只匹配一个字，长音内的新音符仍增加起点，跨小节持续音不重复计入。回填每小节一行，中文连写，仅英文词用空格分隔；标点保留且不额外占位。/s 消耗一个起点且不显示文字；/- 消耗一个起点，并从前一个音符画连音弧线，仅改变谱面。例如 我/-/- 在 1、2、3 上分别连接 1→2、2→3。行首续接为向右下弯入音符的半段弧线。旧工程中原有的跳过回填为 /s，不自动添加弧线。生成 & 模板后可保留部分未填占位，这些 & 不会保存。每行约束在对应小节，空行保留位置；旧 | 分隔仍兼容。<br>使用 /x{我是一个rapper} 将其中五个字／词按现有旋律起点匹配，谱面数字改为与 0 同样居中的 x，节奏与 MIDI 音符不变。可混合输入唱词、说唱组、/s 与 /-；连续说唱回填为一个 /x{...}，跨小节在花括号内换行。花括号必须成对、不嵌套，组内不附加时值。examples/lingfeng-rap.lfs 提供说唱示意，examples/lingfeng-melisma.lfs 演示跳过与逐对连音。原有 我/64.爱/64你/64 显式时值说唱仍可使用。提交、删除、撤销与重做更新工程歌词；谱面在重新切入制谱时同步。切换制谱和导出 PDF 不检查旧歌词匹配。反复段落的不同歌词仍按段次堆叠。<br>符号位置规则：小节／双小节／结束线与反复线位于边界；Segno、Coda 在上方；D.C.、D.S.、N/R、Fine、F.O.、rit.、ad lib. 在下方。谱面提示不生成速度或音量曲线，不改变 MIDI 顺序。<br>歌词 /- 自动绘制的逐对连音与手动连音标识分别管理，歌词连音优先。与歌词连音冲突的手动弧不能新建；已有冲突手动弧仅静默隐藏，工程条目保留，移除歌词冲突后恢复。端点相接但不重叠的弧仍可创建。自动连音跨行／跨页保留中间续接段，不改 MIDI 或手动标识数据。
+在制谱下栏分别打开人声歌词或乐器歌词选项卡。两个选项卡各自保留编辑范围和草稿，首次打开时会自动回填已有歌词。选择起始小节、小节数量与段次，或点击“使用谱面选区”，自动回填该范围已有歌词；确认与删除只影响所选范围和段次，保留范围外歌词与其他段次。允许只填部分起点，不能超出范围。节奏点取旋律 MIDI 的全部唯一音符起点；同刻多音只匹配一个字，长音内的新音符仍增加起点，跨小节持续音不重复计入。中文可连写，英文词之间留空格，标点不额外占位。按 ABC 歌词规则，* 跳过一个起点，_ 把前一音节延续到下一个音符，例如 我__ 在 1、2、3 上分别画出 1→2、2→3 的连音弧线。- 分隔同一个词的音节，如 hel-lo。\- 输入字面连字符，~ 把多个词放在同一个音符下。换行或 | 分隔小节，空行保留小节位置。旧写法 /s、/- 仍可输入，分别回填为 *、_。生成 & 模板后可保留未填占位，& 仅用于草稿。<br>使用 <code>\x{我是一个rapper}</code> 将其中五个字／词按现有旋律起点匹配，谱面数字改为与 0 同样居中的 x，节奏与原有旋律音符保持一致。可混合输入唱词、说唱组、* 与 _。连续说唱回填为一个 <code>\x{...}</code>，跨小节在花括号内换行。花括号必须成对、不嵌套，组内不附加时值。旧写法 /x{...} 仍可读取。examples/lingfeng-rap.lfs 提供说唱示意，examples/lingfeng-melisma.lfs 演示跳过与逐对连音。原有 我/64.爱/64你/64 显式时值说唱仍可使用。提交、删除、撤销与重做更新工程歌词；谱面在重新切入制谱时同步。切换制谱和导出 PDF 不检查旧歌词匹配。反复段落的不同歌词仍按段次堆叠。<br>符号位置规则：小节／双小节／结束线与反复线位于边界；Segno、Coda 在上方；D.C.、D.S.、N/R、Fine、F.O.、rit.、ad lib. 在下方。谱面提示不生成速度或音量曲线，不改变 MIDI 顺序。<br>歌词 _ 自动绘制的逐对连音与手动连音标识分别管理，歌词连音优先。与歌词连音冲突的手动弧不能新建；已有冲突手动弧仅静默隐藏，工程条目保留，移除歌词冲突后恢复。端点相接但不重叠的弧仍可创建。自动连音跨行／跨页保留中间续接段，不改 MIDI 或手动标识数据。
 
 **English**
 
-Edit lyrics in Score mode; saved lyrics load on first opening. Choose the start bar, bar count and stanza, or use the score selection, to load existing lyrics. Apply/delete affects only that range and stanza, preserving outside lyrics and other stanzas. Partial entry is allowed. Rhythm uses all distinct melody MIDI starts: simultaneous notes share a slot, new notes under sustains add slots, and sustained notes crossing barlines do not create extra starts. Autofill uses one line per bar, continuous Chinese and spaces between English words. Punctuation takes no extra slots. /s skips one onset invisibly; /- adds a display-only slur from the preceding note. 我/-/- over 1, 2, 3 draws two slurs: 1→2 and 2→3. Row-entry continuations curve down towards the note. Saved legacy skips load as /s without adding slurs. Unfilled & slots are not saved. Empty lines retain bar positions; legacy | separators remain readable.<br>Use /x{我是一个rapper} to bind five characters/words to existing melody onsets and replace their score digits with centered x symbols at the same vertical position as 0. Rhythm and sounding MIDI notes remain unchanged. Mix sung text, rap groups and skips freely. Consecutive rap merges into one /x{...} group, with newlines across bars. Braces must match, cannot nest, and contain no explicit durations. See examples/lingfeng-rap.lfs for rap and examples/lingfeng-melisma.lfs for skips and successive slurs. Legacy explicit rap timing such as 我/64.爱/64你/64 remains supported. Apply, delete, undo and redo update project lyrics. Re-enter Score mode to refresh engraving. Switching to Score and exporting PDF do not validate old lyric matches. Repeated passages retain stacked stanzas.<br>Symbol placement rules: barlines and repeat signs at measure boundaries; Segno and Coda above; D.C., D.S., N/R, Fine, F.O., rit. and ad lib. below. Directions do not create tempo/volume automation or change MIDI order.<br>Automatic pairwise lyric /- slurs and manual phrase marks are managed separately, with lyric slurs taking priority. Conflicting manual slurs cannot be created; existing conflicts are silently hidden without deleting their project entries and return when the lyric conflict is removed. Arcs that only touch at an endpoint remain allowed. Automatic slurs continue through intervening rows and pages without changing MIDI or manual mark data.
+Open the vocal or instrumental lyrics tab in Score mode. Each tab keeps its own range and draft and loads saved lyrics on first opening. Choose the start bar, bar count and stanza, or use the score selection, to load existing lyrics. Apply/delete affects only that range and stanza, preserving outside lyrics and other stanzas. Partial entry is allowed. Rhythm uses all distinct melody MIDI starts: simultaneous notes share a slot, new notes under sustains add slots, and sustained notes crossing barlines do not create extra starts. Enter Chinese without spaces and separate English words with spaces. Punctuation takes no extra slots. In ABC lyric syntax, * skips one onset and _ holds the previous syllable for one more note. 我__ over 1, 2, 3 draws slurs 1→2 and 2→3. Use - to divide a word into syllables, as in hel-lo. Use \- for a literal hyphen and ~ for a space within one note. A newline or | starts the next bar. Empty lines retain their bar positions. The editor accepts the older /s and /- and refills them as * and _. Unfilled & slots are draft placeholders.<br>Use <code>\x{我是一个rapper}</code> to bind five characters or words to existing melody onsets and replace their score digits with centered x symbols at the same vertical position as 0. Rhythm and sounding MIDI notes remain unchanged. Mix sung text, rap groups and skips freely. Consecutive rap merges into one <code>\x{...}</code> group, with newlines across bars. Braces must match, cannot nest, and contain no explicit durations. The editor still accepts the older /x{...} spelling. See examples/lingfeng-rap.lfs for rap and examples/lingfeng-melisma.lfs for skips and successive slurs. Legacy explicit rap timing such as 我/64.爱/64你/64 remains supported. Apply, delete, undo and redo update project lyrics. Re-enter Score mode to refresh engraving. Switching to Score and exporting PDF do not validate old lyric matches. Repeated passages retain stacked stanzas.<br>Symbol placement rules: barlines and repeat signs at measure boundaries; Segno and Coda above; D.C., D.S., N/R, Fine, F.O., rit. and ad lib. below. Directions do not create tempo/volume automation or change MIDI order.<br>Automatic pairwise lyric _ slurs and manual phrase marks are managed separately, with lyric slurs taking priority. Conflicting manual slurs cannot be created; existing conflicts are silently hidden without deleting their project entries and return when the lyric conflict is removed. Arcs that only touch at an endpoint remain allowed. Automatic slurs continue through intervening rows and pages without changing MIDI or manual mark data.
 
-<a id="topic-6-7"></a>
+<a id="topic-6-8"></a>
 
-### 6.7 反复压缩与跳转 / Repeat compression and jumps
+### 6.8 反复压缩与跳转 / Repeat compression and jumps
 
 **中文**
 
@@ -706,9 +633,9 @@ Edit lyrics in Score mode; saved lyrics load on first opening. Choose the start 
 
 Repeat-compression and jump editing remain unavailable. The separate Score Annotations panel provides ordinary marks and multi-note phrase slurs. Existing saved repeat and jump records still load and display without rewriting music or MIDI. Measures per row, manual line breaks and forced rows remain available.
 
-<a id="topic-6-8"></a>
+<a id="topic-6-9"></a>
 
-### 6.8 其他谱面符号 / Other score symbols
+### 6.9 其他谱面符号 / Other score symbols
 
 **中文**
 
@@ -718,28 +645,108 @@ Repeat-compression and jump editing remain unavailable. The separate Score Annot
 
 Measure selection supports regular, double and final barlines, Segno and Coda. Beat selection supports F.O. (fade out), rit. (ritardando), ad lib. (freely) and Fine. Availability depends on the range and actual notes; final barlines, Fine and fade out require the end of the performance.<br>These are performance directions. This version does not infer intent from velocities or generate tempo or volume automation. Add, inspect or delete marks in the Annotations panel, or right-click a score mark to delete that annotation.
 
-<a id="topic-6-9"></a>
+<a id="topic-6-10"></a>
 
-### 6.9 制谱标识与多音连音弧 / Score annotations and multi-note phrase slurs
+### 6.10 制谱标识与多音连音弧 / Score annotations and multi-note phrase slurs
 
 **中文**
 
-制谱面板包含旋律卷帘、和弦卷帘、歌词和标识四类，初始均隐藏；从“视图”分别打开。关闭、悬浮和重新停靠只影响对应面板，语言切换及创作／制谱往返保留显隐与布局。<br>标识面板提供小节线、双小节线、终止线、Segno、Coda、Fine、渐弱结束、渐慢、自由演奏及连音弧。普通标识先选适用的小节或拍，结束类标识仍要求演奏结束处。连音弧可切换到“音符选择”：单击、Ctrl 增选、Shift 连选或拖动框选至少两个不同起点的旋律音符；也可按已选小节或拍取其中的旋律起点。添加后整组选中音符由一条从首音至末音的乐句弧连接，跨行／跨页分段续接，不拆成相邻两音的多条弧线。<br>这些标识只改变谱面，随工程保存并支持撤销，不合并音符，不改变 MIDI、发音时长或播放顺序。可在标识列表中删除选中项，也可右键点击谱面标识后“删除此标识”。歌词语法 /- 的逐对连音与同音符拆分的延音线仍独立保留。<br>歌词连音由歌词 /- 独立管理，优先于冲突的手动连音弧；新建冲突弧禁用，已有冲突弧静默隐藏。其它类型标识不受此规则影响。
+制谱的旋律卷帘、和弦卷帘、人声歌词、乐器歌词和标识各有独立选项卡，初始均隐藏，可从“视图”分别打开。关闭、悬浮和重新停靠只影响对应面板，语言切换及创作／制谱往返保留显隐与布局。<br>标识面板提供小节线、双小节线、终止线、Segno、Coda、Fine、渐弱结束、渐慢、自由演奏及连音弧。普通标识先选适用的小节或拍，结束类标识仍要求演奏结束处。连音弧可切换到“音符选择”：单击、Ctrl 增选、Shift 连选或拖动框选至少两个不同起点的旋律音符；也可按已选小节或拍取其中的旋律起点。添加后整组选中音符由一条从首音至末音的乐句弧连接，跨行／跨页分段续接，不拆成相邻两音的多条弧线。<br>这些标识只改变谱面，随工程保存并支持撤销，不合并音符，不改变 MIDI、发音时长或播放顺序。可在标识列表中删除选中项，也可右键点击谱面标识后“删除此标识”。歌词语法 _ 的逐对连音与同音符拆分的延音线仍独立保留。<br>歌词连音由歌词 _ 独立管理，优先于冲突的手动连音弧；新建冲突弧禁用，已有冲突弧静默隐藏。其它类型标识不受此规则影响。
 
 **English**
 
-Score mode has four independent panels: Melody roll, Chord roll, Lyrics and Annotations. All start hidden and can be opened separately from View. Closing, floating or docking affects the corresponding panel; language and workspace changes preserve its visibility and layout.<br>Annotations offers regular, double and final barlines, Segno, Coda, Fine, Fade out, Ritardando, Ad lib. and Phrase slur. Select suitable measures or beats for ordinary marks; ending marks still require the end of the performance. For a slur, switch to Note selection and use clicks, Ctrl additions, Shift ranges or a marquee to select at least two melody notes with different starts. Measure or beat selections can supply their melody onsets instead. Adding creates one phrase arc from the first to the last selected note, continuing across rows and pages rather than drawing a separate arc for every adjacent pair.<br>Annotations affect engraving only. They save with the project and support undo without merging notes or changing MIDI, durations or playback order. Delete an entry from the annotation list, or right-click its mark on the score and choose Delete this annotation. Pairwise lyric /- slurs and ties between fragments of one source note remain independent.<br>Lyric /- slurs are managed independently and take priority over conflicting manual phrase slurs: new conflicts are disabled and existing ones are silently hidden. Other annotation types are unaffected.
+Score mode has independent tabs for the melody roll, chord roll, vocal lyrics, instrumental lyrics and annotations. All start hidden and can be opened separately from View. Closing, floating or docking affects the corresponding panel; language and workspace changes preserve its visibility and layout.<br>Annotations offers regular, double and final barlines, Segno, Coda, Fine, Fade out, Ritardando, Ad lib. and Phrase slur. Select suitable measures or beats for ordinary marks; ending marks still require the end of the performance. For a slur, switch to Note selection and use clicks, Ctrl additions, Shift ranges or a marquee to select at least two melody notes with different starts. Measure or beat selections can supply their melody onsets instead. Adding creates one phrase arc from the first to the last selected note, continuing across rows and pages rather than drawing a separate arc for every adjacent pair.<br>Annotations affect engraving only. They save with the project and support undo without merging notes or changing MIDI, durations or playback order. Delete an entry from the annotation list, or right-click its mark on the score and choose Delete this annotation. Pairwise lyric _ slurs and ties between fragments of one source note remain independent.<br>Lyric _ slurs are managed independently and take priority over conflicting manual phrase slurs: new conflicts are disabled and existing ones are silently hidden. Other annotation types are unaffected.
 
 <a id="category-7"></a>
 
-## 7. 关于与许可 / About and licensing
+## 7. 播放、音量与音源 / Playback, volume and sounds
+
+<a id="topic-7-1"></a>
+
+### 7.1 播放与音源 / Playback and sounds
+
+**中文**
+
+<h4>轨道音量</h4><p>底部音量使用 MIDI CC7（0–127）。可拖动滑块，也可点击旁边的数字输入整数，按回车或离开输入框时应用。主界面和浮窗的同一轨道音量同步更新。新工程的人声、乐器和和弦分别为 100、84、76。内置音源以 127 为增益参照，相对分贝为 <code>20 × log10(CC7 / 127)</code>，0 为静音。</p><h4>音源增益</h4><p>在「设置 → 音源与输入 → 音源与音色」中，分别为三轨的合成音源输入 −24 至 +24 dB。预设响度补偿是音色自带的自动分贝值。轨道音源增益在此基础上叠加，0 dB 表示不额外增减。手动增益与轨道音量独立，随工程保存，并应用于播放、试听、监听和离线 MP3。</p><h4>播放与跟随</h4>编辑音符、和弦、拍号、速度和排版，以及撤销／重做时，播放继续；未受影响的长音保持，后续事件在提交编辑后更新。空格播放／暂停。回放按钮单击返回已记录的播放起点；播放中继续播放，暂停时保持暂停。双击返回开头并暂停。播放时蓝色虚线保留起点，橙色实线随当前进度移动；暂停后只显示当前位置。同一主界面的视图始终共用“跟随播放游标”。创作中控制主时间轴与停靠卷帘；制谱中控制谱面和当前选中的停靠卷帘选项卡，未选中的卷帘可在切换到该页时再跟随。两种模式的独立卷帘浮窗均有自己的跟随开关；取消“同步时间轴”后独立浏览，勾选时先采用主界面的跟随状态，此后跟随开关双向联动。拖动滑块、导航器、中键拖屏、滚轮浏览后，按操作来源决定是否取消跟随。浏览谱面时，游标所在小节只要还有部分出现在谱面视口中便保留跟随；小节完全离开谱面视口即取消，下方卷帘可见的游标不再阻止取消。浏览卷帘时，橙色播放游标离开该卷帘即取消，制谱与创作使用同一机制，避免被谱面拉回最左侧。拖住谱面滑块时暂缓自动跟随；轻微浏览保留手动视角，不立即拉回。蓝色虚线起点不参与判定。同步的浮窗共用跟随状态；独立浮窗只影响自身。播放位置、记录起点与播放状态均不变；需要恢复时重新勾选。循环只使用时间尺的独立选区，不使用小节或音符选区。关闭循环会清除该选区，重新勾选时需重新框选时间尺。播放中取消循环会从当前位置顺着越过选区末尾，继续到曲尾，持续音不重触发。播放中开启循环时，尚未经过选区末尾则在该末尾开始重复；已经经过末尾则本次继续，下一次从选区开始播放时生效。人声、乐器与和弦各有音量与静音。设置中选择 MIDI 音源和 GM 音色。Windows MIDI 打开音源和停止时会清理本程序所用通道的持续音状态，避免高音在松键或停止后残留；仅停止播放时不切断要求保留的试听。Windows MIDI 的具体音色由系统或设备提供。点击试听至少约 650 毫秒，按住琴键或 Smart 音符持续发声；Draw 新建按住可延长试听，删除不发声。新点击立即替换旧试听。单击和弦或 Tab 切换试听一小节柱式和弦，至少 650 毫秒，长按可延长。右键“试听和弦”才按实际 MIDI 播放；多选按时间顺序紧邻试听。在时间轴或制谱谱面点击新位置时，播放中继续、暂停时保持暂停，虚线起点随点击更新。卷帘音符实体、琴键、和弦轨及其右键菜单不改变播放位置；卷帘格点纵线的窄缝单击可定位。静音只影响本机播放与试听，轨道音量与音色写入 MIDI。
+
+**English**
+
+<h4>Track volume</h4><p>The mixer uses MIDI CC7 (0–127). Drag the slider or enter an integer in the field beside it, then press Enter or move focus away to apply. The same track stays in sync in the main and floating windows. New projects start at 100 for vocal, 84 for instrumental and 76 for chords. With built-in sounds, the relative gain is <code>20 × log10(CC7 / 127)</code>, with 127 as the reference and 0 as silence.</p><h4>Sound source gain</h4><p>In Settings → Sound and input → Sound sources and instruments, set −24 to +24 dB for each track using a synth pack. The preset loudness adjustment shows the measured dB offset. Track sound source gain adds to it, with 0 dB leaving the preset at its calibrated level. Track sound source gain is independent of track volume, is stored in the project, and applies to playback, audition, monitoring, and offline MP3 export.</p><h4>Playback and follow</h4>Editing notes, chords, meter, tempo or layout, and undo/redo, keeps playback running. Unchanged sustains are retained and upcoming events update after the edit is committed. Space plays or pauses. Replay returns to the recorded anchor without changing the playing or paused state. Double-click to return to the beginning and pause. During playback a blue dashed line marks the anchor, while an orange line shows the current position. The anchor line disappears when paused. Views on the same main page always share Follow playhead. In Compose it controls the main timeline and docked rolls. In Score it controls the score and the selected docked piano-roll tab; an inactive roll can catch up when its tab is selected. In both modes, each floating roll has its own follow switch. With Sync timeline off it can browse independently; enabling sync copies the main follow state and then links the switches in both directions. After scrollbar, overview, middle-drag, wheel or arrow-key navigation, cancellation depends on the view being browsed. In the score, following stays enabled while any part of the measure containing the playhead remains in the score viewport; it stops once that measure leaves completely, even if a docked roll still shows the playhead. In a piano roll, following stops when the orange playhead leaves that roll. Compose and Score use the same roll behavior, preventing the score from pulling the cursor back to the left edge. Automatic score following pauses while its scrollbar is held. Small manual adjustments remain in place without an immediate jump back. The blue dashed anchor does not count. Synchronized floats share follow state; an independent float affects only itself. Playback position, anchor and state remain unchanged. Check Follow playhead again to resume following. Loop uses the separate time-ruler selection, never bar or note selections. Disabling Loop clears its range; re-enabling it requires a new ruler selection. Turning it off during playback continues through the former boundary to the end of the song without retriggering sustained notes. Turning it on before the selection ends repeats at that end; if playback has already passed the end, the current pass continues and looping applies the next time playback starts in the selection. Melody and chords have independent volumes and mute. Choose MIDI devices and GM programs in Settings. Windows MIDI clears sustain and sounding-note state on the channels used by this application when opening or stopping, preventing held high notes from remaining after release or Stop. Stopping playback alone retains auditions when requested. The actual Windows MIDI timbre is supplied by the system or device. Click audition lasts at least about 650 ms; holding piano keys, Smart notes or newly drawn notes sustains it. Draw deletion is silent. A new click immediately replaces the previous audition. Clicking a chord or pressing Tab previews a one-bar block chord; Audition actual chords plays real MIDI timing, velocities and patterns, consecutively for multiple selections. Clicking a new timeline or score position preserves the playing or paused state and moves the dashed anchor. Note bodies, piano keys, chord lanes and chord context menus never seek. A stationary click in a narrow vertical grid gap can seek. Mute affects local playback and audition; track volume and programs are exported to MIDI.
+
+<a id="topic-7-2"></a>
+
+### 7.2 安装与管理音源 / Install and manage sounds
+
+**中文**
+
+<h4>内置音源与默认选择</h4><p>随包提供 YDP 原声三角钢琴、Greg Sullivan 电钢琴合集（Wurlitzer EP200、CP80、Pianet T）和三组 STK 共 38 个合成预设。和弦轨可在 STK · 键盘与弦乐选择“50 · 轻弦和声”。全新设置优先为三条音乐轨选择 YDP，已保存且可用的新工程默认音色优先。已有工程保留原音源和音色选择。</p><h4>下载和添加音源</h4><p>设置 → 音源与输入 → 音源与音色 → 下载／添加音源，可按需下载 FluidR3 GM 键盘音源和 Salamander 音乐会钢琴（约 182 MiB 下载，完整音源约 238 MiB），也可从本地 ZIP 添加完整伶风音源包。旧工程使用 Kawai 或 Rhodes 时，可从旧版安装复制完整 piano-small 目录，或导入已有的完整音源 ZIP。下载在后台运行，显示进度，可取消；固定版本与 SHA-256 校验通过后才安装，不覆盖已有音源。安装时会测量可校准的音色，使同样轨道音量和力度下的响度更接近 YDP。设置内可查看预设补偿分贝，无法测量的音色沿用原电平。添加成功后自动扫描。下载需要联网；已安装音源可离线使用。</p><h4>扫描、更新与缺失音源</h4><p>也可把完整音源文件夹复制到程序同级 synths/，再“重新扫描并保存”，或添加额外扫描目录。索引和默认选择保存，下次启动读取缓存。替换 DLL 前关闭程序。播放、试听、监听与离线 MP3 使用同一音源；采样音源离线导出等待完整读取。缺失音源不妨碍打开工程、编辑或 PDF/MIDI 导出。</p><h4>许可证与导出署名</h4><p>音源全部免费，CC BY 样本分发需保留作者署名，CC0 样本无署名要求。包内保留许可、来源、修改说明和引擎源码；MP3 导出保留 .mp3.licenses.txt。作品、歌词及其他素材权利另行适用。普通 VST/CLAP 不能直接复制加载，详见 docs/SOUNDBANKS.md。</p><h4>采样音源加载</h4><p>播放或试听需要首次加载采样音源时，显示加载窗口与等待时间，可取消。加载在后台运行，窗口继续响应；成功后复用已建立的播放和试听通道。播放中添加音符保留时钟及未受影响的长音，新事件送入现有播放进程，不重新载入整套样本。</p>
+
+**English**
+
+<h4>Bundled sounds and defaults</h4><p>The release includes the YDP acoustic grand, Greg Sullivan electric pianos (Wurlitzer EP200, CP80 and Pianet T), and three STK packs with 38 synth presets. For the chord track, STK Essentials offers “50 · Light chord strings”. Fresh settings prefer YDP for all three music tracks. Available saved new-project defaults take precedence. Existing projects keep their selected pack and preset.</p><h4>Download and add sounds</h4><p>Settings → Sound and input → Sound sources and instruments → Download / add sounds offers optional FluidR3 GM and Salamander Concert Grand downloads (Salamander is about 182 MiB to download and 238 MiB installed), plus installation from a complete local Lingfeng pack ZIP. To restore legacy Kawai or Rhodes sounds, copy the complete piano-small folder from an earlier installation or import an existing complete pack ZIP. Background downloads show progress, support cancellation, verify a pinned revision and SHA-256, and never overwrite existing pack folders. Installation measures eligible presets so their loudness at the same track volume and velocity is closer to YDP. Settings show the preset adjustment in dB. Presets that cannot be measured retain their original level. Installation automatically refreshes the index. Downloads need a network connection; installed sounds work offline.</p><h4>Scanning, updates and missing packs</h4><p>You can also copy complete folders into synths/ beside the executable and rescan, or add extra scan directories. The index and defaults persist across restarts. Close Lingfeng before replacing DLLs. Playback, audition, monitoring and offline MP3 share one engine; offline sampling waits for streaming reads. Missing sounds do not prevent editing or PDF/MIDI export.</p><h4>Licenses and export credits</h4><p>All sounds are free. Redistributed CC BY samples retain attribution; CC0 samples need none. Packs include licenses, sources, modifications and engine source. MP3 exports retain a .mp3.licenses.txt sidecar. Rights in compositions, lyrics and other material apply separately. Standard VST/CLAP plugins cannot be copied directly into this host; see docs/SOUNDBANKS.md.</p><h4>Sample loading</h4><p>Initial sampled-sound loading shows a responsive window with elapsed time and cancellation. Loaded playback/audition channels are reused. Adding notes during playback updates the existing worker while preserving its clock and unaffected sustains; it does not reload the sample library.</p>
+
+<a id="category-8"></a>
+
+## 8. 文件导入、导出与迁移 / Import, export and interchange
+
+<a id="topic-8-1"></a>
+
+### 8.1 导入 MIDI / Import MIDI
+
+**中文**
+
+文件 → 导入 → MIDI。为人声、乐器和和弦分别勾选来源音轨，再指定起始小节。编号为现有小节数加一时追加到曲尾。导入插入整小节，跨插入点的音符和和弦会断开，后续音乐整体顺延。可用撤销恢复。<br>支持 PPQ 制式 MIDI Type 0/1，导入音高、起止和力度。默认使用目标位置拍号，保留工程速度。可选择使用 MIDI 拍号，或将文件首个速度应用到整个工程。同音高重叠保留后续发音起点。音符需在 88 键范围内。
+
+**English**
+
+Choose File → Import → MIDI. Select source tracks for vocal, instrument, and chords, then set the insertion bar. Use the number after the last bar to append. The import inserts whole bars, splits notes and chords crossing the insertion point, and moves later music forward. Undo restores the project.<br>PPQ-based MIDI Type 0/1 supplies pitch, timing, and velocity. Inserted bars use the destination meter by default and the project keeps its tempo. You can use the MIDI time signatures or apply the file’s first tempo to the whole project. Same-pitch overlaps retain later attacks. Notes must be within the 88-key range.
+
+<a id="topic-8-2"></a>
+
+### 8.2 双旋律、ABC 与 YuE2 / Two melodies, ABC and YuE2
+
+**中文**
+
+<p>两条旋律都在主界面时，点击左上角标签切换，双击或右键可重命名。只剩一轨时显示其普通标题和卷帘。另一轨用虚线显示。人声、乐器和和弦各有音源、音色与音量，导出时可组合勾选轨道。和弦轨右键可指定识别来源，有多个识别结果时可选择其它名称。</p><h4>YuE2 兼容版</h4><p>文件包含 <code>Vocal</code> 与 <code>Ins</code> 两个同步的单声部，未选的旋律用休止填充。拍号与调性在两声部的同一时点变化。支持大调和小调。<code>L:</code> 由实际节奏决定，最大细分为全音符的 1/1024。音符起止、调性与和弦边界都须落在同一二分格点上。以 <code>L:1/32</code> 为例，<code>A8</code> 为四分音符，4/4 小节共 32 单位。全小节休止 <code>Z</code> 按小节计时。</p><p>时点和弦写在 <code>Vocal</code> 中，用引号放在实际变更处的音符或休止之前。旋律休止时可写 <code>"G7"z8</code>。若和弦在长音中途变化，使用 <code>"Dm7"A8-"G7"A8</code> 将同音高的两段相连，保留一次发音。斜杠低音使用音名，例如 <code>G7/B</code>。支持大三和弦（无后缀）以及 m、dim、aug、7、maj7、m7、dim7、m7b5、sus4、sus2、6、m6、7sus4 和 m(maj7)。编辑器采用 PyChord 名称，例如 mM7，导出会无损写成 m(maj7)。</p><p>「检查 YuE2 兼容性」分别列出必须修改的问题和可选处理。复音旋律、非大／小调及无法表示的时点需要处理。可在导出窗口选用预填的和弦替换建议，也可以逐处填写或确认省略。只对 <code>link</code> 段落弹出替换提示，启用规则时将其写为 <code>interlude</code>。导出替换仅作用于文件。YuE2 版通过结构注释写入段落，例如 <code>% verse</code>，歌词在模型的歌词输入中提供。</p><h4>交换文件</h4><p>ABC 和 MusicXML 均可选定声部后按小节插入。完整版 ABC 可写出实际和弦音符及两条旋律的首段唱词，省略说唱歌词。MusicXML（.musicxml、.xml 或 .mxl）和 PDF 可保留说唱的 x 音符头及节奏。</p>
+
+**English**
+
+<p>When both melodies are docked, select a tab at the top-left to switch tracks. Double-click or right-click a tab to rename it. A single docked melody uses a plain title above its roll. Dashed outlines show the other melody. Each track has its own sound, instrument, and volume. Select any combination of tracks for export. The chord lane menu can set recognition sources and select an alternative name when recognition finds several interpretations.</p><h4>YuE2-compatible export</h4><p>The file contains synchronized monophonic <code>Vocal</code> and <code>Ins</code> voices. Rests fill an unselected melody voice. Meter and key changes occur at matching times in both voices. Use major or minor keys. <code>L:</code> reflects the timing grid, down to 1/1024 of a whole note. Note boundaries, chord boundaries, and key changes must fit that binary grid. With <code>L:1/32</code>, <code>A8</code> is a quarter note and 4/4 totals 32 units. A whole-bar <code>Z</code> rest follows the meter.</p><p>Write quoted chords in <code>Vocal</code> immediately before the note or rest at the change. For example, <code>"G7"z8</code> sets a chord during a rest. A change during a held pitch can use <code>"Dm7"A8-"G7"A8</code>, where the tie preserves one attack. Use a note name for slash basses, as in <code>G7/B</code>. Supported qualities are major (no suffix), m, dim, aug, 7, maj7, m7, dim7, m7b5, sus4, sus2, 6, m6, 7sus4, and m(maj7). The editor uses PyChord names such as mM7, which exports as m(maj7) with the same harmony.</p><p>Check YuE2 compatibility to see required fixes and optional handling separately. Resolve polyphony, unsupported modes, and off-grid timing before export. You can prefill chord suggestions, enter replacements yourself, or confirm omissions. The section notice applies to <code>link</code>, which the enabled rule writes as <code>interlude</code>. Replacements affect the exported file only. Use comments such as <code>% verse</code> for sections and supply lyrics in the model’s lyrics input.</p><h4>Interchange files</h4><p>ABC and MusicXML can insert selected parts at a bar. Full ABC can include the performed chord notes and first sung verse of both melodies. It omits rap lyrics. MusicXML (.musicxml, .xml, or .mxl) and PDF can preserve rap rhythm and x noteheads.</p>
+
+<a id="topic-8-3"></a>
+
+### 8.3 按格式导出 / Export by format
+
+**中文**
+
+<p>在「文件 → 导出」勾选人声、乐器和和弦，可按需要组合轨道。</p><h4>PDF 乐谱</h4><p>按当前谱面的页码范围输出。立体与紧凑简谱支持多声部，传统简谱要求单声部。</p><h4>MIDI 与 MP3</h4><p>可选全曲、小节、循环或已有段落。跨出选区的音符会裁切，文件从选区起点计时。MIDI 保存音色、音量、速度、拍号与段落。</p><h4>MP3 音频方式</h4><p>离线渲染使用所选合成音源，保留逐音力度和轨道音量，并写出音源署名。Windows MIDI 实时录制需要等待整段时长，同一输出设备的其它声音也会录入。两种方式均可取消。</p><h4>ABC 与 MusicXML</h4><p>用于交换乐谱。YuE2 兼容检查、时点和弦与歌词差异详见「双旋律、ABC 与 YuE2」。</p>
+
+**English**
+
+<p>In File → Export, select any combination of vocal, instrumental and chord tracks.</p><h4>PDF scores</h4><p>Export a page range from the current score. Spatial and Compact support polyphony. Traditional requires monophonic selected melodies; hidden tracks do not block export.</p><h4>MIDI and MP3</h4><p>Select the full song, a bar range, the loop or an existing section. Notes that cross a range boundary are clipped and the exported file starts at the selected range. MIDI preserves programs, volume, tempo, meter and section markers.</p><h4>MP3 audio methods</h4><p>Offline rendering uses the selected synths and preserves note velocities and track volumes. It writes a sound credits file. Windows MIDI real-time capture takes the full duration and includes other sounds on the same device. Both methods support cancellation.</p><h4>ABC and MusicXML</h4><p>Use these formats to exchange scores. See Two melodies, ABC and YuE2 for compatibility checks, chord timing and lyrics.</p>
+
+<a id="topic-8-4"></a>
+
+### 8.4 导出与迁移 / Export and migration
+
+**中文**
+
+PDF 使用与屏幕相同的矢量排版，始终白底。MIDI 可输出人声、乐器与和弦的任意组合。DAW 迁移包提供所选轨道的独立 MIDI、合并分轨 MIDI 和时间轴说明。谱面压缩、强制合行和演奏提示均不修改 MIDI 音符。分发时保留 Lingfeng.exe 与 _internal 文件夹。
+
+**English**
+
+PDF uses the same vector layout as the screen, always on white paper. Export any combination of vocal, instrumental and chord tracks to a MIDI file; the DAW bundle includes separate tracks and a timeline guide. Score compression, forced systems and directions never change MIDI notes. Keep Lingfeng.exe together with its _internal folder when distributing.
+
+<a id="category-9"></a>
+
+## 9. 关于与许可 / About and licensing
 
 **中文**
 
 <h4>伶风</h4><p><b>为流行音乐而生 · For Pop Music</b></p>
 <p>伶风是一款面向 Windows 电脑、键鼠友好的轻量级音序器（sequencer），用于流行音乐创作与分析，并集成简谱制谱。用鼠标与键盘编写旋律、安排和弦，再将音乐整理成可阅读、可分享的乐谱。</p>
 <h4>在电脑上轻松创作</h4>
-<p>界面为鼠标、键盘和桌面多窗口操作设计，支持快捷键、可调整布局及独立钢琴卷帘。免安装发行包解压即可使用，无需另装 Python；随包附带免费钢琴与电钢琴，并保留 37 个轻量合成预设；大钢琴可按需下载，也可选择 Windows MIDI 设备。创作、制谱与工程保存均可在本地离线完成。</p>
+<p>界面为鼠标、键盘和桌面多窗口操作设计，支持快捷键、可调整布局及独立钢琴卷帘。免安装发行包解压即可使用，无需另装 Python；随包附带免费钢琴与电钢琴，并保留 38 个轻量合成预设；大钢琴可按需下载，也可选择 Windows MIDI 设备。创作、制谱与工程保存均可在本地离线完成。</p>
 <h4>从音乐到乐谱</h4>
 <ul><li>编辑多声部旋律与和弦，试听音符、编排伴奏节奏型。</li>
 <li>制作传统简谱、立体简谱与紧凑谱面，添加歌词并调整排版。</li>
@@ -758,7 +765,7 @@ Score mode has four independent panels: Melody roll, Chord roll, Lyrics and Anno
 <h4>Lingfeng</h4><p><b>For Pop Music</b></p>
 <p>Lingfeng is a lightweight, mouse-and-keyboard-friendly sequencer for pop music creation and analysis on Windows PCs, with integrated jianpu (numbered notation). Write melodies and arrange chords with a mouse and keyboard, then turn your music into scores you can read and share.</p>
 <h4>Made for your computer</h4>
-<p>The interface is designed for mouse, keyboard and desktop multi-window use, with shortcuts, adjustable layouts and floating piano rolls. Unzip the portable release to get started, with no separate Python installation. Free piano and electric pianos plus 37 native synth presets are included; an optional grand can be downloaded. Windows MIDI devices are also available. Compose, prepare scores and save projects locally, even offline.</p>
+<p>The interface is designed for mouse, keyboard and desktop multi-window use, with shortcuts, adjustable layouts and floating piano rolls. Unzip the portable release to get started, with no separate Python installation. Free piano and electric pianos plus 38 native synth presets are included; an optional grand can be downloaded. Windows MIDI devices are also available. Compose, prepare scores and save projects locally, even offline.</p>
 <h4>From music to scores</h4>
 <ul><li>Edit polyphonic melodies and chords, audition notes and arrange accompaniment patterns.</li>
 <li>Create traditional, spatial and compact jianpu scores, add lyrics and refine the layout.</li>

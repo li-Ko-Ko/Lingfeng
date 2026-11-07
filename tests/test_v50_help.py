@@ -56,7 +56,7 @@ class HelpTests(unittest.TestCase):
         from lingfeng import __version__
         for language in ('zh','en'):
             dialog=self.dialog(language,True);text=dialog.browser.toPlainText()
-            self.assertIn(__version__,text);self.assertIn('MIT',text);self.assertIn('37',text)
+            self.assertIn(__version__,text);self.assertIn('MIT',text);self.assertIn('38',text)
     def test_superseded_help_claims_are_removed(self):
         text=' '.join(' '.join(topic) for topic in TOPICS)
         for stale in ('歌词提交后立即更新谱面','Apply, delete, undo and redo refresh the score immediately',

@@ -13,7 +13,7 @@ import numpy as np
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from lingfeng.audio.playback import ProcessRouter
 from lingfeng.audio import sfz
-from lingfeng.audio.synthesis import _synthesis_worker
+from lingfeng.audio.synthesis import BLOCK, RATE, _synthesis_worker
 from tests.test_v50_audio import FileRouter
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -104,11 +104,18 @@ class CommandTests(unittest.TestCase):
         connection=Connection();engine=Engine();counts=[];player=MagicMock()
         player.buffersize=4096;player.currentpadding=0;player.deviceperiod=(.01,.003)
         def write(player,data):
-            counts.append(engine.events);connection.packets=[('close',(),'en')]
-        with patch('lingfeng.audio.synthesis.SynthEngine',return_value=engine),patch('soundcard.default_speaker') as speaker,patch('lingfeng.audio.synthesis.write_output',side_effect=write):
+            counts.append((engine.events, len(data)));connection.packets=[('close',(),'en')]
+        with (patch('lingfeng.audio.synthesis.SynthEngine', return_value=engine),
+              patch('soundcard.default_speaker') as speaker,
+              patch('lingfeng.audio.synthesis.pack', return_value={'engine': 'sfz'}),
+              patch('lingfeng.audio.synthesis.write_output', side_effect=write)):
             speaker.return_value.player.return_value.__enter__.return_value=player
-            _synthesis_worker(connection,{}, {},'en')
-        self.assertEqual(len(counts),1);self.assertLess(counts[0],10)
+            _synthesis_worker(connection,{0:'synth:piano-small'}, {},'en')
+            speaker.return_value.player.assert_called_once_with(samplerate=RATE,channels=2,blocksize=round(RATE*.06))
+        self.assertEqual(len(counts), 1)
+        event_count, frame_count = counts[0]
+        self.assertLess(event_count, 10)
+        self.assertEqual(frame_count, BLOCK)
 
 
 class AssetCacheTests(unittest.TestCase):

@@ -42,7 +42,8 @@ class StandaloneDeliveryTests(unittest.TestCase):
             self.enterContext(patch.object(module,'ROOT',self.root))
             self.enterContext(patch.object(module,'__version__',self.version))
         self.enterContext(patch.object(packaging,'SYNTH_ROOT',self.root/'synths'))
-        self.validator=self.enterContext(patch.object(packaging,'_validate'))
+        self.validator=self.enterContext(patch.object(packaging,'_validate',side_effect=lambda data,root:data))
+        self.calibration=self.enterContext(patch.object(packaging,'calibrate_pack',return_value={'0':1.5}))
         self.enterContext(patch.object(packaging.metadata,'distribution',return_value=SimpleNamespace(version='fixture',files=[])))
         self.enterContext(patch('sys.stdout',new_callable=io.StringIO))
 
@@ -61,8 +62,13 @@ class StandaloneDeliveryTests(unittest.TestCase):
         self.assertIsNone(result['archive']);self.assertIsNone(report['archive']);self.assertIsNone(report['sha256'])
         info=json.loads((self.folder/'build-info.json').read_text('utf-8'))
         self.assertEqual(info['delivery'],'local-standalone');self.assertFalse(info['archive_requested'])
-        self.assertEqual(set(info['bundled_packs']),set(policy.APPROVED_PACKS));self.assertEqual(self.validator.call_count,4)
-        for ident in policy.APPROVED_PACKS:self.assertTrue((self.folder/'synths'/ident/'LICENSE.txt').is_file())
+        self.assertEqual(set(info['bundled_packs']),{'piano-electric','stk-essentials','stk-colors','stk-acoustic','ydp-grand'})
+        self.assertEqual(self.validator.call_count,len(policy.APPROVED_PACKS))
+        self.assertEqual(self.calibration.call_count,len(policy.APPROVED_PACKS))
+        for ident in policy.APPROVED_PACKS:
+            pack=self.folder/'synths'/ident
+            self.assertTrue((pack/'LICENSE.txt').is_file())
+            self.assertEqual(json.loads((pack/'calibration.json').read_text('utf-8'))['preset_gain_db'],{'0':1.5})
         for name in ('CHANGELOG.md',):
             self.assertEqual((self.folder/name).read_bytes(),(self.root/name).read_bytes())
             self.assertEqual((self.folder/'source'/name).read_bytes(),(self.root/name).read_bytes())

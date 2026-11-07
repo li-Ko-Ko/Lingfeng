@@ -4,20 +4,25 @@ These preferences belong to the user, not the project. Dialogs edit copies and
 the main window applies them only after confirmation.
 """
 
-DEFAULT_VELOCITIES = {'melody': 92, 'harmony': 72}
-DEFAULT_QUICK_QUALITIES = (
-    '', 'm', '7', '7b5', 'maj7', 'm7', 'mM7', 'dim', 'm7b5', 'aug',
-    'sus2', 'sus4', 'add2', '6', 'm6', '9', 'm9', 'maj9', 'dim7', '7sus4', '5',
-)
+from lingfeng.music.quality_catalog import YUE2_QUALITIES, yue2_lossless_quality
+
+
+DEFAULT_VELOCITIES = {'melody': 92, 'instrument': 80, 'harmony': 72}
+DEFAULT_QUICK_QUALITIES = YUE2_QUALITIES
 
 _velocities = dict(DEFAULT_VELOCITIES)
 _quick = list(DEFAULT_QUICK_QUALITIES)
+_include_instrument = False
 
 
 def normalize_velocities(values):
     values = values if isinstance(values, dict) else {}
-    return {role: values[role] if type(values.get(role)) is int and 1 <= values[role] <= 127 else default
-            for role, default in DEFAULT_VELOCITIES.items()}
+    result = {role: values[role] if type(values.get(role)) is int and 1 <= values[role] <= 127 else default
+              for role, default in DEFAULT_VELOCITIES.items()}
+    if 'instrument' not in values and result['melody'] != DEFAULT_VELOCITIES['melody']:
+        # Preserve a customized shared melody value from older settings.
+        result['instrument'] = result['melody']
+    return result
 
 
 def normalize_qualities(values, fallback=DEFAULT_QUICK_QUALITIES):
@@ -31,6 +36,7 @@ def load_preferences(values):
     global _velocities, _quick
     values = values if isinstance(values, dict) else {}
     _velocities = normalize_velocities(values.get('default_velocities'))
+    set_include_instrument_in_recognition(values.get('include_instrument_in_recognition'))
     if isinstance(values.get('quick_chord_qualities'), list):
         _quick = normalize_qualities(values['quick_chord_qualities'])
     else:
@@ -44,7 +50,8 @@ def load_preferences(values):
 
 
 def set_preferences(values):
-    load_preferences(values)
+    values = values if isinstance(values, dict) else {}
+    load_preferences({'include_instrument_in_recognition': _include_instrument, **values})
 
 
 def default_velocity(role):
@@ -52,8 +59,20 @@ def default_velocity(role):
 
 
 def quick_qualities():
-    return list(_quick)
+    return [code for code in _quick if yue2_lossless_quality(code) is not None]
 
 
-def settings_dict():
-    return {'default_velocities': dict(_velocities), 'quick_chord_qualities': list(_quick)}
+def include_instrument_in_recognition():
+    return _include_instrument
+
+
+def set_include_instrument_in_recognition(enabled):
+    global _include_instrument
+    _include_instrument = enabled is True
+
+
+def settings_dict(*, include_recognition=False):
+    settings = {'default_velocities': dict(_velocities), 'quick_chord_qualities': list(_quick)}
+    if include_recognition:
+        settings['include_instrument_in_recognition'] = _include_instrument
+    return settings

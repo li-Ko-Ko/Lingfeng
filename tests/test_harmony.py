@@ -56,6 +56,16 @@ class HarmonyTests(unittest.TestCase):
         with self.assertRaises(ValueError):p.edit_harmony(Note(p.end-120,960,67))
         p.edit_harmony(Note(960,960,64));p.validate()
 
+    def test_merged_absolute_events_remain_independent_of_chord_notes(self):
+        project=Project(chords=[Chord(0,480,notes=[Note(0,480,60,id='left',event_id='held')]),
+                                Chord(480,480,notes=[Note(0,480,60,id='right',event_id='held')])])
+        before=project.to_dict()
+        merged=project.harmony_notes()
+        self.assertEqual([(n.id,n.start,n.duration) for n in merged],[('held',0,960)])
+        merged[0].start=240;merged[0].pitch=67
+        self.assertEqual(project.to_dict(),before)
+        self.assertEqual([(n.id,n.start,n.duration,n.pitch) for n in project.harmony_notes()],[('held',0,960,60)])
+
     def test_meter_shortening_protects_custom_harmony(self):
         p=Project();p.chords=[Chord(0,3840,notes=[Note(2880,960,60)])]
         with self.assertRaises(ValueError):p.change_meter(0,3,4)

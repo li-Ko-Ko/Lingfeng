@@ -2,17 +2,21 @@
 from fractions import Fraction
 from PySide6.QtCore import Signal,QTimer,Qt
 from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QPushButton,
-    QPlainTextEdit,QSpinBox,QDialog,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QHeaderView,QScrollArea,QFrame)
+    QPlainTextEdit,QSpinBox,QDialog,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QHeaderView,QScrollArea,QFrame,QTabWidget)
 from lingfeng.platform.i18n import tr
-from lingfeng.music.model import PPQ, uid
-from lingfeng.engraving.lyrics import sections, events, belongs, plan_range, apply_range, delete_section, matching_issues, melody_onsets, range_source, delete_range
+from lingfeng.music.model import PPQ, MELODY_NAMES, uid
+from lingfeng.engraving.lyrics import sections, events, belongs, plan_range, apply_range, delete_section, matching_issues, melody_onsets, range_source, delete_range, lyric_track, edit_lyric_track
+
+
+LYRIC_PANEL_KEYS=('lyrics','instrument_lyrics')
 
 
 class LyricsPanel(QWidget):
     changed=Signal()
-    def __init__(self,owner):
+    def __init__(self,owner,track=0):
         super().__init__();self.setObjectName('lyricsPanel');self.owner=owner;self.current_id=None;self.loading=False;self.dirty=False;self.plan=None;self.range_edit=False;self.autofill_valid=True
         root=QVBoxLayout(self);root.setContentsMargins(10,8,10,8);root.setSpacing(7)
+        self.track=track
         content=QWidget();content.setObjectName('lyricsPanel');box=QVBoxLayout(content);box.setContentsMargins(0,0,0,0);box.setSpacing(7)
         self.scroller=QScrollArea();self.scroller.setFrameShape(QFrame.Shape.NoFrame);self.scroller.setWidgetResizable(True);self.scroller.setWidget(content);root.addWidget(self.scroller,2)
         top=QHBoxLayout();self.section=QComboBox();self.section.setMinimumWidth(120);top.addWidget(self.section,1)
@@ -21,10 +25,10 @@ class LyricsPanel(QWidget):
         row.addWidget(QLabel(tr('小节数量')));self.count=QSpinBox();self.count.setRange(1,len(owner.project.measures));self.count.setValue(min(4,len(owner.project.measures)));row.addWidget(self.count)
         cursor=QPushButton(tr('使用谱面选区'));cursor.clicked.connect(self.use_selection);row.addWidget(cursor)
         row.addWidget(QLabel(tr('歌词段次')));self.verse=QSpinBox();self.verse.setRange(1,32);row.addWidget(self.verse);row.addStretch();box.addLayout(row)
-        info=QLabel(tr('每个 & 对应一个旋律 MIDI 起点；同刻多音合并。每小节一行，中文连写，英文词用空格分隔；标点不占起点。/s 跳过；/- 与前一个音符连音，连续两个写 /-/-，仅改变谱面。{0} 标记连续说唱。首次打开或改变范围会回填已有歌词，允许少填，不可超出范围。','/x{我是一个rapper}'));info.setWordWrap(True);box.addWidget(info)
+        info=QLabel(tr('每个 & 对应一个旋律 MIDI 起点；同刻多音合并。每小节换行或用 | 分隔。中文可连写，英文词用空格分隔，标点不占起点。* 跳过，_ 延续前一音节，- 分隔词内音节，~ 合并同一音符下的词，{0} 输入字面连字符。{1} 标记说唱。',r'\-',r'\x{歌词}'));info.setWordWrap(True);box.addWidget(info)
         self.rhythm=QTreeWidget();self.rhythm.setHeaderLabels([tr('小节'),tr('拍内起点 / 节奏'),tr('歌词 / 占位'),tr('匹配')]);self.rhythm.setRootIsDecorated(False);self.rhythm.setMinimumHeight(90);self.rhythm.setMaximumHeight(180)
         self.rhythm.header().setMinimumSectionSize(60);self.rhythm.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents);self.rhythm.header().setStretchLastSection(True);box.addWidget(self.rhythm)
-        self.text=QPlainTextEdit();self.text.setPlaceholderText(tr('每小节换行；/s 跳过，/- 与前音连音，{0} 标记说唱。中文连写，英文词间留空格。','/x{歌词}'));self.text.setMinimumHeight(90);root.addWidget(self.text,1)
+        self.text=QPlainTextEdit();self.text.setPlaceholderText(tr('中文可连写，英文词间留空格。* 跳过，_ 延续前音，| 或换行切换小节。'));self.text.setMinimumHeight(90);root.addWidget(self.text,1)
         self.status=QLabel();self.status.setWordWrap(True);self.status.setMinimumHeight(30);root.addWidget(self.status)
         buttons=QHBoxLayout();template=QPushButton(tr('生成 & 模板').replace('&','&&'));template.clicked.connect(self.template);buttons.addWidget(template)
         check=QPushButton(tr('检查匹配'));check.clicked.connect(self.check);buttons.addWidget(check)
@@ -45,6 +49,16 @@ class LyricsPanel(QWidget):
         self.new_section();self.initial_load_pending=True;self.refresh()
         if self.owner.workspace=='score' and self.isVisible():self.open_editor()
 
+    @property
+    def lyric_project(self):
+        return lyric_track(self.owner.project,self.track)
+
+    def title(self):
+        name=self.owner.project.melody_names[self.track]
+        if name==MELODY_NAMES[self.track]:
+            return tr('歌词 2 · 乐器') if self.track else tr('歌词 1 · 人声')
+        return tr('歌词 {0} · {1}',self.track+1,name)
+
     def limit_range(self):
         previous=self.loading;self.loading=True
         self.start.setMaximum(len(self.owner.project.measures));self.count.setMaximum(len(self.owner.project.measures)-self.start.value()+1)
@@ -60,7 +74,7 @@ class LyricsPanel(QWidget):
 
     def load_range(self):
         """Selecting a range is a read-only load of that stanza's saved onsets."""
-        self.initial_load_pending=False;self.loading=True;self.limit_range();p=self.owner.project
+        self.initial_load_pending=False;self.loading=True;self.limit_range();p=self.lyric_project
         first,count,verse=self.start.value()-1,self.count.value(),self.verse.value()-1
         a,b=p.starts[first],p.starts[first+count]
         text,self.autofill_valid=range_source(p,first,count,verse,self.owner.roll.grid)
@@ -79,19 +93,19 @@ class LyricsPanel(QWidget):
         self.loading=False;self.limit_range();self.load_range()
 
     def item_range(self,item):
-        p=self.owner.project;first=p.measure_at(item['start']);items=[e for e in events(p) if belongs(e,item['id'])]
+        p=self.lyric_project;first=p.measure_at(item['start']);items=[e for e in events(p) if belongs(e,item['id'])]
         end=item.get('end',max((e['tick']+max(1,e.get('duration',0)) for e in items),default=item['start']+1))
         return first+1,p.measure_at(min(p.end-1,end-1))-first+1
 
     def refresh(self):
-        self.limit_range();current=self.current_id;items=sections(self.owner.project)
+        self.limit_range();current=self.current_id;items=sections(self.lyric_project)
         self.section.blockSignals(True);self.section.clear();self.section.addItem(tr('新段落'),None)
         for item in items:
             first,count=self.item_range(item);preview=' '.join(item['text'].splitlines())[:18];self.section.addItem(tr('第 {0}–{1} 小节 · 第 {2} 段 · {3}',first,first+count-1,item['verse']+1,preview),item['id'])
         at=self.section.findData(current);self.section.setCurrentIndex(max(0,at));self.section.blockSignals(False);self.remove.setEnabled(current is not None and at>=0)
         if self.range_edit:
             _,first,count,verse=self.values();a,b=self.owner.project.starts[first],self.owner.project.starts[first+count]
-            self.remove.setEnabled(any(e.get('verse',0)==verse and a<=e['tick']<b for e in events(self.owner.project)))
+            self.remove.setEnabled(any(e.get('verse',0)==verse and a<=e['tick']<b for e in events(self.lyric_project)))
         if not self.dirty and self.range_edit:self.load_range()
         elif not self.dirty and current is not None:
             item=next((s for s in items if s['id']==current),None)
@@ -102,9 +116,9 @@ class LyricsPanel(QWidget):
     def populate(self,item):
         self.initial_load_pending=False;self.loading=True;self.range_edit=False;self.autofill_valid=item.get('autofill_valid',True);self.current_id=item['id'];first,count=self.item_range(item);self.start.setValue(first);self.limit_range();self.count.setValue(count);self.verse.setValue(item['verse']+1);self.text.setPlainText(item['text']);self.loading=False;self.dirty=False
 
-    def export_state(self):return dict(id=self.current_id,text=self.text.toPlainText(),start=self.start.value(),count=self.count.value(),verse=self.verse.value(),dirty=self.dirty,range_edit=self.range_edit,autofill_valid=self.autofill_valid,initial_load_pending=self.initial_load_pending)
+    def draft_state(self):return dict(id=self.current_id,text=self.text.toPlainText(),start=self.start.value(),count=self.count.value(),verse=self.verse.value(),dirty=self.dirty,range_edit=self.range_edit,autofill_valid=self.autofill_valid,initial_load_pending=self.initial_load_pending)
 
-    def restore_state(self,state):
+    def restore_draft(self,state):
         self.loading=True;self.initial_load_pending=state.get('initial_load_pending',False);self.range_edit=state.get('range_edit',False);self.autofill_valid=state.get('autofill_valid',True);self.current_id=state['id'];self.dirty=state['dirty'];self.start.setValue(state['start']);self.limit_range();self.count.setValue(state.get('count',4));self.verse.setValue(state['verse']);self.text.setPlainText(state['text']);self.loading=False;self.refresh()
 
     def new_section(self):
@@ -114,18 +128,18 @@ class LyricsPanel(QWidget):
         if self.loading:return
         ident=self.section.currentData()
         if ident is None:self.new_section();return
-        item=next((s for s in sections(self.owner.project) if s['id']==ident),None)
+        item=next((s for s in sections(self.lyric_project) if s['id']==ident),None)
         if item:self.populate(item);self.remove.setEnabled(True);self.check();self.changed.emit()
 
     def values(self):return self.text.toPlainText(),self.start.value()-1,self.count.value(),self.verse.value()-1
 
     def template(self):
-        p=self.owner.project;first=self.start.value()-1;count=self.count.value()
+        p=self.lyric_project;first=self.start.value()-1;count=self.count.value()
         parts=['&'*len(melody_onsets(p,*p.starts[b:b+2])) for b in range(first,first+count)]
         self.text.selectAll();self.text.insertPlainText('\n'.join(parts));self.check()
 
     def draw_rhythm(self,planned):
-        p=self.owner.project;first=self.start.value()-1;self.rhythm.clear();onsets=melody_onsets(p);assigned={e['tick']:e for e in planned}
+        p=self.lyric_project;first=self.start.value()-1;self.rhythm.clear();onsets=melody_onsets(p);assigned={e['tick']:e for e in planned}
         self.rhythm.setMaximumHeight(max(90,min(150,30+24*self.count.value())))
         for bar in range(first,first+self.count.value()):
             a,b=p.starts[bar:bar+2];beat=PPQ*4//p.measures[bar].denominator
@@ -134,7 +148,7 @@ class LyricsPanel(QWidget):
             for tick in ticks:
                 q=Fraction(tick-a,beat);whole=q.numerator//q.denominator+1;remainder=q-(whole-1)
                 positions.append(str(whole)+(f'+{remainder}' if remainder else ''))
-                e=assigned.get(tick);words.append((e['text'] or ('/-' if e.get('melisma') else '/s'))+(' [x]' if e['kind'] in ('rap','rap_note') else '') if e else '&')
+                e=assigned.get(tick);words.append((e['text']+('-' if e.get('join_next') else '') or ('_' if e.get('melisma') else '*'))+(' [x]' if e['kind'] in ('rap','rap_note') else '') if e else '&')
                 done+=bool(e and e['kind']!='pending')
             item=QTreeWidgetItem([str(bar+1), ' · '.join(positions) or '—',' '.join(words) or tr('无起点'),f'{done}/{len(ticks)}'])
             self.rhythm.addTopLevelItem(item)
@@ -142,7 +156,7 @@ class LyricsPanel(QWidget):
     def check(self):
         self.check_timer.stop();self.limit_range()
         try:
-            self.plan=plan_range(self.owner.project,*self.values(),self.current_id,self.owner.roll.grid,replace=self.range_edit)
+            self.plan=plan_range(self.lyric_project,*self.values(),self.current_id,self.owner.roll.grid,replace=self.range_edit)
             self.draw_rhythm(self.plan.events);issues=self.plan.issues
             if not self.autofill_valid:issues.append(tr('已有歌词包含无法按当前起点回填的内容，请检查并修改后再确认。'))
             if issues:self.status.setText('\n'.join(issues[:3]))
@@ -154,29 +168,39 @@ class LyricsPanel(QWidget):
         if not self.check():return
         ident=self.current_id or uid()
         values=self.values()
-        if self.owner.mutate(tr('已确认歌词与起点匹配'),lambda p:apply_range(p,*values,ident,self.owner.roll.grid,replace=self.range_edit),source='lyrics'):
+        if self.owner.mutate(tr('已确认歌词与起点匹配'),lambda p:edit_lyric_track(p,self.track,
+                lambda track:apply_range(track,*values,ident,self.owner.roll.grid,replace=self.range_edit)),source=LYRIC_PANEL_KEYS[self.track]):
             self.current_id=ident;self.dirty=False;self.refresh();self.changed.emit()
 
     def delete(self):
         if self.range_edit:
             _,first,count,verse=self.values()
-            if self.owner.mutate(tr('已删除歌词段'),lambda p:delete_range(p,first,count,verse,self.owner.roll.grid),source='lyrics'):
+            if self.owner.mutate(tr('已删除歌词段'),lambda p:edit_lyric_track(p,self.track,
+                    lambda track:delete_range(track,first,count,verse,self.owner.roll.grid)),source=LYRIC_PANEL_KEYS[self.track]):
                 self.dirty=False;self.refresh();self.changed.emit()
             return
-        if self.current_id and self.owner.mutate(tr('已删除歌词段'),lambda p:delete_section(p,self.current_id)):
+        if self.current_id and self.owner.mutate(tr('已删除歌词段'),lambda p:edit_lyric_track(p,self.track,
+                lambda track:delete_section(track,self.current_id)),source=LYRIC_PANEL_KEYS[self.track]):
             self.new_section();self.refresh();self.changed.emit()
 
 
 class LyricsGateDialog(QDialog):
     def __init__(self,owner):
         super().__init__(owner);self.setWindowTitle(tr('歌词匹配检查'));self.resize(760,650)
-        box=QVBoxLayout(self);intro=QLabel(tr('歌词与起点匹配存在错误。请调整歌词或小节范围，允许少填；用 /s 跳过起点、/- 与前音连音，或删除该段。'));intro.setWordWrap(True);box.addWidget(intro)
-        self.panel=LyricsPanel(owner);box.addWidget(self.panel)
+        box=QVBoxLayout(self);intro=QLabel(tr('歌词与起点匹配存在错误。请调整歌词或小节范围，允许少填；用 * 跳过起点、_ 与前音连音，或删除该段。'));intro.setWordWrap(True);box.addWidget(intro)
+        tabs=QTabWidget();box.addWidget(tabs)
+        self.panels=[LyricsPanel(owner,track) for track in (0,1)]
+        for panel in self.panels:
+            tabs.addTab(panel,panel.title())
+            if panel.section.count()>1:panel.section.setCurrentIndex(1)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);self.enter=self.buttons.button(QDialogButtonBox.StandardButton.Ok);self.enter.setProperty('localizedLabel','进入制谱');self.enter.setText(tr('进入制谱'))
         self.buttons.accepted.connect(self.accept_checked);self.buttons.rejected.connect(self.reject);box.addWidget(self.buttons)
-        self.panel.changed.connect(self.refresh);self.refresh()
-        if self.panel.section.count()>1:self.panel.section.setCurrentIndex(1)
+        for panel in self.panels:panel.changed.connect(self.refresh)
+        self.refresh()
 
-    def refresh(self):self.enter.setEnabled(not self.panel.dirty and not matching_issues(self.panel.owner.project))
+    def can_enter(self):
+        return not any(panel.dirty or matching_issues(panel.lyric_project) for panel in self.panels)
+
+    def refresh(self):self.enter.setEnabled(self.can_enter())
     def accept_checked(self):
-        if not self.panel.dirty and not matching_issues(self.panel.owner.project):self.accept()
+        if self.can_enter():self.accept()

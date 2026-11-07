@@ -93,7 +93,7 @@ class SoundLibraryTests(unittest.TestCase):
 
     def test_download_progress_runs_off_gui_thread_and_cancel_restores_controls(self):
         entered=threading.Event();threads=[]
-        def install(entry,*,cancel,progress):
+        def install(entry,*,cancel,progress,calibration_progress):
             threads.append(QThread.currentThread());progress(1024**2,2*1024**2);entered.set()
             if not cancel.wait(3):raise RuntimeError('cancel not delivered')
             raise InstallCancelled()
@@ -110,7 +110,7 @@ class SoundLibraryTests(unittest.TestCase):
 
     def test_close_waits_for_cancelled_worker_before_destroying_dialog(self):
         entered=threading.Event();release=threading.Event()
-        def install(source,*,cancel,progress):
+        def install(source,*,cancel,progress,calibration_progress):
             entered.set();cancel.wait(3);release.wait(3);raise InstallCancelled()
         dialog=self.dialog()
         with patch('lingfeng.ui.sound_library.install_archive',side_effect=install):
@@ -134,7 +134,7 @@ class SoundLibraryTests(unittest.TestCase):
                 self.assertTrue(dialog.buttons.button(QDialogButtonBox.StandardButton.Close).isEnabled())
 
     def test_success_refreshes_installed_download_without_a_second_download(self):
-        def install(entry,*,cancel,progress):
+        def install(entry,*,cancel,progress,calibration_progress):
             target=self.destination/entry['id'];target.mkdir();return target
         dialog=self.dialog();installed=QSignalSpy(dialog.installed)
         with patch('lingfeng.ui.sound_library.install_download',side_effect=install) as download:
@@ -152,7 +152,7 @@ class SoundLibraryTests(unittest.TestCase):
             presets=[dict(program=n,name=f'Piano {n}',name_en=f'Piano {n}') for n in (0,1)])]
         registry=dict(roots=[str(self.destination)],errors=[])
         def rescan(roots):events.append('rescan')
-        def install(source,*,cancel,progress):
+        def install(source,*,cancel,progress,calibration_progress):
             events.append('install');return self.destination/'added'
         def execute(library):
             library.start_install(self.folder/'fixture.zip');wait_until(lambda:library.worker is None);library.deleteLater();return 0
@@ -168,12 +168,45 @@ class SoundLibraryTests(unittest.TestCase):
                 patch.object(SoundLibraryDialog,'exec',execute):
             dialog=SoundSettingsDialog(settings,owner);dialog.preview_router=preview
             try:
-                dialog.library_button.click();self.assertEqual(dialog.value(),settings)
+                dialog.library_button.click();self.assertEqual(dialog.value(),{**settings,'instrument':dict(settings['melody'])})
                 self.assertLess(events.index('preview-close'),events.index('install'))
                 self.assertLess(events.index('transport-close'),events.index('install'))
                 self.assertLess(events.index('install'),events.index('rescan'))
                 self.assertEqual(events[events.index('rescan')-1],'transport-close')
             finally:dialog.close();dialog.deleteLater();owner.deleteLater();APP.processEvents()
+
+    def test_settings_gain_stays_per_track_on_rescan_and_clears_for_windows_midi(self):
+        settings={'melody':dict(device='synth:existing',program=0,gain_db=2.5),
+                  'instrument':dict(device='synth:existing',program=0),
+                  'chords':dict(device='default',program=0)}
+        pack=dict(id='existing',name='Existing piano',author='Test',license='MIT',preset_gain_db={'0':6.5},
+                  presets=[dict(program=0,name='Piano',name_en='Piano')])
+        with patch('lingfeng.audio.routing.midi_devices',return_value=[(0,'GS')]), \
+                patch('lingfeng.ui.sound_dialog.banks.installed_packs',return_value=[pack]), \
+                patch('lingfeng.ui.sound_dialog.banks.registry',return_value=dict(roots=[],errors=[])), \
+                patch('lingfeng.ui.sound_dialog.banks.pack',return_value=pack), \
+                patch('lingfeng.ui.sound_dialog.banks.rescan'), \
+                patch('lingfeng.audio.routing.MidiRouter') as router:
+            dialog=SoundSettingsDialog(settings)
+            try:
+                self.assertEqual(dialog.value(),settings)
+                self.assertEqual(dialog.calibration_labels['melody'].text(),'+6.5 dB')
+                self.assertEqual(dialog.calibration_labels['chords'].text(),'—')
+                self.assertFalse(dialog.gain_fields['chords'].isEnabled())
+                dialog.gain_fields['instrument'].setValue(-3.5)
+                dialog.scan()
+                self.assertEqual(dialog.value()['melody']['gain_db'],2.5)
+                self.assertEqual(dialog.value()['instrument']['gain_db'],-3.5)
+                dialog.preview('instrument')
+                self.assertEqual(router.call_args.args[0]['instrument']['gain_db'],-3.5)
+                device,_=dialog.fields['instrument']
+                device.setCurrentIndex(device.findData('default'))
+                self.assertFalse(dialog.gain_fields['instrument'].isEnabled())
+                self.assertEqual(dialog.gain_fields['instrument'].value(),0)
+                self.assertEqual(dialog.calibration_labels['instrument'].text(),'—')
+                self.assertNotIn('gain_db',dialog.value()['instrument'])
+                self.assertEqual(dialog.value()['melody']['gain_db'],2.5)
+            finally:dialog.reject();dialog.deleteLater();APP.processEvents()
 
 
 if __name__=='__main__':unittest.main()

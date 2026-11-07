@@ -65,7 +65,10 @@ def language_probe_synthesis_worker(*args):
     player = MagicMock()
     player.buffersize = player.currentpadding = 4096
     player.deviceperiod = (.01, .003)
-    with patch('lingfeng.audio.synthesis.SynthEngine', Engine), patch('lingfeng.audio.exporting._com_apartment'), patch('soundcard.default_speaker') as speaker:
+    with (patch('lingfeng.audio.synthesis.SynthEngine', Engine),
+          patch('lingfeng.audio.synthesis.pack', return_value={'engine': 'stk'}),
+          patch('lingfeng.audio.exporting._com_apartment'),
+          patch('soundcard.default_speaker') as speaker):
         speaker.return_value.player.return_value.__enter__.return_value = player
         _synthesis_worker(*args)
 

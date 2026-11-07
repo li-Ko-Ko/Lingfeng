@@ -11,6 +11,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from lingfeng import __version__
 from scripts.release_policy import (APPROVED_PACKS,source_files,verify_source_tree,
                                    prune_private_release_copies,verify_public_release_paths)
+from lingfeng.audio.calibration import calibrate_pack,write_calibration
 from lingfeng.audio.soundbanks import _validate
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -61,6 +62,12 @@ def package(destination=None,*,archive=False):
     if not DEST.is_relative_to((ROOT/'dist').resolve()):raise RuntimeError('Release destination must be inside dist.')
     if not (DEST/'Lingfeng.exe').exists():raise RuntimeError('Build Lingfeng.exe first.')
     if archive:require_new_archive()
+    pack_files=[SYNTH_ROOT/ident/'synth.json' for ident in APPROVED_PACKS]
+    missing=[manifest.parent.name for manifest in pack_files if not manifest.is_file()]
+    if missing:
+        raise RuntimeError('Missing default sound packs: '+', '.join(missing)+'. See the build instructions in CONTRIBUTING.md.')
+    pack_manifests={manifest.parent.name:_validate(json.loads(manifest.read_text('utf-8')),manifest.parent.resolve())
+                    for manifest in pack_files}
     prune_private_release_copies(ROOT,DEST)
 
     # The application uses QWidget/QPainter raster rendering, not OpenGL. PySide's
@@ -89,15 +96,18 @@ def package(destination=None,*,archive=False):
     for path in source_files(ROOT):
         relative=path.relative_to(ROOT)
         if relative.parts[0]=='licenses':copy_file(path,DEST/relative)
-    # Only reviewed source-tree packs participate; never absorb user-installed DLLs.
-    pack_files=[SYNTH_ROOT/ident/'synth.json' for ident in APPROVED_PACKS]
-    for manifest in pack_files:_validate(json.loads(manifest.read_text('utf-8')),manifest.parent.resolve())
     core_bytes=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file() and p.relative_to(DEST).parts[0]!='synths')
-    synth_bytes=sum(p.stat().st_size for manifest in pack_files for p in manifest.parent.rglob('*') if p.is_file())
     bundled=list(APPROVED_PACKS)
     for ident in bundled:
+        pack_root=DEST/'synths'/ident
         for path in (SYNTH_ROOT/ident).rglob('*'):
-            if path.is_file():copy_file(path,DEST/'synths'/ident/path.relative_to(SYNTH_ROOT/ident))
+            if path.is_file():copy_file(path,pack_root/path.relative_to(SYNTH_ROOT/ident))
+        gains=calibrate_pack(pack_root,pack_manifests[ident])
+        preset_count=len(pack_manifests[ident]['presets'])
+        if len(gains)!=preset_count:
+            print(f'{ident}: measured {len(gains)} of {preset_count} presets')
+        write_calibration(pack_root,gains)
+    synth_bytes=sum(p.stat().st_size for ident in bundled for p in (DEST/'synths'/ident).rglob('*') if p.is_file())
     (DEST/'synths').mkdir(exist_ok=True)
     copy_file(ROOT/'docs/SOUNDBANKS.md',DEST/'synths/README.md')
     if (DEST/'sounds').exists() or list((DEST/'_internal').rglob('sfizz.dll')):
@@ -106,27 +116,25 @@ def package(destination=None,*,archive=False):
         raise RuntimeError('Local-only candidates must not be shipped')
     (DEST/'build-info.json').write_text(json.dumps({'version':__version__,'delivery':'archive' if archive else 'local-standalone','archive_requested':bool(archive),'python':sys.version,'dependencies':versions,'synthesis_abi':1,'synths_bundled':bool(bundled),'bundled_packs':bundled,'core_bytes':core_bytes,'synth_bytes':synth_bytes,'size_basis':'unpacked files, including sources and licenses'},indent=2),encoding='utf-8')
     (DEST/'Register-project-type.cmd').write_text('@echo off\r\nstart "" "%~dp0Lingfeng.exe" --associate\r\n',encoding='ascii')
-    installation='已附带全部轻量合成音源，可直接运行。'
     (DEST/'Start-here.txt').write_text(f"""伶风 Lingfeng {__version__}
 
 运行本文件夹中的 Lingfeng.exe，保留 _internal 和 synths。
-{installation}
+已附带 Greg Sullivan 电钢琴、三套 STK 音源与 YDP 原声三角钢琴，可直接运行。
 新增音源：复制完整文件夹到 synths，进入 设置 → 音源与输入 → 音源与音色 → 重新扫描并保存。
 扫描结果和默认选择自动保存，下次启动直接读取；也可以添加其它扫描目录。
-已附带免费小型钢琴与电钢琴。大钢琴：设置 → 音源与输入 → 音源与音色 → 下载／添加音源。
-也可从本地完整音源 ZIP 添加，下载支持进度、取消和校验。
+设置 → 音源与输入 → 音源与音色 → 下载／添加音源，可下载其他音源或添加本地音源 ZIP。下载支持进度、取消和校验。
 音源的编辑试听与离线 MP3 使用同一引擎；导出保留音源许可说明。
 Windows 实时录制会录入同一设备上的其它声音。
 source/ 提供程序源码；每个音源包内含源码和许可。详见 docs/SOUNDBANKS.md。
 分级中英文帮助见 docs/HELP.md。升级解压到新目录后会沿用用户偏好与和弦进行。
 旧目录内自行添加的音源请复制到新版 synths/；额外扫描目录与音色默认值会迁移。
 
-Run Lingfeng.exe in this folder and keep _internal and synths. The approved
-lightweight synth packs, source files and license notices are included.
-The free small piano and electric pianos are included. Download the optional
-grand or add a local pack ZIP in Settings > Sound and input > Sound sources and instruments >
-Download / add sounds. Downloads show progress and verify checksums. You can
-also copy complete folders into synths/ and use Rescan and save.
+Run Lingfeng.exe in this folder and keep _internal and synths. Greg Sullivan
+E-Pianos, three STK packs and YDP Grand Piano are included with their licenses.
+Download more sounds or add a local pack ZIP in Settings > Sound and input >
+Sound sources and instruments > Download / add sounds. Downloads show progress
+and verify checksums. You can also copy complete folders into synths/ and use
+Rescan and save.
 See docs/HELP.md for the categorized bilingual manual. User preferences,
 progressions, extra scan folders and sound defaults carry over to new releases.
 Copy custom packs from the old installation's synths/ into the new one.

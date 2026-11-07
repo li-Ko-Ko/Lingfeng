@@ -91,9 +91,15 @@ class RevisionTests(unittest.TestCase):
         r=PianoRoll(p);r.resize(1000,600);r.show();APP.processEvents();r.set_compact(True)
         self.assertEqual(r.pitches,[76,48]);r.set_row_height(32)
         for pitch in r.pitches:self.assertEqual(r.pitch_at(r.y_at(pitch)+16),pitch)
+        APP.processEvents()
         before=r.viewport().height()
+        panels=(r.velocity_lane,r.lane,r.navigator)
+        reclaimed=sum(panel.height() for panel in panels if panel.isVisible())
+        self.assertGreater(reclaimed,0)
         for key in ('velocity','chords','navigator'):r.set_panel(key,False)
-        APP.processEvents();self.assertGreater(r.viewport().height(),before+100)
+        APP.processEvents()
+        self.assertFalse(any(panel.isVisible() for panel in panels))
+        self.assertEqual(r.viewport().height(),before+reclaimed)
         r.set_panel('ruler',False);self.assertEqual(r.ruler_height,52)
         r.set_compact(False);self.assertEqual((len(r.pitches),r.pitches[-1],r.pitches[0]),(88,21,108));r.close()
 
@@ -107,7 +113,8 @@ class RevisionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=TEST_TEMP) as folder:
             path=Path(folder)/'voices.mid';export_midi(p,path);tracks=read_midi(path)[2]
             self.assertIn((0,0xC0,bytes([16])),tracks[1]);self.assertIn((0,0xC1,bytes([11])),tracks[2])
-            path=Path(folder)/'voices.lfs';p.save(path);self.assertEqual(Project.load(path).audio,p.audio)
+            path=Path(folder)/'voices.lfs';p.save(path)
+            self.assertEqual(Project.load(path).audio,{**p.audio,'instrument':dict(p.audio['melody'])})
 
     def test_palette_order_is_opposite_for_background_and_notes(self):
         def luminance(hex):

@@ -1,10 +1,9 @@
 """Build Lingfeng's free piano packs from hash-pinned upstream assets.
 
-python scripts/build_piano_packs.py --download --pack all
-python scripts/build_piano_packs.py --download --pack upgrades --zip
+python scripts/build_piano_packs.py --pack electric --download
+python scripts/build_piano_packs.py --pack ydp --download
 Only --download accesses the network. Inputs are cached in output/piano-sources/.
 Python standard library only; no sample re-encoding or build-time audio dependency.
-The optional grand and 0.53 electric/GM collections remain separate downloads.
 The upgrades selection preserves the original 0.52 small/grand artifacts.
 """
 import argparse,hashlib,json,re,shutil,stat,sys,tarfile,time,urllib.parse,urllib.request,zipfile
@@ -147,14 +146,16 @@ def grand(cache,dest,download):
  finish(dest,data,[entry,ARCHIVES['sfizz'],ARCHIVES['sfizz-source']],['Audio samples unchanged. Lowest SFZ velocity region extended from MIDI velocity2 to1 for audible playback at every supported note-on velocity. Lingfeng adds metadata and linear playback gain.'])
  text_files={p.name:p.read_text('utf-8') for p in dest.iterdir() if p.is_file() and p.name in ('LICENSE-SAMPLES.txt','README.txt','source.json','files.sha256.json')}
  return dict(id='piano-grand',name=data['name'],name_en=data['name_en'],url=entry['url'],sha256=entry['sha256'],archive_bytes=entry['archive_bytes'],archive_root=entry['root'],manifest=data,text_files=text_files)
-UPGRADE_ASSETS={
- 'fluid-r3':dict(file='fluid-r3.tar.gz',url='https://deb.debian.org/debian/pool/main/f/fluid-soundfont/fluid-soundfont_3.1.orig.tar.gz',sha256='2621acaa1c78e4abdb24bdd163230cc577e61276936d6aa6e3180582142f0343',archive_bytes=134835922,format='tar'),
+FLUID_R3_ASSET=dict(file='fluid-r3.tar.gz',url='https://deb.debian.org/debian/pool/main/f/fluid-soundfont/fluid-soundfont_3.1.orig.tar.gz',sha256='2621acaa1c78e4abdb24bdd163230cc577e61276936d6aa6e3180582142f0343',archive_bytes=134835922,format='tar')
+YDP_ASSET=dict(file='YDP-GrandPiano-SF2-20160804.tar.bz2',url='https://freepats.zenvoid.org/Piano/YDP-GrandPiano/YDP-GrandPiano-SF2-20160804.tar.bz2',sha256='d243dc3e182a60df2a16e92828c1821cf3eb5748b45e2e2bdcfa9cf7af056026',archive_bytes=36737684,format='tar')
+YDP_PAGE='https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html#ydp-grand-piano'
+FLUID_RUNTIME_ASSETS={
  'fluidsynth':dict(file='fluidsynth-win64.zip',url='https://github.com/FluidSynth/fluidsynth/releases/download/v2.6.1/fluidsynth-v2.6.1-win10-x64-cpp11.zip',sha256='fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c',archive_bytes=2727529,format='zip'),
  'fluidsynth-source':dict(file='fluidsynth-source.zip',url='https://codeload.github.com/FluidSynth/fluidsynth/zip/refs/tags/v2.6.1',sha256='0965a1132bf2dd20135687bee8b2034c110664b4b561fbacc9d515a92cad6031',archive_bytes=2501921,format='file',target='runtime/fluidsynth-2.6.1-source.zip'),
  'sndfile-source':dict(file='sndfile-source.tar.xz',url='https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz',sha256='3799ca9924d3125038880367bf1468e53a1b7e3686a934f098b7e1d286cdb80e',archive_bytes=730760,format='file',target='runtime/libsndfile-1.2.2-source.tar.xz'),
  'mpg123-source':dict(file='mpg123-1.31.3.tar.bz2',url='https://www.mpg123.de/download/mpg123-1.31.3.tar.bz2',sha256='1ca77d3a69a5ff845b7a0536f783fee554e1041139a6b978f6afe14f5814ad1a',archive_bytes=1094474,format='file',target='runtime/mpg123-1.31.3-source.tar.bz2'),
  'lame-source':dict(file='lame-3.100.tar.gz',url='https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz',sha256='ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e',archive_bytes=1524133,format='file',target='runtime/lame-3.100-source.tar.gz')}
-UPGRADE_NOTICES=(
+FLUID_RUNTIME_NOTICES=(
  ('ogg-COPYING.txt','https://raw.githubusercontent.com/xiph/ogg/v1.3.5/COPYING','40b96ef8f651ddb335766f7321eea7a0ea93cc4bcdab312a699d55efab576e52'),
  ('vorbis-COPYING.txt','https://raw.githubusercontent.com/xiph/vorbis/v1.3.7/COPYING','928871c8731c91b86071704394566350cc3aa4e4ed4dccdcb9fc9847d0463294'),
  ('flac-COPYING.Xiph.txt','https://raw.githubusercontent.com/xiph/flac/1.4.2/COPYING.Xiph','9cc3a24d4a4f95c9268198471993bbfb9a33179de9fd6866c16cafe3323d2e78'),
@@ -162,6 +163,10 @@ UPGRADE_NOTICES=(
  ('vcpkg-mpg123-fix-m1-build.patch','https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/fix-m1-build.patch','940da2564c97f455ef6a1584db5b39e52f7eb698c4a0bca69da8f90828cabcf9'),
  ('vcpkg-mpg123-fix-modulejack.patch','https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/fix-modulejack.patch','4518011667c6820ad0deb1654ec70f426a651b515b662da83d62a5681cb9996d'),
  ('vcpkg-mpg123-vcpkg.json','https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/vcpkg.json','ce654a7b0daecfc22f5c3078d2e31475f39c9331248e3be6e54d8046c7dae748'))
+FLUID_RUNTIME_LICENSE=(
+ 'Renderer: FluidSynth 2.6.1 and libsndfile 1.2.2, LGPL-2.1-or-later. Statically linked MPEG codecs include mpg123 1.31.3 (LGPL-2.1-or-later) and LAME 3.100 (LGPL-2.0-or-later). BSD-style codec notices for Ogg, Vorbis, FLAC and Opus are included.\n'
+ 'Complete corresponding LGPL source archives and readable notices are in runtime/. The upstream Windows workflow records the official binary build. The mpg123 source SHA512 matches the vcpkg source archive identifier embedded in sndfile.dll; source patch inputs are included.\n'
+ 'The DLL files remain separate and replaceable. Compatible modified libraries may replace them; reverse engineering for debugging such modifications is not prohibited. No audio/MIDI device driver, SDL3 runtime or command-line executable is distributed or started.\n')
 
 def upgrade_entry(dest,data,assets,runtime_id=None):
  # Files obtained from upstream archives are extracted explicitly; all local
@@ -188,7 +193,7 @@ def electric(cache,dest,download):
  data=manifest('piano-electric',rows,'CC-BY-3.0; sfizz BSD-2-Clause','Greg Sullivan (samples); kinwie (SFZ mapping)','https://github.com/sfzinstruments/GregSullivan.E-Pianos/tree/'+GREG_REF,128)
  data.update(version=UPGRADE_VERSION,name='Greg Sullivan 电钢琴',name_en='Greg Sullivan E-Pianos')
  write(dest/'LICENSE-SAMPLES.txt','Greg Sullivan E-Pianos: Yamaha CP80, Wurlitzer EP200 and Hohner Pianet T.\nSamples by Greg Sullivan; SFZ mapping by kinwie. CC BY 3.0; full text electric/LICENSE and runtime/CC-BY-3.0.txt.\nLingfeng extends edge zones to MIDI21-108, removes cosmetic ARIA labels and adjusts gain. Audio samples are unchanged.\nThe same three recordings are already included in Piano & Electric Essentials. This separate collection is an alternative installation, not a higher-detail resampling.\nEngine: unmodified sfizz 1.2.3, BSD-2-Clause plus runtime/notices/.\n')
- write(dest/'README.txt','可选 Greg Sullivan 电钢琴合集：CP80、Wurlitzer、Pianet T。\nOptional Greg Sullivan electric piano collection: CP80, Wurlitzer, Pianet T.\nThese are the same recordings included in piano-small. Keep piano-small for acoustic piano and Rhodes.\nCopy this complete folder into synths and rescan. Reproduce: python scripts/build_piano_packs.py --pack electric --download\n')
+ write(dest/'README.txt','Greg Sullivan 电钢琴合集：CP80、Wurlitzer、Pianet T。\nGreg Sullivan electric piano collection: CP80, Wurlitzer, Pianet T.\nThese are the same recordings included in piano-small. Keep piano-small for legacy Kawai and Rhodes presets.\nCopy this complete folder into synths and rescan. Reproduce: python scripts/build_piano_packs.py --pack electric --download\n')
  finish(dest,data,[ARCHIVES['greg'],ARCHIVES['sfizz'],ARCHIVES['sfizz-source']],['Audio samples unchanged; electric edge ranges extended to MIDI21-108; cosmetic ARIA labels removed; host gain calibrated.'])
  mapping={}
  with zipfile.ZipFile(path) as z:
@@ -199,10 +204,19 @@ def electric(cache,dest,download):
  asset=dict(url=ARCHIVES['greg']['url'],sha256=ARCHIVES['greg']['sha256'],archive_bytes=path.stat().st_size,format='zip',file_map=mapping)
  return upgrade_entry(dest,data,[asset],runtime_id='piano-small')
 
-def gm(cache,dest,download):
- sys.path.insert(0,str(ROOT));from lingfeng.audio.gm_instruments import NAMES
- dest.mkdir(parents=True,exist_ok=True);assets=[]
- for key,value in UPGRADE_ASSETS.items():
+def unpack_soundfont(cache,dest,download,asset,prefix,names):
+ path=get(asset['url'],cache/asset['file'],asset['sha256'],download)
+ file_map={prefix+'/'+name:name for name in names}
+ dest.mkdir(parents=True,exist_ok=True)
+ with tarfile.open(path) as source:
+  for member,name in file_map.items():
+   with source.extractfile(member) as src,(dest/name).open('wb') as target:
+    shutil.copyfileobj(src,target)
+ return dict({key:value for key,value in asset.items() if key!='file'},file_map=file_map)
+
+def fluid_runtime(cache,dest,download):
+ assets=[]
+ for key,value in FLUID_RUNTIME_ASSETS.items():
   p=cache/value['file']
   if key=='lame-source' and not p.exists():
    candidate=ROOT/'licenses/audio-source/lame-3.100.tar.gz'
@@ -210,11 +224,7 @@ def gm(cache,dest,download):
   get(value['url'],p,value['sha256'],download)
   entry={k:v for k,v in value.items() if k!='file'}
   if value['format']=='file':copy(p,dest/value['target'])
-  elif key=='fluid-r3':
-   entry['file_map']={f'fluid-soundfont-3.1/{n}':n for n in ('FluidR3_GM.sf2','COPYING','README')}
-   with tarfile.open(p) as t:
-    for source,target in entry['file_map'].items():(dest/target).write_bytes(t.extractfile(source).read())
-  elif key=='fluidsynth':
+  else:
    entry['file_map']={f'fluidsynth-v2.6.1-win10-x64-cpp11/bin/{n}':'bin/'+n for n in ('libfluidsynth-3.dll','sndfile.dll')}
    with zipfile.ZipFile(p) as z:
     for source,target in entry['file_map'].items():
@@ -227,15 +237,50 @@ def gm(cache,dest,download):
   with tarfile.open(cache/filename) as t:
    for name in names:write(dest/'runtime/notices'/prefix/(name.replace('/','-')+'.txt'),t.extractfile(prefix+'/'+name).read().decode('utf-8',errors='replace'))
  notice_inputs=[]
- for name,url,expected in UPGRADE_NOTICES:
+ for name,url,expected in FLUID_RUNTIME_NOTICES:
   p=get(url,cache/name,expected,download);copy(p,dest/'runtime/notices'/name);notice_inputs.append(dict(url=url,sha256=expected))
- hashes={p.relative_to(dest).as_posix():digest(p) for p in (dest/'bin').glob('*.dll')}
+ hashes={p.relative_to(dest).as_posix():digest(p) for p in sorted((dest/'bin').glob('*.dll'))}
+ return assets,notice_inputs,hashes
+
+def gm(cache,dest,download):
+ sys.path.insert(0,str(ROOT));from lingfeng.audio.gm_instruments import NAMES
+ soundfont=unpack_soundfont(cache,dest,download,FLUID_R3_ASSET,'fluid-soundfont-3.1',('FluidR3_GM.sf2','COPYING','README'))
+ runtime_assets,notice_inputs,hashes=fluid_runtime(cache,dest,download)
+ assets=[soundfont,*runtime_assets]
  rows=[dict(program=i,name=cn,name_en=en,model=i,sf2='FluidR3_GM.sf2',bank=0,gain=.65) for i,(cn,en) in enumerate(NAMES)]
- data=dict(schema=1,id='keyboard-gm',name='FluidR3 全乐器音源',name_en='FluidR3 General MIDI',version=UPGRADE_VERSION,abi=1,platform='windows-x64',engine='sf2',library='bin/libfluidsynth-3.dll',sha256=hashes['bin/libfluidsynth-3.dll'],library_hashes=hashes,license='MIT (soundfont); LGPL-2.1-or-later (FluidSynth/libsndfile and MPEG codecs); BSD codec notices',license_file='LICENSE-SAMPLES.txt',source=UPGRADE_ASSETS['fluid-r3']['url'],author='Frank Wen; Toby Smithe; FluidSynth and libsndfile contributors',voices=256,presets=rows)
- write(dest/'LICENSE-SAMPLES.txt','FluidR3 General MIDI optional sound pack\n\nSoundfont: FluidR3 3.1 by Frank Wen (2000-2002, 2008), with 2008 contributions by Toby Smithe, under MIT. Original COPYING and README are retained. All 128 General MIDI melodic programs are provided; audio samples and soundfont parameters are unchanged.\nRenderer: FluidSynth 2.6.1 and libsndfile 1.2.2, LGPL-2.1-or-later. Statically linked MPEG codecs include mpg123 1.31.3 (LGPL-2.1-or-later) and LAME 3.100 (LGPL-2.0-or-later). BSD-style codec notices for Ogg, Vorbis, FLAC and Opus are included.\nComplete corresponding LGPL source archives and readable notices are in runtime/. The upstream Windows workflow records the official binary build. The mpg123 source SHA512 matches the vcpkg source archive identifier embedded in sndfile.dll; source patch inputs are included.\nThe DLL files remain separate and replaceable. Compatible modified libraries may replace them; reverse engineering for debugging such modifications is not prohibited. No audio/MIDI device driver, SDL3 runtime or command-line executable is distributed or started.\nLingfeng adds manifest, host-side gain, no-reverb/no-chorus settings and these notices. This pack does not affect ownership of the musical composition or other material played through it.\n')
+ data=dict(schema=1,id='keyboard-gm',name='FluidR3 全乐器音源',name_en='FluidR3 General MIDI',version=UPGRADE_VERSION,abi=1,platform='windows-x64',engine='sf2',library='bin/libfluidsynth-3.dll',sha256=hashes['bin/libfluidsynth-3.dll'],library_hashes=hashes,license='MIT (soundfont); LGPL-2.1-or-later (FluidSynth/libsndfile and MPEG codecs); BSD codec notices',license_file='LICENSE-SAMPLES.txt',source=FLUID_R3_ASSET['url'],author='Frank Wen; Toby Smithe; FluidSynth and libsndfile contributors',voices=256,presets=rows)
+ write(dest/'LICENSE-SAMPLES.txt','FluidR3 General MIDI optional sound pack\n\nSoundfont: FluidR3 3.1 by Frank Wen (2000-2002, 2008), with 2008 contributions by Toby Smithe, under MIT. Original COPYING and README are retained. All 128 General MIDI melodic programs are provided; audio samples and soundfont parameters are unchanged.\n'+FLUID_RUNTIME_LICENSE+'Lingfeng adds manifest, host-side gain, no-reverb/no-chorus settings and these notices. This pack does not affect ownership of the musical composition or other material played through it.\n')
  write(dest/'README.txt','可选 FluidR3 全乐器音源：128 个 GM 旋律音色，涵盖钢琴、电钢琴、风琴、吉他、贝斯、弦乐、管乐、合成器和音效。\nOptional FluidR3 soundfont: all 128 GM melodic programs, including acoustic/electric pianos, organs, guitars, basses, strings, winds, synths and effects.\nCopy this whole folder into synths, rescan, then choose FluidR3 General MIDI for either track. The lightweight application and its existing piano packs remain usable without this download.\nSoundfont samples are unchanged; FluidSynth effects are disabled for predictable mixing and prompt stop. Source archives, notices and replacement terms: runtime/ and LICENSE-SAMPLES.txt.\nReproduce: python scripts/build_piano_packs.py --pack gm --download\n')
  finish(dest,data,[*assets,*notice_inputs],['Soundfont and runtime DLLs unchanged. Only 128 bank0 melodic presets are exposed; built-in drum presets remain in the original SF2 but are not presented as a separate drum track. Host gain and disabled reverb/chorus apply equally to playback and export.'])
  return upgrade_entry(dest,data,assets)
+
+def ydp(cache,dest,download):
+ basename='YDP-GrandPiano-20160804'
+ soundfont=unpack_soundfont(cache,dest,download,YDP_ASSET,'YDP-GrandPiano-SF2-20160804',(basename+'.sf2',basename+'.txt'))
+ assets,notice_inputs,hashes=fluid_runtime(cache,dest,download)
+ copy(get(CCBY_URL,cache/'CC-BY-3.0.txt',CCBY_HASH,download),dest/'CC-BY-3.0.txt')
+ name,name_en='YDP 原声三角钢琴','YDP Grand Piano'
+ library='bin/libfluidsynth-3.dll'
+ data=dict(schema=1,id='ydp-grand',name=name,name_en=name_en,version='2016-08-04',abi=1,
+           platform='windows-x64',engine='sf2',library=library,sha256=hashes[library],library_hashes=hashes,
+           license='CC BY 3.0 (soundfont); LGPL-2.1-or-later (FluidSynth/libsndfile and mpg123); LGPL-2.0-or-later (LAME); BSD codec notices',
+           license_file='LICENSE-SAMPLES.txt',source=YDP_PAGE,
+           author='Zenph Studios and Dr. Mikhail Krishtal for OLPC (samples); Roberto / FreePats (SF2)',voices=256,
+           presets=[dict(program=0,name=name,name_en=name_en,model=0,bank=0,sf2=basename+'.sf2',gain=.65)])
+ write(dest/'LICENSE-SAMPLES.txt',f'''YDP Grand Piano / YDP 原声三角钢琴
+
+Yamaha Disklavier Pro samples recorded by Dr. Mikhail Krishtal and the Zenph Studios team for OLPC. Soundfont and original sample modifications by Roberto for FreePats. The 2016-08-04 upstream SF2 is supplied byte-for-byte under Creative Commons Attribution 3.0. Original attribution: {basename}.txt. License: CC-BY-3.0.txt.
+Upstream page: {YDP_PAGE}
+Source archive: {YDP_ASSET['url']}
+
+{FLUID_RUNTIME_LICENSE}Lingfeng packaging adds preset labels, a manifest, and host-side playback gain.
+''')
+ write(dest/'README.txt','''伶风音源 · YDP 原声三角钢琴
+将此文件夹放入伶风的 synths 目录，或在音源库中添加此文件夹的上一级目录，然后重新扫描。
+请保留 LICENSE-SAMPLES.txt、原始署名文件和 runtime 目录。
+Reproduce: python scripts/build_piano_packs.py --pack ydp --download
+''')
+ finish(dest,data,[soundfont,*assets,*notice_inputs],['Unmodified upstream SF2 and attribution. Adds Lingfeng manifest, preset labels and bundled FluidSynth runtime.'])
 
 def pack_zip(dest,output):
  output.parent.mkdir(parents=True,exist_ok=True)
@@ -247,8 +292,10 @@ def pack_zip(dest,output):
  write(output.with_name(output.name+'.sha256'),checksum+'  '+output.name+'\n')
  return dict(path=str(output),bytes=output.stat().st_size,sha256=checksum)
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--download',action='store_true');parser.add_argument('--pack',choices=('small','grand','all','electric','gm','upgrades'),default='all');parser.add_argument('--cache',type=Path,default=ROOT/'output/piano-sources');parser.add_argument('--output',type=Path,default=ROOT/'synths');parser.add_argument('--zip',action='store_true');args=parser.parse_args()
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--download',action='store_true');parser.add_argument('--pack',choices=('small','grand','all','electric','gm','upgrades','ydp'),default='all');parser.add_argument('--cache',type=Path,default=ROOT/'output/piano-sources');parser.add_argument('--output',type=Path,default=ROOT/'synths');parser.add_argument('--zip',action='store_true');args=parser.parse_args()
+ if args.pack=='ydp' and args.zip:parser.error('--pack ydp produces a folder for standalone builds')
  args.cache.mkdir(parents=True,exist_ok=True);args.output.mkdir(parents=True,exist_ok=True);result=dict(version=VERSION,archives=ARCHIVES)
+ if args.pack=='ydp':ydp(args.cache,args.output/'ydp-grand',args.download);return
  if args.pack in ('electric','gm','upgrades'):
   selected=('electric','gm') if args.pack=='upgrades' else (args.pack,);entries=[]
   for key in selected:entries.append((electric if key=='electric' else gm)(args.cache,args.output/('piano-electric' if key=='electric' else 'keyboard-gm'),args.download))
