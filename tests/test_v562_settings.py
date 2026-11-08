@@ -95,6 +95,8 @@ class ModuleSettingsTests(unittest.TestCase):
                 ]
                 paths += [('卷帘显示', '和弦轨辅助时间尺', label)
                           for label in ('关闭', '1/4 拍', '1/2 拍', '1 拍', '2 拍', '1 小节')]
+                paths += [('卷帘显示', '导航器', label)
+                          for label in ('人声', '乐器', '和弦', '按轨道数量自动调整高度', '导航器高度…')]
                 paths += [('卷帘显示', '卷帘染色', roll, label)
                           for roll, labels in [('旋律卷帘', ('按和弦音染色', '按调内音染色')),
                                                ('和弦卷帘', ('按旋律音染色', '按调内音染色'))]
@@ -114,6 +116,12 @@ class ModuleSettingsTests(unittest.TestCase):
                 self.assertEqual(leaf_count(settings), len(leaves))
                 self.assertIs(self.action(settings, '卷帘显示', '显示音符音级数字'), window.note_degrees_action)
                 self.assertIs(self.action(settings, '界面与操作', '显示底部信息提示'), window.information_action)
+                for role, label in [('vocal', '人声'), ('instrument', '乐器'), ('chords', '和弦')]:
+                    navigator_track = self.action(settings, '卷帘显示', '导航器', label)
+                    self.assertIs(navigator_track, window.navigator_track_actions[role])
+                    self.assertTrue(navigator_track.isCheckable())
+                self.assertIs(self.action(settings, '卷帘显示', '导航器', '按轨道数量自动调整高度'),
+                              window.navigator_auto_height_action)
                 for value, action in window.chord_ruler_actions.items():
                     self.assertEqual(action.isChecked(), value == window.chord_ruler_scale)
                 window.close()

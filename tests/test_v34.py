@@ -163,12 +163,14 @@ class InterfaceTests(unittest.TestCase):
         layout=w.score_view.canvas.layout;image=QImage(PAPER_W,PAPER_H,QImage.Format.Format_ARGB32);painter=QPainter(image);layout.draw(painter,0);painter.end()
         for _,_,a,b,left,right in layout.symbol_boxes:self.assertGreaterEqual(a,left-.01);self.assertLessEqual(b,right+.01)
 
-    def test_chord_dialog_has_degrees_quality_codes_and_root_bass_default(self):
+    def test_chord_dialog_has_degrees_quality_codes_and_current_bass(self):
         c=Chord(0,1920,48,'',bass=4);d=ChordDialog(c,self.w.project)
         try:
-            self.assertIn('3',d.bass.itemText(d.bass.findData(4)));self.assertIn('M7',d.quality.itemText(d.quality.findData('maj7')))
-            d.quality.setCurrentIndex(d.quality.findData('maj7'));self.assertEqual(d.bass.currentData(),d.root.currentData())
-            self.assertIsNone(d.value().bass)
+            self.assertIn('3',d.bass.itemText(d.bass.findData(4)))
+            major_seventh=d.quality.findData('maj7')
+            self.assertEqual(d.quality.itemText(major_seventh).split(' · ',1)[0],'maj7')
+            d.quality.setCurrentIndex(major_seventh);self.assertEqual(d.bass.currentData(),4)
+            self.assertEqual(d.value().bass,4)
         finally:d.deleteLater()
 
     def test_format_specific_export_dialogs(self):

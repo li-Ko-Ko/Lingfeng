@@ -39,9 +39,9 @@ class RegenerationTests(unittest.TestCase):
         try:
             self.assertTrue(d.regenerate.isChecked());self.assertEqual(d.pattern.currentData(),'quarters')
             result=d.value();p.put_chord(result);result=p.chords[0]
-            self.assertEqual({n.pitch%12 for n in result.render_notes()},{0,4,7})
+            self.assertEqual({n.pitch%12 for n in result.render_notes()},{10,2,5})
             self.assertEqual(analyze(result,p).pattern,'quarters');self.assertEqual({n.duration for n in result.render_notes()},{864})
-            self.assertTrue(is_chord_tone(p,64,320));self.assertEqual(c,before)
+            self.assertTrue(is_chord_tone(p,62,320));self.assertEqual(c,before)
         finally:d.deleteLater()
 
     def test_dialog_can_keep_midi_and_cancelling_never_edits_source(self):

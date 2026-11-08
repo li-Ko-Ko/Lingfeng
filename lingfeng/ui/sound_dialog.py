@@ -1,6 +1,7 @@
 """Sound sources, presets and explicit persistent folder scanning."""
 from pathlib import Path
-from PySide6.QtCore import QTimer,QUrl,Qt
+import threading
+from PySide6.QtCore import QThread,QTimer,QUrl,Qt,Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog,QFormLayout,QComboBox,QLabel,QPushButton,QDialogButtonBox,QPlainTextEdit,QFileDialog,QMessageBox,QHBoxLayout,QTabWidget,QWidget,QDoubleSpinBox
 from lingfeng.audio.events import AUDITION_CHANNELS, MAX_SOURCE_GAIN_DB, MIN_SOURCE_GAIN_DB, TRACK_ROLES, complete_track_values, source_gain_db
@@ -8,10 +9,25 @@ from lingfeng.music.model import MELODY_NAMES
 from lingfeng.platform.i18n import tr
 import lingfeng.audio.soundbanks as banks
 
+
+class TrackCalibrationWorker(QThread):
+    progress=Signal(int,int)
+
+    def __init__(self,settings,parent):
+        super().__init__(parent)
+        self.settings=settings;self.cancel=threading.Event();self.result=None;self.error=None
+
+    def run(self):
+        from lingfeng.audio.calibration import calibrate_tracks
+        try:self.result=calibrate_tracks(self.settings,self.cancel,self.progress.emit)
+        except Exception as exc:self.error=exc
+
+
 class SoundSettingsDialog(QDialog):
     def __init__(self,settings,parent=None):
         super().__init__(parent);self.setWindowTitle(tr('音源与音色'));self.setMinimumWidth(540)
-        self.fields={};self.gain_fields={};self.calibration_labels={};self.preview_buttons={};self.preview_router=None;self.settings=complete_track_values(settings)
+        self.fields={};self.gain_fields={};self.preview_buttons={};self.preview_router=None;self.settings=complete_track_values(settings)
+        self.calibration_worker=None;self.calibration_close_result=None
         self.preview_timer=QTimer(self);self.preview_timer.setSingleShot(True);self.preview_timer.timeout.connect(self.stop_preview)
         form=QFormLayout(self);form.setSpacing(12)
         path=QLabel(str(banks.default_root()));path.setWordWrap(True);path.setTextInteractionFlags(path.textInteractionFlags()|Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -34,10 +50,7 @@ class SoundSettingsDialog(QDialog):
             device.currentIndexChanged.connect(lambda index,k=key:self.populate(k));device.currentIndexChanged.connect(self.stop_preview)
             program.currentIndexChanged.connect(self.stop_preview)
             track_form.addRow(tr('音源'),device);track_form.addRow(tr('音色'),program)
-            calibration=QLabel('—');self.calibration_labels[key]=calibration
-            calibration.setToolTip(tr('按音色测得的自动响度补偿，叠加在下方的轨道音源增益上。'))
-            track_form.addRow(tr('预设响度补偿'),calibration)
-            program.currentIndexChanged.connect(lambda index,k=key:self.update_calibration(k))
+            program.currentIndexChanged.connect(self.update_enabled)
             gain=QDoubleSpinBox();self.gain_fields[key]=gain
             gain.setDecimals(1);gain.setRange(MIN_SOURCE_GAIN_DB,MAX_SOURCE_GAIN_DB);gain.setSingleStep(.5);gain.setSuffix(' dB')
             gain.setKeyboardTracking(False)
@@ -45,6 +58,11 @@ class SoundSettingsDialog(QDialog):
             gain.valueChanged.connect(self.stop_preview);track_form.addRow(tr('音源增益'),gain)
             preview=QPushButton(tr('试听音色'));preview.clicked.connect(lambda checked=False,k=key:self.preview(k));track_form.addRow(preview);self.preview_buttons[key]=preview
             self.track_tabs.addTab(page,label)
+        self.calibration_button=QPushButton(tr('自动校准三轨响度'))
+        self.calibration_button.setToolTip(tr('以相同轨道音量比较至少两轨合成音源，只提高较轻的轨道。结果填入音源增益，可继续修改。'))
+        self.calibration_button.clicked.connect(self.start_calibration);form.addRow(self.calibration_button)
+        self.calibration_status=QLabel();self.calibration_status.setWordWrap(True)
+        self.calibration_status.setTextFormat(Qt.TextFormat.PlainText);form.addRow(self.calibration_status)
         info=QLabel(tr('将完整音源文件夹复制到 synths 后点击重新扫描。扫描结果自动保存，下次启动直接读取。新音源需兼容伶风音源包格式；只复制 VST 插件不能加载。'))
         info.setWordWrap(True);form.addRow(info)
         self.notice=QLabel();self.notice.setWordWrap(True);form.addRow(self.notice)
@@ -89,18 +107,56 @@ class SoundSettingsDialog(QDialog):
             if selected is not None:
                 from lingfeng.audio.gm_instruments import label
                 for number in range(128):combo.addItem(label(number),number)
-        combo.setCurrentIndex(max(0,combo.findData(previous)));self.update_calibration(key);self.update_enabled()
-
-    def update_calibration(self,key):
-        device,program=self.fields[key];source=device.currentData();number=program.currentData()
-        db=banks.preset_calibration_db(number,source) if banks.is_synth_source(source) and number is not None else None
-        label='—'
-        if db is not None:label=f'{db:+.1f} dB' if db else '0.0 dB'
-        self.calibration_labels[key].setText(label)
+        combo.setCurrentIndex(max(0,combo.findData(previous)));self.update_enabled()
 
     def update_enabled(self):
+        worker=self.calibration_worker
         for key,button in self.preview_buttons.items():button.setEnabled(self.fields[key][1].currentData() is not None)
-        if hasattr(self,'buttons'):self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(all(p.currentData() is not None for d,p in self.fields.values()))
+        if hasattr(self,'buttons'):
+            self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(worker is None and all(p.currentData() is not None for d,p in self.fields.values()))
+            can_calibrate=sum(banks.is_synth_source(d.currentData()) and p.currentData() is not None for d,p in self.fields.values())>=2
+            self.calibration_button.setEnabled(not worker.cancel.is_set() if worker else can_calibrate)
+
+    def start_calibration(self):
+        if self.calibration_worker is not None:
+            self.cancel_calibration();return
+        if not self.calibration_button.isEnabled():return
+        self.stop_preview()
+        worker=TrackCalibrationWorker(self.value(),self);self.calibration_worker=worker
+        self.track_tabs.setEnabled(False);self.scan_button.setEnabled(False);self.library_button.setEnabled(False)
+        self.calibration_button.setText(tr('取消校准'))
+        self.calibration_status.setText(tr('正在校准三轨响度…'))
+        worker.progress.connect(self.calibration_progress);worker.finished.connect(self.finish_calibration)
+        self.update_enabled();worker.start()
+
+    def calibration_progress(self,done,total):
+        if self.calibration_worker is not None and not self.calibration_worker.cancel.is_set():
+            self.calibration_status.setText(tr('正在测量音色响度（{0}/{1}）…',done,total))
+
+    def cancel_calibration(self):
+        self.calibration_worker.cancel.set();self.update_enabled()
+        self.calibration_status.setText(tr('正在取消…'))
+
+    def finish_calibration(self):
+        worker=self.calibration_worker;worker.wait();self.calibration_worker=None
+        self.track_tabs.setEnabled(True);self.scan_button.setEnabled(True);self.library_button.setEnabled(True)
+        self.calibration_button.setText(tr('自动校准三轨响度'));self.update_enabled()
+        if worker.cancel.is_set():
+            status=tr('已取消响度校准。')
+        elif worker.error is not None:
+            status=tr('响度校准失败（{0}）。',str(worker.error))
+        else:
+            gains,skipped,capped=worker.result
+            changed=sum(value>self.gain_fields[role].value() for role,value in gains.items())
+            for role,value in gains.items():self.gain_fields[role].setValue(value)
+            status=(tr('已提高 {0} 轨的音源增益。',changed) if gains else tr('至少需要两轨可测量的合成音源。'))
+            names=dict(zip(self.fields,(self.track_tabs.tabText(i) for i in range(self.track_tabs.count()))))
+            if skipped:status+=' '+tr('未参与校准的轨道（{0}）。','、'.join(names[role] for role in skipped))
+            if capped:status+=' '+tr('已达到 +24 dB 上限的轨道（{0}）。','、'.join(names[role] for role in capped))
+        self.calibration_status.setText(status);worker.deleteLater()
+        if self.calibration_close_result is not None:
+            result=self.calibration_close_result;self.calibration_close_result=None
+            super().done(result)
 
     def open_directory(self):
         try:banks.default_root().mkdir(parents=True,exist_ok=True);QDesktopServices.openUrl(QUrl.fromLocalFile(str(banks.default_root())))
@@ -133,13 +189,14 @@ class SoundSettingsDialog(QDialog):
     def value(self):
         settings={}
         for key,(device,program) in self.fields.items():
-            selected=device.currentData();gain=self.gain_fields[key].value()
+            selected=device.currentData();control=self.gain_fields[key];control.interpretText();gain=control.value()
             spec=dict(device=selected,program=program.currentData())
             if gain and banks.is_synth_source(selected):spec['gain_db']=gain
             settings[key]=spec
         return settings
 
     def accept(self):
+        if self.calibration_worker is not None:return
         try:banks.save_defaults(self.value())
         except OSError as exc:QMessageBox.warning(self,tr('无法保存音源设置'),str(exc));return
         super().accept()
@@ -149,6 +206,7 @@ class SoundSettingsDialog(QDialog):
         if self.preview_router:self.preview_router.close();self.preview_router=None
 
     def preview(self,key):
+        from lingfeng.audio.calibration import CALIBRATION_VOLUME
         from lingfeng.audio.routing import MidiRouter
         from lingfeng.ui.audio_loading import AudioLoadingDialog,AudioLoadCancelled
         self.stop_preview()
@@ -158,13 +216,24 @@ class SoundSettingsDialog(QDialog):
             transport=getattr(self.parent(),'transport',None)
             if transport:transport.close()
             spec=self.value()[key];settings={role:dict(spec) for role in TRACK_ROLES}
-            if banks.is_synth_source(spec['device']) and banks.pack(spec['device']).get('engine') in ('sfz','sf2'):
+            synth=banks.is_synth_source(spec['device'])
+            if synth and banks.pack(spec['device']).get('engine') in ('sfz','sf2'):
                 self.preview_router=AudioLoadingDialog.open_router(settings,self)
             else:self.preview_router=MidiRouter(settings)
+            if synth:self.preview_router.send(0xb0|AUDITION_CHANNELS[key],7,CALIBRATION_VOLUME)
             for pitch in ((36,40,43) if spec['program'] in (32,33,43) else (60,64,67)):
                 self.preview_router.send(0x90|AUDITION_CHANNELS[key],pitch,75)
             self.preview_timer.start(700)
         except AudioLoadCancelled:self.stop_preview()
         except Exception as exc:self.stop_preview();QMessageBox.warning(self,tr('音源与音色'),str(exc))
 
-    def done(self,result):self.stop_preview();super().done(result)
+    def done(self,result):
+        self.stop_preview()
+        if self.calibration_worker is not None:
+            self.calibration_close_result=result;self.cancel_calibration();return
+        super().done(result)
+
+    def closeEvent(self,event):
+        if self.calibration_worker is not None:
+            event.ignore();self.reject();return
+        super().closeEvent(event)

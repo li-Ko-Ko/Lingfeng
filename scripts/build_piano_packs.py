@@ -1,7 +1,7 @@
 """Build Lingfeng's free piano packs from hash-pinned upstream assets.
 
 python scripts/build_piano_packs.py --pack electric --download
-python scripts/build_piano_packs.py --pack ydp --download
+python scripts/build_piano_packs.py --pack musescore-lite --download
 Only --download accesses the network. Inputs are cached in output/piano-sources/.
 Python standard library only; no sample re-encoding or build-time audio dependency.
 The upgrades selection preserves the original 0.52 small/grand artifacts.
@@ -149,6 +149,11 @@ def grand(cache,dest,download):
 FLUID_R3_ASSET=dict(file='fluid-r3.tar.gz',url='https://deb.debian.org/debian/pool/main/f/fluid-soundfont/fluid-soundfont_3.1.orig.tar.gz',sha256='2621acaa1c78e4abdb24bdd163230cc577e61276936d6aa6e3180582142f0343',archive_bytes=134835922,format='tar')
 YDP_ASSET=dict(file='YDP-GrandPiano-SF2-20160804.tar.bz2',url='https://freepats.zenvoid.org/Piano/YDP-GrandPiano/YDP-GrandPiano-SF2-20160804.tar.bz2',sha256='d243dc3e182a60df2a16e92828c1821cf3eb5748b45e2e2bdcfa9cf7af056026',archive_bytes=36737684,format='tar')
 YDP_PAGE='https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html#ydp-grand-piano'
+MUSESCORE_LITE_PAGE='https://people.debian.org/~tg/sf/'
+MUSESCORE_LITE_ASSETS=(
+ dict(file='MuseScore_General_Lite.sf3',url=MUSESCORE_LITE_PAGE+'MuseScore_General_Lite.sf3',sha256='916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479',archive_bytes=39978561,format='file',target='MuseScore_General_Lite.sf3'),
+ dict(file='MuseScore_General_Lite.copyright',url=MUSESCORE_LITE_PAGE+'MuseScore_General_Lite.copyright',sha256='9089e19387d8b508a94f9ea6475ab725376fd15323e51672799b9a5cacfe1671',archive_bytes=2765,format='file',target='MuseScore_General_Lite.copyright'),
+)
 FLUID_RUNTIME_ASSETS={
  'fluidsynth':dict(file='fluidsynth-win64.zip',url='https://github.com/FluidSynth/fluidsynth/releases/download/v2.6.1/fluidsynth-v2.6.1-win10-x64-cpp11.zip',sha256='fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c',archive_bytes=2727529,format='zip'),
  'fluidsynth-source':dict(file='fluidsynth-source.zip',url='https://codeload.github.com/FluidSynth/fluidsynth/zip/refs/tags/v2.6.1',sha256='0965a1132bf2dd20135687bee8b2034c110664b4b561fbacc9d515a92cad6031',archive_bytes=2501921,format='file',target='runtime/fluidsynth-2.6.1-source.zip'),
@@ -228,7 +233,10 @@ def fluid_runtime(cache,dest,download):
    entry['file_map']={f'fluidsynth-v2.6.1-win10-x64-cpp11/bin/{n}':'bin/'+n for n in ('libfluidsynth-3.dll','sndfile.dll')}
    with zipfile.ZipFile(p) as z:
     for source,target in entry['file_map'].items():
-     out=dest/target;out.parent.mkdir(parents=True,exist_ok=True);out.write_bytes(z.read(source))
+     out=dest/target;out.parent.mkdir(parents=True,exist_ok=True)
+     payload=z.read(source)
+     # An installed pack may have the same DLL loaded by a running player.
+     if not out.is_file() or out.read_bytes()!=payload:out.write_bytes(payload)
   assets.append(entry)
  # Include complete corresponding LGPL sources plus individual readable notices.
  with zipfile.ZipFile(cache/'fluidsynth-source.zip') as z:
@@ -282,6 +290,33 @@ Reproduce: python scripts/build_piano_packs.py --pack ydp --download
 ''')
  finish(dest,data,[soundfont,*assets,*notice_inputs],['Unmodified upstream SF2 and attribution. Adds Lingfeng manifest, preset labels and bundled FluidSynth runtime.'])
 
+def musescore_lite(cache,dest,download):
+ for asset in MUSESCORE_LITE_ASSETS:
+  copy(get(asset['url'],cache/asset['file'],asset['sha256'],download),dest/asset['target'])
+ assets,notice_inputs,hashes=fluid_runtime(cache,dest,download)
+ name,name_en='MuseScore Lite 原声钢琴','MuseScore Lite Grand Piano'
+ library='bin/libfluidsynth-3.dll'
+ data=dict(schema=1,id='musescore-lite-piano-test',name=name,name_en=name_en,version='0.2.1',abi=1,
+           platform='windows-x64',engine='sf2',library=library,sha256=hashes[library],library_hashes=hashes,
+           license='MIT (soundfont, with public-domain and CC0 samples); LGPL and permissive runtime notices',
+           license_file='LICENSE-SAMPLES.txt',source=MUSESCORE_LITE_PAGE,
+           author='S. Christian Collins; Frank Wen; Michael Cowgill; mirabilos; upstream sample contributors',voices=256,
+           presets=[dict(program=0,name=name,name_en=name_en,model=0,bank=0,sf2='MuseScore_General_Lite.sf3',gain=.65)])
+ write(dest/'LICENSE-SAMPLES.txt',f'''MuseScore General Lite / MuseScore Lite 原声钢琴
+
+The upstream MuseScore General Lite SF3 is supplied byte-for-byte. See
+MuseScore_General_Lite.copyright for the complete MIT license and sample credits.
+Upstream maintainer distribution: {MUSESCORE_LITE_PAGE}
+
+{FLUID_RUNTIME_LICENSE}Lingfeng exposes bank 0, program 0 as an acoustic piano preset.
+''')
+ write(dest/'README.txt','''伶风音源 · MuseScore Lite 原声钢琴
+此目录包含完整 SF3 和 FluidSynth，伶风提供其中的原声钢琴音色。
+请保留 LICENSE-SAMPLES.txt、原始署名文件和 runtime 目录。
+Reproduce: python scripts/build_piano_packs.py --pack musescore-lite --download
+''')
+ finish(dest,data,[*MUSESCORE_LITE_ASSETS,*assets,*notice_inputs],['Unmodified upstream SF3 and attribution. Adds Lingfeng manifest and bundled FluidSynth runtime.'])
+
 def pack_zip(dest,output):
  output.parent.mkdir(parents=True,exist_ok=True)
  with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
@@ -292,10 +327,11 @@ def pack_zip(dest,output):
  write(output.with_name(output.name+'.sha256'),checksum+'  '+output.name+'\n')
  return dict(path=str(output),bytes=output.stat().st_size,sha256=checksum)
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--download',action='store_true');parser.add_argument('--pack',choices=('small','grand','all','electric','gm','upgrades','ydp'),default='all');parser.add_argument('--cache',type=Path,default=ROOT/'output/piano-sources');parser.add_argument('--output',type=Path,default=ROOT/'synths');parser.add_argument('--zip',action='store_true');args=parser.parse_args()
- if args.pack=='ydp' and args.zip:parser.error('--pack ydp produces a folder for standalone builds')
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--download',action='store_true');parser.add_argument('--pack',choices=('small','grand','all','electric','gm','upgrades','ydp','musescore-lite'),default='all');parser.add_argument('--cache',type=Path,default=ROOT/'output/piano-sources');parser.add_argument('--output',type=Path,default=ROOT/'synths');parser.add_argument('--zip',action='store_true');args=parser.parse_args()
+ if args.pack in ('ydp','musescore-lite') and args.zip:parser.error('--pack '+args.pack+' produces a sound pack folder')
  args.cache.mkdir(parents=True,exist_ok=True);args.output.mkdir(parents=True,exist_ok=True);result=dict(version=VERSION,archives=ARCHIVES)
  if args.pack=='ydp':ydp(args.cache,args.output/'ydp-grand',args.download);return
+ if args.pack=='musescore-lite':musescore_lite(args.cache,args.output/'musescore-lite-piano-test',args.download);return
  if args.pack in ('electric','gm','upgrades'):
   selected=('electric','gm') if args.pack=='upgrades' else (args.pack,);entries=[]
   for key in selected:entries.append((electric if key=='electric' else gm)(args.cache,args.output/('piano-electric' if key=='electric' else 'keyboard-gm'),args.download))

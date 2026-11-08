@@ -204,7 +204,11 @@ class WindowTests(unittest.TestCase):
         w=self.w;c=Chord(0,3840);w.project.chords=[c];w.refresh();menu=w.chord_lane.context_menu(QPoint(round(w.chord_lane.x_at(240)),20))
         menus={a.text():a.menu() for a in walk_actions(menu) if a.menu()}
         from lingfeng.platform.chord_preferences import quick_qualities
-        self.assertEqual(len(menus['和弦根音'].actions()),12);self.assertEqual(len(menus['和弦性质'].actions()),len(quick_qualities()));self.assertEqual(len(menus['替换低音'].actions()),12)
+        qualities=menus['和弦性质'].actions()
+        self.assertEqual(len(menus['和弦根音'].actions()),12)
+        self.assertEqual([action.data() for action in qualities if action.isCheckable()],quick_qualities())
+        self.assertEqual(qualities[-1].text(),'从完整和弦列表选择…')
+        self.assertEqual(len(menus['替换低音'].actions()),12)
         from lingfeng.ui.dialogs import ChordPreferenceDialog
         d=ChordPreferenceDialog(w);d.list.setCurrentRow(1);d.move_item(-1);self.assertEqual(d.value()[0],'m');d.close()
 

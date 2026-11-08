@@ -12,8 +12,11 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 from lingfeng.audio.midi import event_list
-from lingfeng.music.model import Project, Chord, Note
+from lingfeng.music.abc_export import sheetsage_chord_changes
+from lingfeng.music.model import Project, Chord, Note, QUALITIES
 from lingfeng.platform import chord_preferences as preferences
+from lingfeng.platform.i18n import tr
+from lingfeng.ui.chord_settings_dialog import ChordQualityPickerDialog
 from lingfeng.ui.dialogs import ChordDialog, ChordMarkerDialog
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.ui.piano_roll import PianoRoll
@@ -21,23 +24,32 @@ from lingfeng.ui.piano_roll import PianoRoll
 APP=QApplication.instance() or QApplication([])
 
 
+def picker_row(dialog, quality):
+    return next(row for row in range(dialog.preview.rowCount())
+                if dialog.preview.item(row,0).data(Qt.ItemDataRole.UserRole)==quality)
+
+
 class ChordUiTests(unittest.TestCase):
     def setUp(self):
         self.addCleanup(preferences.set_preferences, preferences.settings_dict())
         preferences.load_preferences({})
 
-    def test_editor_always_uses_default_velocity_and_selected_quality_order(self):
+    def test_editor_uses_current_velocity_or_creation_memory_and_selected_quality_order(self):
         preferences.set_preferences(dict(default_velocities=dict(melody=45,harmony=101),quick_chord_qualities=['m7','7','']))
         p=Project();c=Chord(0,1920,velocity=36)
         first=ChordDialog(c,p,defaults=dict(quality='7',velocity=11));self.addCleanup(first.close)
-        self.assertEqual(first.velocity.value(),101)
+        self.assertEqual(first.velocity.value(),36)
         self.assertEqual([first.quality.itemData(i) for i in range(first.quality.count())],['m7','7',''])
-        first.velocity.setValue(65);saved=first.options();self.assertNotIn('velocity',saved)
-        second=ChordDialog(c,p,defaults=saved);self.addCleanup(second.close)
-        self.assertEqual(second.velocity.value(),101)
+        blank=Chord(1920,1920,notes=[],recognized=False)
+        create=ChordDialog(blank,p);self.addCleanup(create.close)
+        self.assertEqual(create.velocity.value(),101)
+        create.velocity.setValue(65);saved=create.options();self.assertEqual(saved['velocity'],65)
+        second=ChordDialog(blank,p,defaults=saved);self.addCleanup(second.close)
+        self.assertEqual(second.velocity.value(),65)
         p.chords=[c];roll=PianoRoll(p);self.addCleanup(roll.close)
         menu=roll.lane.context_menu(QPoint(round(roll.lane.x_at(100)),18));self.addCleanup(menu.close)
-        self.assertEqual([a.data() for a in menu.quality_menu.actions()],['m7','7',''])
+        self.assertEqual([a.data() for a in menu.quality_menu.actions() if a.isCheckable()],['m7','7',''])
+        self.assertEqual(menu.quality_menu.actions()[-1].text(),tr('从完整和弦列表选择…'))
         c.notes=[Note(0,800,64,36)]
         preserved=ChordDialog(c,p);self.addCleanup(preserved.close)
         preserved.regenerate.setChecked(False)
@@ -60,6 +72,85 @@ class ChordUiTests(unittest.TestCase):
         dialog.quality.setCurrentIndex(index)
         self.assertIn('CmM7',dialog.preview.text())
         self.assertNotIn('m(maj7)',dialog.preview.text())
+
+    def test_full_quality_picker_lists_all_supported_qualities_and_warns_for_yue2(self):
+        dialog=ChordQualityPickerDialog(2,'m');self.addCleanup(dialog.close)
+        self.assertEqual(dialog.preview.rowCount(),len(QUALITIES))
+        self.assertEqual({dialog.preview.item(row,0).data(Qt.ItemDataRole.UserRole)
+                          for row in range(dialog.preview.rowCount())},set(QUALITIES))
+        self.assertEqual(dialog.value(),'m')
+        self.assertIn('YuE2',dialog.warning.text())
+        compatible=dialog.compatibility.text()
+        dialog.search.setText('D13')
+        row=picker_row(dialog,'13')
+        self.assertFalse(dialog.preview.isRowHidden(row))
+        self.assertTrue(dialog.preview.isRowHidden(picker_row(dialog,'m')))
+        dialog.preview.setCurrentCell(row,0)
+        dialog.preview.selectRow(row)
+        self.assertEqual(dialog.preview.item(row,0).text(),'D13')
+        self.assertEqual(dialog.value(),'13')
+        self.assertIn('YuE2',dialog.compatibility.text())
+        self.assertNotEqual(dialog.compatibility.text(),compatible)
+        dialog.search.setText('no matching quality')
+        self.assertIsNone(dialog.value())
+        dialog.accept()
+        self.assertNotEqual(dialog.result(),QDialog.DialogCode.Accepted)
+
+    def test_chord_editor_full_picker_cancel_and_confirm_preserve_quick_choices(self):
+        preferences.set_preferences(dict(quick_chord_qualities=['m','']))
+        p=Project();chord=Chord(0,3840)
+        editor=ChordDialog(chord,p);self.addCleanup(editor.close)
+        editor.root.setCurrentIndex(editor.root.findData(2))
+        def choose(picker,accept):
+            row=picker_row(picker,'13')
+            self.assertEqual(picker.preview.item(row,0).text(),'D13')
+            picker.preview.setCurrentCell(row,0)
+            picker.preview.selectRow(row)
+            if accept:picker.accept()
+            else:picker.reject()
+            return picker.result()
+        with patch.object(ChordQualityPickerDialog,'exec',lambda picker:choose(picker,False)):
+            editor.full_quality_button.click()
+        self.assertEqual(editor.quality.currentData(),'')
+        self.assertEqual(editor.quality.findData('13'),-1)
+        with patch.object(ChordQualityPickerDialog,'exec',lambda picker:choose(picker,True)):
+            editor.full_quality_button.click()
+        self.assertEqual(editor.quality.currentData(),'13')
+        self.assertEqual([editor.quality.itemData(i) for i in range(editor.quality.count())],['m','','13'])
+        self.assertIn('D13',editor.preview.text())
+        edited=editor.value()
+        self.assertEqual((edited.root%12,edited.quality),(2,'13'))
+        self.assertEqual(chord.quality,'')
+        self.assertEqual(preferences.quick_qualities(),['m',''])
+
+    def test_context_menu_full_picker_applies_one_chord_and_supports_undo(self):
+        with tempfile.TemporaryDirectory(dir='tmp') as directory:
+            with patch('lingfeng.ui.main_window.user_data_dir',return_value=Path(directory)):
+                p=Project(chords=[Chord(0,3840),Chord(3840,3840,53,'m')]);p.fill_chord_gaps()
+                window=MainWindow(p);self.addCleanup(lambda:(setattr(window,'dirty',False),window.close()))
+                window.timer.stop();window.autosave.stop()
+                preferences.set_preferences(dict(quick_chord_qualities=[]))
+                before=copy.deepcopy(window.project.to_dict())
+                menu=window.chord_lane.context_menu(QPoint(round(window.chord_lane.x_at(100)),18))
+                self.addCleanup(menu.close)
+                self.assertTrue(menu.quality_menu.isEnabled())
+                action=next(a for a in menu.quality_menu.actions() if a.text()==tr('从完整和弦列表选择…'))
+                def choose(picker):
+                    self.assertEqual(picker.value(),'')
+                    row=picker_row(picker,'13')
+                    picker.preview.setCurrentCell(row,0)
+                    picker.preview.selectRow(row)
+                    picker.accept()
+                    return picker.result()
+                with patch.object(ChordQualityPickerDialog,'exec',choose), patch.object(window,'audition_chord'):
+                    action.trigger()
+                after=window.project.to_dict()
+                self.assertEqual(window.project.chords[0].quality,'13')
+                self.assertEqual(after['chords'][1:],before['chords'][1:])
+                self.assertEqual(sheetsage_chord_changes(window.project)[0][:2],(0,'C13'))
+                self.assertEqual(preferences.quick_qualities(),[])
+                window.undo();self.assertEqual(window.project.to_dict(),before)
+                window.redo();self.assertEqual(window.project.to_dict(),after)
 
     def test_actual_draw_input_uses_each_roll_default(self):
         preferences.set_preferences(dict(default_velocities=dict(melody=41,instrument=59,harmony=109)))

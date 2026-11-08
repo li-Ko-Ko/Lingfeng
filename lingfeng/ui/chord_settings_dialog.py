@@ -20,6 +20,116 @@ def quality_formula(code):
     return degree_formula(code)
 
 
+class ChordQualityReference(QWidget):
+    """Searchable catalogue shared by the settings and the chord picker."""
+
+    def __init__(self, labels, root=0, parent=None):
+        super().__init__(parent)
+        self.labels = labels
+        box = QVBoxLayout(self)
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel(tr('预览根音')))
+        self.preview_root = QComboBox()
+        for pc, name in enumerate(SHARP):
+            self.preview_root.addItem(name, pc)
+        self.preview_root.setCurrentIndex(root % 12)
+        controls.addWidget(self.preview_root)
+        self.search = QLineEdit()
+        self.search.setPlaceholderText(tr('搜索名称、性质或数字关系'))
+        self.search.setClearButtonEnabled(True)
+        controls.addWidget(self.search, 1)
+        box.addLayout(controls)
+        self.preview = QTableWidget(len(QUALITIES), 3)
+        self.preview.setHorizontalHeaderLabels([tr('和弦名称'), tr('和弦性质'), tr('数字关系（根音 = 1）')])
+        self.preview.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.preview.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.preview.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.preview.verticalHeader().setVisible(False)
+        self.preview.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.preview.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.preview.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        box.addWidget(self.preview, 1)
+        note = QLabel(tr('数字以和弦根音为 1，保留升降号及 9、11、13 等扩展音；同义名称分别列出。'))
+        note.setWordWrap(True)
+        box.addWidget(note)
+        self.preview_root.currentIndexChanged.connect(self.update_preview)
+        self.search.textChanged.connect(self.filter_preview)
+        self.update_preview()
+
+    def update_preview(self):
+        root = SHARP[self.preview_root.currentData()]
+        for row, code in enumerate(QUALITIES):
+            values = (root + code, self.labels[code], quality_formula(code))
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setData(Qt.ItemDataRole.UserRole, code)
+                item.setToolTip(value)
+                self.preview.setItem(row, column, item)
+        self.filter_preview()
+
+    def filter_preview(self):
+        query = self.search.text().strip().casefold()
+        for row in range(self.preview.rowCount()):
+            text = ' '.join(self.preview.item(row, column).text() for column in range(self.preview.columnCount()))
+            self.preview.setRowHidden(row, bool(query) and query not in text.casefold())
+        row = self.preview.currentRow()
+        if row >= 0 and self.preview.isRowHidden(row):
+            self.preview.clearSelection()
+
+
+class ChordQualityPickerDialog(QDialog):
+    def __init__(self, root, quality, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tr('从完整和弦列表选择…'))
+        self.resize(740, 560)
+        self.setMinimumSize(540, 380)
+        from lingfeng.music.chord_operations import quality_items
+        box = QVBoxLayout(self)
+        self.warning = QLabel(tr('部分和弦性质可能与 YuE2 生态不兼容。导出 YuE2 兼容版 ABC 时，无法无损转换的和弦需确认替换或省略。'))
+        self.warning.setWordWrap(True)
+        font = self.warning.font()
+        font.setBold(True)
+        self.warning.setFont(font)
+        box.addWidget(self.warning)
+        reference = ChordQualityReference(dict(quality_items()), root)
+        self.preview, self.search = reference.preview, reference.search
+        box.addWidget(reference, 1)
+        self.compatibility = QLabel()
+        self.compatibility.setWordWrap(True)
+        box.addWidget(self.compatibility)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        box.addWidget(self.buttons)
+        self.preview.itemSelectionChanged.connect(self.update_selection)
+        self.search.textChanged.connect(self.update_selection)
+        self.preview.itemDoubleClicked.connect(self.accept)
+        if quality in QUALITIES:
+            row = list(QUALITIES).index(quality)
+            self.preview.selectRow(row)
+            self.preview.scrollToItem(self.preview.item(row, 0))
+        self.update_selection()
+
+    def update_selection(self):
+        quality = self.value()
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(quality is not None)
+        if quality is None:
+            text = ''
+        elif yue2_lossless_quality(quality) is None:
+            text = tr('此和弦性质无法无损转换为 YuE2 和弦。')
+        else:
+            text = tr('此和弦性质可无损转换为 YuE2 和弦。')
+        self.compatibility.setText(text)
+
+    def accept(self):
+        if self.value() is not None:
+            super().accept()
+
+    def value(self):
+        items = self.preview.selectedItems()
+        return items[0].data(Qt.ItemDataRole.UserRole) if items and not self.preview.isRowHidden(items[0].row()) else None
+
+
 class ChordSettingsDialog(QDialog):
     def __init__(self, parent=None, values=None):
         super().__init__(parent)
@@ -60,36 +170,9 @@ class ChordSettingsDialog(QDialog):
         self.list.itemChanged.connect(self.update_summary)
         self.populate_quick(selected)
 
-        reference = QWidget()
-        reference_box = QVBoxLayout(reference)
-        preview_controls = QHBoxLayout()
-        preview_controls.addWidget(QLabel(tr('预览根音')))
-        self.preview_root = QComboBox()
-        for pc, name in enumerate(SHARP):
-            self.preview_root.addItem(name, pc)
-        preview_controls.addWidget(self.preview_root)
-        self.search = QLineEdit()
-        self.search.setPlaceholderText(tr('搜索名称、性质或数字关系'))
-        self.search.setClearButtonEnabled(True)
-        preview_controls.addWidget(self.search, 1)
-        reference_box.addLayout(preview_controls)
-        self.preview = QTableWidget(len(QUALITIES), 3)
-        self.preview.setHorizontalHeaderLabels([tr('和弦名称'), tr('和弦性质'), tr('数字关系（根音 = 1）')])
-        self.preview.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.preview.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.preview.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.preview.verticalHeader().setVisible(False)
-        self.preview.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.preview.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.preview.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        reference_box.addWidget(self.preview, 1)
-        reference_note = QLabel(tr('数字以和弦根音为 1，保留升降号及 9、11、13 等扩展音；同义名称分别列出。'))
-        reference_note.setWordWrap(True)
-        reference_box.addWidget(reference_note)
+        reference = ChordQualityReference(self.quality_labels)
+        self.preview, self.preview_root, self.search = reference.preview, reference.preview_root, reference.search
         self.tabs.addTab(reference, tr('所有支持的和弦'))
-        self.preview_root.currentIndexChanged.connect(self.update_preview)
-        self.search.textChanged.connect(self.filter_preview)
-        self.update_preview()
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept)
@@ -132,23 +215,6 @@ class ChordSettingsDialog(QDialog):
     def update_summary(self):
         count = sum(self.list.item(row).checkState() == Qt.CheckState.Checked for row in range(self.list.count()))
         self.summary.setText(tr('已选 {0} / {1} 个和弦性质', count, self.list.count()))
-
-    def update_preview(self):
-        root = SHARP[self.preview_root.currentData()]
-        for row, code in enumerate(QUALITIES):
-            values = (root + code, self.quality_labels[code], quality_formula(code))
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                item.setData(Qt.ItemDataRole.UserRole, code)
-                item.setToolTip(value)
-                self.preview.setItem(row, column, item)
-        self.filter_preview()
-
-    def filter_preview(self):
-        query = self.search.text().strip().casefold()
-        for row in range(self.preview.rowCount()):
-            text = ' '.join(self.preview.item(row, column).text() for column in range(self.preview.columnCount()))
-            self.preview.setRowHidden(row, bool(query) and query not in text.casefold())
 
     def value(self):
         selected = [self.list.item(row).data(Qt.ItemDataRole.UserRole) for row in range(self.list.count())

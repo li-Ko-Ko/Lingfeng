@@ -81,14 +81,22 @@ class SamplePackTests(unittest.TestCase):
         self.assertEqual(banks.default_audio(), saved)
         self.assertEqual(Project().audio, saved)
 
-    def test_ydp_defaults_keep_other_valid_saved_tracks(self):
+    def test_generaluser_defaults_keep_other_valid_saved_tracks_and_legacy_fallbacks(self):
+        gm = dict(device=banks.GENERALUSER_GS_DEVICE, program=0)
+        lite = dict(device=banks.MUSESCORE_LITE_DEVICE, program=0)
         ydp = dict(device='synth:ydp-grand', program=0)
-        options = {'synth:ydp-grand': [0], 'synth:piano-small': [0, 1], 'synth:piano-electric': [2, 5, 6]}
+        options = {banks.GENERALUSER_GS_DEVICE: list(range(128)),
+                   banks.MUSESCORE_LITE_DEVICE: [0], 'synth:ydp-grand': [0],
+                   'synth:piano-small': [0, 1], 'synth:piano-electric': [2, 5, 6]}
         with patch.object(banks, 'available_programs', side_effect=lambda device: options.get(device, [])):
-            self.assertEqual(Project().audio, dict(melody=ydp, chords=ydp, instrument=ydp))
+            self.assertEqual(Project().audio, dict(melody=gm, chords=gm, instrument=gm))
             greg = dict(device='synth:piano-electric', program=5, gain_db=6)
             saved = dict(melody=dict(device='synth:missing', program=1), chords=ydp, instrument=greg)
             banks.save_defaults(saved)
+            self.assertEqual(Project().audio, dict(melody=gm, chords=ydp, instrument=greg))
+            del options[banks.GENERALUSER_GS_DEVICE]
+            self.assertEqual(Project().audio, dict(melody=lite, chords=ydp, instrument=greg))
+            del options[banks.MUSESCORE_LITE_DEVICE]
             self.assertEqual(Project().audio, dict(melody=ydp, chords=ydp, instrument=greg))
 
     def test_native_pack_remains_fallback_without_sample_pack(self):

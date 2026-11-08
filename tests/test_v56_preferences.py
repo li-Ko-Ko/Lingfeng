@@ -205,9 +205,8 @@ class MainWindowCreationPreferencesTests(unittest.TestCase):
             editor = ChordDialog(Chord(0, 960, velocity=old_velocity), reopened.project,
                                  defaults={'velocity': old_velocity})
             try:
-                self.assertEqual(editor.velocity.value(), 103)
-                editor.velocity.setValue(old_velocity)
-                self.assertNotIn('velocity', editor.options())
+                self.assertEqual(editor.velocity.value(), old_velocity)
+                self.assertEqual(editor.options()['velocity'], old_velocity)
             finally:
                 editor.close()
 

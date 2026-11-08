@@ -138,12 +138,25 @@ class FontLimitTests(unittest.TestCase):
         w.redo();self.assertEffective();self.assertEqual((w.note_font.value(),w.score_view.canvas.layout.font_limit),second)
 
     def test_pitch_gap_and_forced_row_recompute_safe_limit(self):
-        p=song(style='spatial');p.notes=[Note(0,60,60),Note(60,60,61)];p.notation.update(row_gap=16,font_size=26)
-        self.enter(p);w=self.w;first=w.score_view.canvas.layout.font_limit;w.set_notation('row_gap',8)
-        self.assertLess(w.score_view.canvas.layout.font_limit,first);self.assertEffective()
-        w.mutate('merge',lambda q:apply_forced_row(q,list(range(6))),source='score');self.assertEffective()
-        s=w.score_view.canvas.layout.systems[0];self.assertEqual(s.bars,list(range(6)))
-        self.assertAlmostEqual(s.symbol_scale,w.note_font.value()/15*2/3)
+        p = song(style='spatial')
+        # Notes in the same time column let pitch spacing determine the
+        # rounded recommendation, even with attack-based bar widths.
+        p.notes = [Note(0, 480, 60), Note(0, 480, 62)]
+        p.notation.update(row_gap=16, font_size=26)
+        canvas = self.enter(p)
+        w = self.w
+        first = canvas.layout.font_limit
+        w.set_notation('row_gap', 8)
+        narrow = canvas.layout.font_limit
+        self.assertLess(narrow, first)
+        self.assertEffective()
+
+        w.mutate('merge', lambda project: apply_forced_row(project, list(range(6))), source='score')
+        self.assertGreater(canvas.layout.font_limit, narrow)
+        self.assertEffective()
+        system = canvas.layout.systems[0]
+        self.assertEqual(system.bars, list(range(6)))
+        self.assertAlmostEqual(system.symbol_scale, w.note_font.value() / 15 * 2 / 3)
 
     def test_music_snapshot_keeps_limit_until_reentry_and_compose_is_idle(self):
         canvas=self.enter();w=self.w;old=canvas.layout;cap=canvas.layout.font_limit

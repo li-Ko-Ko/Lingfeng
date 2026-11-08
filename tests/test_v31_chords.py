@@ -156,8 +156,6 @@ class RootPickerTests(unittest.TestCase):
         p=Project();p.contexts=[Context(0,3840),Context(3840,p.end,53,'Ionian')];c=Chord(3840,PPQ,58)
         dialog=ChordDialog(c,p)
         try:
-            self.assertEqual(dialog.root.currentData(),5)
-            dialog.root.setCurrentIndex(dialog.root.findData(10))
             self.assertEqual(dialog.root.currentData(),10);self.assertEqual(dialog.root.currentText(),'4 · A#')
             self.assertEqual(dialog.root.itemText(1),'#1 · F#')
             self.assertIn('Bb',dialog.preview.text())

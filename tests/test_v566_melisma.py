@@ -84,9 +84,9 @@ class AutomaticAnnotationTests(unittest.TestCase):
                 with self.subTest(style=style, sustain=sustain):
                     p = song(16); last = p.starts[-2]
                     p.notes = [Note(0, last if sustain else 480, 60), Note(last, 480, 62)]
-                    p.notation.update(style=style, lyrics=False)
+                    p.notation.update(style=style, lyrics=True)
                     plain = ScoreLayout(p)
-                    apply_range(p, '/-', 15, 1)
+                    apply_range(p, '_', 15, 1)
                     before = copy.deepcopy(p.to_dict()); midi = export_midi(p, None)
                     layout = ScoreLayout(p); self.assertGreater(layout.pages, 1)
                     paths = []; rests = {}

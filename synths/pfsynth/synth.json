@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "id": "pfsynth",
+  "name": "PFSynth · 物理建模钢琴",
+  "name_en": "PFSynth · Physically Modeled Piano",
+  "version": "2026.10.08",
+  "abi": 1,
+  "platform": "windows-x64",
+  "engine": "native",
+  "library": "lingfeng-pfsynth.dll",
+  "sha256": "362c7e9a931fa48286aa84e3270fcb0f18d15c716f4b1dedaa503d55ceade7d1",
+  "license": "MIT",
+  "license_file": "LICENSE-PFSynth.txt",
+  "source": "https://github.com/olaugh/pfsynth/tree/2989410f821ef15e4992c2e092fdf07d57d54796",
+  "author": "John O’Laughlin",
+  "presets": [
+    {
+      "program": 0,
+      "model": 0,
+      "name": "物理建模钢琴",
+      "name_en": "Physically modeled piano",
+      "gain": 1.0
+    }
+  ]
+}

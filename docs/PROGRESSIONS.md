@@ -41,9 +41,9 @@ Capturing chord blocks stores their specified bass and inversions. Find chord pr
 - 页面检索路径中的 b4 表示借用小调的 iv，不是 bIV；本表按谱例实际性质写作 iv。
 - Inversions use explicit bass degrees: I/3, I/5, V/7 and vi7/5. I6 input continues to mean an added-sixth chord. An applied chord can end in an original-key bass degree: V/vi/#5 is E/G# in C major. The source path b4 denotes borrowed iv, not a lowered IV root.
 
-应用时保留预设罗马数字所写性质，以所选主音预览字母名称；所有目标区域均按这个主音生成，不随谱面调号改变。运行时使用 PyChord 校验及移调，所有 21 组均受支持。原有其它 5 组继续保留，默认共 26 组；用户可在“管理和弦进行”中修改自己的目录。
+应用时保留预设罗马数字所写性质，以所选主音预览字母名称；所有目标区域均按这个主音生成，不随谱面调号改变。预设下拉列表和较长的预览都可纵向滚动，确认和取消按钮始终可见。运行时使用 PyChord 校验及移调，所有 21 组均受支持。原有其它 5 组继续保留，默认共 26 组；用户可在“管理和弦进行”中修改自己的目录。
 
-Application previews letters and generates all destination regions using one selected tonic, preserving the qualities written in the recipe. PyChord validates/transposes all 21 supported recipes. Five other existing recipes remain, making 26 defaults. Users manage their own library in Manage chord progressions.
+Application previews letters and generates all destination regions using one selected tonic, preserving the qualities written in the recipe. Scroll the preset list or a long preview vertically while keeping the confirmation and cancellation buttons in view. PyChord validates/transposes all 21 supported recipes. Five other existing recipes remain, making 26 defaults. Users manage their own library in Manage chord progressions.
 
 ## 局部主音（0.44） / Local tonic
 

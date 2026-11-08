@@ -74,12 +74,16 @@ class CircleUnitTests(unittest.TestCase):
 
     def test_circle_reserve_is_stable_when_display_is_off_and_also_covers_rests_x_and_dashes(self):
         p=song(bars=2);p.notes=[Note(0,3*PPQ,48),Note(3840+240,240,48)]
-        apply_section(p,'rap/16',4800)
+        p.notation['lyrics']=True
+        rap_note=p.notes[-1]
+        apply_section(p,r'\x{rap}',rap_note.start)
         on=ScoreLayout(p);p.notation['circles']=False;off=ScoreLayout(p)
         self.assertEqual(on.cell_width,off.cell_width);self.assertEqual(on.max_font_size,off.max_font_size)
         self.assertEqual([s.bar_widths for s in on.systems],[s.bar_widths for s in off.systems])
         fragments=[f for s in off.systems for parts in s.fragments.values() for f in parts]
-        self.assertTrue(any(f.ghost for f in fragments));self.assertTrue(any(f.pitch is None and not f.ghost for f in fragments))
+        self.assertEqual([(f.start,f.duration,f.source_ids) for f in fragments if f.ghost],
+                         [(rap_note.start,rap_note.duration,(rap_note.id,))])
+        self.assertTrue(any(f.pitch is None and not f.ghost for f in fragments))
         self.assertTrue(any(fragment_style(f)[3]==2 for f in fragments))
         for s in off.systems:
             self.assertAlmostEqual(s.beat_gap,2*s.bar_side_gap)

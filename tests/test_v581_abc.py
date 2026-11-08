@@ -65,13 +65,14 @@ Z2|
         self.assertEqual(project.chords[-1].name, 'N.C.')
         self.assertEqual(imported(data, section_mapping={'interlude': 'Solo'}).sections(), [('solo', 0, 2)])
         self.assertEqual(imported(data, section_mapping={}).sections(), [('interlude', 0, 2)])
+        self.assertEqual(imported(data.replace('% interlude', '% Link 2')).sections(), [('interlude 2', 0, 2)])
         self.assertEqual(imported('%abc-2.1\n'+data).notes[1].pitch, 77)
 
     def test_standard_roundtrip_with_polyphony_custom_names_and_ties(self):
         project = Project(
             title='百分比 100%', author='甲 % 乙',
             melody_names=['Lead "A"', '乐器旋律'],
-            measures=[Measure(section='Link'), Measure(3, 4)],
+            measures=[Measure(section='Interlude'), Measure(3, 4)],
             contexts=[Context(0, 4090), Context(4090, 6720, 55)],
             notes=[Note(200, 4000, 66, lyric='a-word'), Note(1000, 400, 73, lyric='爱')],
             instrument_notes=[Note(3900, 450, 70, lyric='音')],
@@ -85,6 +86,7 @@ Z2|
         with TemporaryDirectory() as temp:
             path = Path(temp)/'roundtrip.abc'
             write_abc(project, path, section_mapping={'Link': 'custom fill'})
+            self.assertIn('% section: custom fill', path.read_text('utf-8'))
             data = read_abc(path)
             restored = project_from_abc(data, **data.defaults(), section_mapping={'custom fill': 'Link'})
         self.assertEqual(restored.title, project.title)
@@ -99,7 +101,7 @@ Z2|
 
     def test_native_roundtrip_splits_sustains_without_extra_attacks(self):
         project = Project(
-            measures=[Measure(section='Link'), Measure(3, 4, 'Verse')],
+            measures=[Measure(section='Interlude'), Measure(3, 4, 'Verse')],
             contexts=[Context(0, 2880, 54), Context(2880, 6720, 48)],
             notes=[Note(0, 4200, 66), Note(4200, 1080, 65)],
             instrument_notes=[Note(3840, 2400, 74)],
@@ -123,7 +125,7 @@ Z2|
 
     def test_native_track_selection_and_reviewed_chord_replacement(self):
         from lingfeng.music.abc_export import sheetsage_chord_changes
-        project = Project(measures=[Measure(section='Link')],
+        project = Project(measures=[Measure(section='Interlude')],
                           notes=[Note(0, 960, 60)], instrument_notes=[Note(960, 960, 67)],
                           chords=[Chord(0, 3840, 48, 'maj9', marked=True)])
         self.assertEqual(sheetsage_chord_changes(project), [(0, 'Cmaj9', 'Cmaj7')])
@@ -139,20 +141,32 @@ Z2|
 
     def test_optional_yue2_rules_and_chords_inside_held_notes(self):
         from lingfeng.music.abc_export import sheetsage_chord_changes
-        project = Project(measures=[Measure(section='Link-2')], contexts=[Context(0, 3840)],
+        project = Project(measures=[Measure(section='Interlude-2')], contexts=[Context(0, 3840)],
                           notes=[Note(0, 1920, 69)], chords=[
                               Chord(0, 960, 50, 'mM7'),
                               Chord(960, 1920, 55, '9'),
                           ])
+        legacy = project.to_dict()
+        legacy['measures'][0]['section'] = 'Link-2'
+        project = Project.from_dict(legacy)
+        self.assertEqual(project.to_dict()['measures'][0]['section'], 'interlude-2')
         self.assertEqual(sheetsage_chord_changes(project), [(960, 'G9', 'G7')])
-        with self.assertRaisesRegex(ValueError, 'link'):
-            serialize_abc(project, sheetsage=True, rewrite_links=False)
         with self.assertRaises(ValueError):
             serialize_abc(project, sheetsage=True, convert_chords=False)
         text = serialize_abc(project, sheetsage=True, convert_chords=False, chord_overrides={960: 'G7'})
         self.assertIn('% interlude-2', text)
         self.assertIn('"Dm(maj7)"A8-"G7"A8', text)
-        self.assertIn('% section: link-2', serialize_abc(project))
+        self.assertIn('% section: interlude-2', serialize_abc(project))
+        for sheetsage, prefix in ((False, '% section: '), (True, '% ')):
+            cases = (
+                ({'Interlude-2': 'interlude-2', 'Link-2': 'Link-2'}, 'interlude-2'),
+                ({'Interlude-2': 'interlude-2', 'Link-2': 'Custom Fill'}, 'Custom Fill'),
+                ({'Interlude-2': 'Link 3', 'Link-2': 'Custom Fill'}, 'interlude 3'),
+            )
+            for mapping, label in cases:
+                with self.subTest(sheetsage=sheetsage, mapping=mapping):
+                    self.assertIn(prefix + label + '\n', serialize_abc(
+                        project, sheetsage=sheetsage, section_mapping=mapping))
         restored = imported(text)
         self.assertEqual(performed(restored.notes), performed(project.notes))
 

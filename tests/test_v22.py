@@ -83,17 +83,23 @@ class InterfaceTests(unittest.TestCase):
         self.assertFalse(r.selected_ids);self.assertFalse(r.selected_note)
         h.selected_ids={h.notes[0].id};h.refresh();h.noteSelected.emit(h.notes[0].id)
         self.assertFalse(h.selected_chords);self.assertFalse(h.selected_chord)
-    def test_chord_menu_keeps_same_list_for_one_many_and_empty_with_right_selection(self):
-        w=self.w;lane=w.chord_lane;r=lane.editor;a,b=w.project.chords
+    def test_chord_menu_keeps_common_commands_with_contextual_single_chord_names(self):
+        w=self.w;lane=w.chord_lane;r=lane.editor
+        # The same four pitches can be named C6 or Am7/C.
+        w.project.chords[0]=Chord(0,3840,48,'6',notes=[Note(0,3840,pitch) for pitch in (48,52,55,57)])
+        w.refresh();a,b=w.project.chords
         point=QPoint(round(lane.x_at(960)),25);single=lane.context_menu(point);self.assertEqual(r.selected_chords,{a.id})
         self.assertEqual(lane.highlight_ids,{a.id});lane.hover_event('');self.assertIn(a.id,w.roll.chord_highlights)
         self.assertTrue(find(single,'编辑和弦…').isEnabled());self.assertFalse(find(single,'合并相邻和弦').isEnabled())
+        names=find(single,'其他识别名称').menu()
+        self.assertTrue(any('Am7/C' in action.text() and action.isEnabled() for action in names.actions()))
+        common=[label for label in labels(single) if label!='其他识别名称']
         lane.selection_event({a.id,b.id});multi=lane.context_menu(point)
-        self.assertEqual(labels(single),labels(multi));self.assertFalse(find(multi,'编辑和弦…').isEnabled());self.assertFalse(multi.root_menu.isEnabled())
+        self.assertEqual(common,labels(multi));self.assertFalse(find(multi,'编辑和弦…').isEnabled());self.assertFalse(multi.root_menu.isEnabled())
         self.assertTrue(find(multi,'合并相邻和弦').isEnabled());self.assertTrue(find(multi,'试听和弦').isEnabled())
         multi.custom_rhythm_action.trigger();self.assertTrue(all(c.custom_rhythm for c in w.project.chords if c.notes!=[]))
         w.project.chords=[c for c in w.project.chords if c.notes!=[]];w.refresh();lane.selection_event(set());blank=lane.context_menu(QPoint(round(lane.x_at(9000)),25))
-        expected=[label.replace('在此和弦开头覆盖粘贴','在此粘贴和弦') for label in labels(single)]
+        expected=[label.replace('在此和弦开头覆盖粘贴','在此粘贴和弦') for label in common]
         self.assertEqual(expected,labels(blank));self.assertFalse(find(blank,'复制所选和弦').isEnabled())
     def test_note_menu_same_list_properties_single_only_and_no_time_commands(self):
         r=self.w.roll;r.selected_ids={self.w.project.notes[0].id};r.refresh();one=QMenu();r.selection_menu(one,0)

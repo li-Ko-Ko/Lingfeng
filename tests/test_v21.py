@@ -80,10 +80,17 @@ class MusicTests(unittest.TestCase):
         self.assertIsNone(analyze(c,p));p.chords=[c];before=copy.deepcopy(c.notes);move_chords(p,{c.id},480)
         self.assertEqual(p.chords[0].notes,before);repartition_chord(p,c.id,1200,6000)
         self.assertEqual(signature(p.chords[0].render_notes()),[(1440+n.start,n.duration,n.pitch,n.velocity) for n in before])
-    def test_empty_offbeat_crop_still_remembers_name_pattern_and_can_expand(self):
-        p=Project();c=Chord(0,3840,48,'',4,pattern='offbeat');p.chords=[c]
-        repartition_chord(p,c.id,0,240);self.assertEqual(p.chords[0].notes,[]);self.assertEqual(analyze(p.chords[0],p).pattern,'offbeat')
-        repartition_chord(p,c.id,960,2880);self.assertEqual(signature(p.harmony_notes()),reference(c,p,960,2880))
+    def test_empty_offbeat_crop_is_silent_after_rescan_and_extension(self):
+        p=Project();c=Chord(0,3840,48,'',4,pattern='offbeat');p.chords=[c];before=p.to_dict()
+        repartition_chord(p,c.id,0,240)
+        p.rescan_changed_harmony(before)
+        self.assertEqual(p.chords[0].name,'N.C.')
+        self.assertIsNone(analyze(p.chords[0],p))
+        before=p.to_dict()
+        repartition_chord(p,c.id,0,2880)
+        p.rescan_changed_harmony(before)
+        self.assertEqual(p.chords[0].name,'N.C.')
+        self.assertEqual(p.harmony_notes(),[])
     def test_old_project_stays_unchanged_until_edit_and_new_events_roundtrip(self):
         p=Project();c=Chord(960,3840,pattern='up');p.chords=[c];before=signature(p.harmony_notes());loaded=Project.from_dict(p.to_dict())
         self.assertEqual(signature(loaded.harmony_notes()),before);move_chords(loaded,{c.id},240)

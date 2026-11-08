@@ -64,7 +64,7 @@ class Workspace581Tests(unittest.TestCase):
 
     def test_file_menu_exports_model_abc_with_both_melodies(self):
         w=self.window
-        w.project.measures[0].section='Link'
+        w.project.measures[0].section='interlude'
         file_action=next(action for action in w.title_bar.menu.actions() if action.text()==tr('文件'))
         file_menu=file_action.menu()
         export_action=next(action for action in file_menu.actions() if action.text()==tr('导出'))

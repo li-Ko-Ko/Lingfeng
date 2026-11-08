@@ -7,10 +7,10 @@ from pathlib import Path
 import shutil
 
 STK_PACKS=('stk-essentials','stk-colors','stk-acoustic')
-APPROVED_PACKS=(*STK_PACKS,'piano-electric','ydp-grand')
-# The source tree retains its existing packs. Greg and YDP are reproduced from
-# the pinned downloads in build_piano_packs.py before building a release.
-REPOSITORY_PACKS=(*STK_PACKS,'piano-small')
+APPROVED_PACKS=(*STK_PACKS,'piano-electric','generaluser-gs','pfsynth')
+# The source tree also retains the legacy small piano pack. Greg is reproduced
+# from the pinned downloads in build_piano_packs.py before building a release.
+REPOSITORY_PACKS=(*STK_PACKS,'piano-small','generaluser-gs','pfsynth')
 SOURCE_ROOT_FILES=('README.md','CONTRIBUTING.md','CHANGELOG.md','LICENSE',
                    'main.py','requirements.txt','requirements-build.txt','build.ps1',
                    '.gitignore','.gitattributes')
@@ -38,7 +38,7 @@ PRIVATE_SOURCE_FILES=(
     'docs/ARCHITECTURE.md','docs/INTERFACES.md','docs/MAINTENANCE.md',
     'docs/BASELINE_VALIDATION.md','docs/module_inventory.json',
     'scripts/audit_architecture.py','tests/test_architecture.py',
-    'docs/LICENSE_AUDIT.md','docs/REFERENCES.md','launch.cmd','start.ps1',
+    'docs/LICENSE_AUDIT.md','docs/REFERENCES.md','docs/SOUNDBANKS_LOCAL.md','launch.cmd','start.ps1',
     'scripts/make_icon.py','examples/lingfeng-rap.mid',
     'licenses/qt-6.9.2/qtbase/src/widgets/doc/images/licensewizard-flow.png',
 )

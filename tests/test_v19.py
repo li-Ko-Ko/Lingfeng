@@ -11,6 +11,7 @@ from lingfeng.music.note_operations import overwrite_note, NoteClipboard, repart
 from lingfeng.music.rhythm import analyze, label, extend, _recognize, _recognize_bar
 from tests.music_reference import bar_events
 from lingfeng.ui.main_window import MainWindow
+from lingfeng.platform import chord_preferences
 from lingfeng.engraving.lyrics import put, events, matching_issues
 from tests.test_v14 import Synth
 from tests.menu_helpers import find_action, walk_actions
@@ -72,9 +73,12 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(spans(w.project.harmony_notes()),[(0,960,60,100),(960,1440,60,70)])
     def test_multivoice_paste_over_existing_notes_and_repeat(self):
         w=self.w;p=w.project;p.notes=[Note(0,480,60,100),Note(0,960,64,90),Note(1920,1920,60,70),Note(1920,1920,64,75)];w.refresh()
+        preferences=chord_preferences.settings_dict(include_recognition=True)
+        self.addCleanup(chord_preferences.load_preferences,preferences)
+        chord_preferences.set_preferences({**preferences,'default_velocities':{'melody':63,'instrument':76,'harmony':88}})
         w.roll.selected_ids={n.id for n in p.notes[:2]};w.note_command(w.roll,'copy:direct');menu=QMenu();w.roll.selection_menu(menu,2400)
         action=find_action(menu,'在此粘贴音符');self.assertTrue(action.isEnabled());action.trigger()
-        expected=[(0,480,60,100),(0,960,64,90),(1920,2400,60,70),(1920,2400,64,75),(2400,2880,60,100),(2400,3360,64,90),(2880,3840,60,70),(3360,3840,64,75)]
+        expected=[(0,480,60,100),(0,960,64,90),(1920,2400,60,70),(1920,2400,64,75),(2400,2880,60,63),(2400,3360,64,63),(2880,3840,60,70),(3360,3840,64,75)]
         self.assertEqual(spans(w.project.notes),expected)
         w.seek(2400);w.paste_selection();self.assertEqual(spans(w.project.notes),expected);w.project.validate()
     def test_harmony_multivoice_paste_at_position_marker(self):

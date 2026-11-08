@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "pack": "generaluser-gs",
+  "version": "2.0.3",
+  "inputs": [
+    {
+      "file": "GeneralUser-GS.sf2",
+      "url": "https://github.com/mrbumpy409/GeneralUser-GS/blob/main/GeneralUser-GS.sf2",
+      "sha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+      "git_blob": "298b552d2e9d1307e03e5c5c99d2c046aaed9ec3",
+      "target": "GeneralUser-GS.sf2"
+    },
+    {
+      "file": "GeneralUser-GS-LICENSE.txt",
+      "url": "https://github.com/mrbumpy409/GeneralUser-GS/blob/main/documentation/LICENSE.txt",
+      "sha256": "7b32efefdf95ce38a043799f0659853ddc00fbaa14d8c50f0aca16b9b8b405be",
+      "git_blob": "f8fc9c58d7574f2b0ce6cea86ff49192540bcc33",
+      "target": "GeneralUser-GS-LICENSE.txt"
+    },
+    {
+      "url": "https://github.com/FluidSynth/fluidsynth/releases/download/v2.6.1/fluidsynth-v2.6.1-win10-x64-cpp11.zip",
+      "sha256": "fab7a2e4b85675b66970f97a39bbc239729c5e0f237198b5922a6a73cbc8677c",
+      "archive_bytes": 2727529,
+      "format": "zip",
+      "file_map": {
+        "fluidsynth-v2.6.1-win10-x64-cpp11/bin/libfluidsynth-3.dll": "bin/libfluidsynth-3.dll",
+        "fluidsynth-v2.6.1-win10-x64-cpp11/bin/sndfile.dll": "bin/sndfile.dll"
+      }
+    },
+    {
+      "url": "https://codeload.github.com/FluidSynth/fluidsynth/zip/refs/tags/v2.6.1",
+      "sha256": "0965a1132bf2dd20135687bee8b2034c110664b4b561fbacc9d515a92cad6031",
+      "archive_bytes": 2501921,
+      "format": "file",
+      "target": "runtime/fluidsynth-2.6.1-source.zip"
+    },
+    {
+      "url": "https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz",
+      "sha256": "3799ca9924d3125038880367bf1468e53a1b7e3686a934f098b7e1d286cdb80e",
+      "archive_bytes": 730760,
+      "format": "file",
+      "target": "runtime/libsndfile-1.2.2-source.tar.xz"
+    },
+    {
+      "url": "https://www.mpg123.de/download/mpg123-1.31.3.tar.bz2",
+      "sha256": "1ca77d3a69a5ff845b7a0536f783fee554e1041139a6b978f6afe14f5814ad1a",
+      "archive_bytes": 1094474,
+      "format": "file",
+      "target": "runtime/mpg123-1.31.3-source.tar.bz2"
+    },
+    {
+      "url": "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz",
+      "sha256": "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e",
+      "archive_bytes": 1524133,
+      "format": "file",
+      "target": "runtime/lame-3.100-source.tar.gz"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/xiph/ogg/v1.3.5/COPYING",
+      "sha256": "40b96ef8f651ddb335766f7321eea7a0ea93cc4bcdab312a699d55efab576e52"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/xiph/vorbis/v1.3.7/COPYING",
+      "sha256": "928871c8731c91b86071704394566350cc3aa4e4ed4dccdcb9fc9847d0463294"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/xiph/flac/1.4.2/COPYING.Xiph",
+      "sha256": "9cc3a24d4a4f95c9268198471993bbfb9a33179de9fd6866c16cafe3323d2e78"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/xiph/opus/v1.4/COPYING",
+      "sha256": "9559c10646c282671e23b5cd23d9c9ae4c3b69424c4060f68614bb93f6747140"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/fix-m1-build.patch",
+      "sha256": "940da2564c97f455ef6a1584db5b39e52f7eb698c4a0bca69da8f90828cabcf9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/fix-modulejack.patch",
+      "sha256": "4518011667c6820ad0deb1654ec70f426a651b515b662da83d62a5681cb9996d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vcpkg/2023.04.15/ports/mpg123/vcpkg.json",
+      "sha256": "ce654a7b0daecfc22f5c3078d2e31475f39c9331248e3be6e54d8046c7dae748"
+    }
+  ],
+  "modifications": [
+    "Original SF2 and license unchanged. Adds a Lingfeng preset list for the selected bank and bundles the unmodified FluidSynth runtime."
+  ]
+}

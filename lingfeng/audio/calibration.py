@@ -10,14 +10,18 @@ import time
 
 import numpy as np
 
-from lingfeng.audio.events import MAX_SOURCE_GAIN_DB, MIN_SOURCE_GAIN_DB
+from lingfeng.audio.events import MAX_SOURCE_GAIN_DB, MIN_SOURCE_GAIN_DB, TRACK_ROLES, source_gain_db
 from lingfeng.audio.soundbanks import CALIBRATION_FILE
 from lingfeng.platform.preferences import atomic_json
 
 
 # Stock YDP with its original preset gain, measured using the same probe below.
 REFERENCE_DBFS = -30.1
-_NATIVE_HASH = 'ff4e67ced2e4953d99441a36cd020216df59bf6ecfa57c90612210123e4bfcee'
+CALIBRATION_VOLUME = 100
+_NATIVE_HASHES = (
+    'ff4e67ced2e4953d99441a36cd020216df59bf6ecfa57c90612210123e4bfcee',  # STK
+    '362c7e9a931fa48286aa84e3270fcb0f18d15c716f4b1dedaa503d55ceade7d1',  # PFSynth Windows adapter
+)
 _SFZ_HASH = 'aa4bfa4ad9a57cfbb3c832a50be14bfe5aeaf7a36ffcdf0178547abe8719e653'
 _SF2_HASHES = {
     'libfluidsynth-3.dll': 'd2819955444d4b44217be9c431f2b7e38fd4062ef71341de8725eed4e31c4957',
@@ -27,9 +31,11 @@ _SF2_HASHES = {
 
 def _runtime_files(data):
     engine = data.get('engine', 'native')
-    if engine in ('native', 'sfz'):
-        expected = _NATIVE_HASH if engine == 'native' else _SFZ_HASH
-        return {data['library']: expected} if data['sha256'] == expected else {}
+    if engine == 'native':
+        digest = data['sha256']
+        return {data['library']: digest} if digest in _NATIVE_HASHES else {}
+    if engine == 'sfz':
+        return {data['library']: _SFZ_HASH} if data['sha256'] == _SFZ_HASH else {}
     files = data.get('library_hashes', {})
     by_name = {Path(name).name.casefold(): value for name, value in files.items()}
     if len(files) == len(_SF2_HASHES) and by_name == _SF2_HASHES and Path(data['library']).name.casefold() == 'libfluidsynth-3.dll':
@@ -44,7 +50,7 @@ def _measure_voice(voice, rate):
     window = rate // 5
     for note in (48, 60, 72):
         voice.send(0xb0, 120, 0)
-        voice.send(0xb0, 7, 100)
+        voice.send(0xb0, 7, CALIBRATION_VOLUME)
         try:
             voice.send(0x90, note, 80)
         except RuntimeError:
@@ -53,10 +59,7 @@ def _measure_voice(voice, rate):
         power = float(np.square(samples, dtype=np.float64).mean(axis=1).max())
         if math.isfinite(power) and power >= 1e-8:
             levels.append(10 * math.log10(power))
-    if not levels:
-        return None
-    gain = REFERENCE_DBFS - median(levels)
-    return round(max(MIN_SOURCE_GAIN_DB, min(MAX_SOURCE_GAIN_DB, gain)), 1) or 0.0
+    return median(levels) if levels else None
 
 
 def _measure_presets(connection, folder, runtime, data, files):
@@ -77,35 +80,32 @@ def _measure_presets(connection, folder, runtime, data, files):
             runtime_info['library_hashes'] = {Path(name).name: digest for name, digest in files.items()}
         library = _library(runtime_info)
         for item in data['presets']:
-            gain = None
             try:
                 voice = _voice_for_pack(library, info, item, offline=True)
                 try:
-                    gain = _measure_voice(voice, RATE)
+                    level = _measure_voice(voice, RATE)
                 finally:
                     voice.close()
             except (OSError, ValueError, RuntimeError):
-                pass
-            connection.send((item['program'], gain))
+                level = 'unavailable'
+            connection.send((item['program'], level))
     except (OSError, ValueError, RuntimeError, AttributeError):
         pass
     finally:
         connection.close()
 
 
-def calibrate_pack(folder, data, cancel=None, progress=None):
-    """Return measured corrections by program for a previously validated pack."""
-    files = _runtime_files(data)
-    if not files or (cancel is not None and cancel.is_set()):
-        return {}
-
-    folder = Path(folder).resolve()
+def _probe_presets(folder, data, files, cancel, progress, *, directory=None):
+    if directory is None:
+        from lingfeng.platform.paths import user_data_dir
+        directory = user_data_dir()
+        directory.mkdir(parents=True, exist_ok=True)
     total = len(data['presets'])
     if progress:
         progress(0, total)
-    gains = {}
+    levels = {}
     context = multiprocessing.get_context('spawn')
-    with tempfile.TemporaryDirectory(prefix='.calibrate-', dir=folder.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix='.calibrate-', dir=directory) as temporary:
         parent, child = context.Pipe(duplex=False)
         process = context.Process(target=_measure_presets, args=(child, folder, Path(temporary), data, files), daemon=True)
         try:
@@ -120,9 +120,9 @@ def calibrate_pack(folder, data, cancel=None, progress=None):
                     if not process.is_alive():
                         break
                     continue
-                program, gain = parent.recv()
-                if gain is not None:
-                    gains[str(program)] = gain
+                program, level = parent.recv()
+                if level != 'unavailable':
+                    levels[program] = level
                 done += 1
                 deadline = time.monotonic() + 45
                 if progress:
@@ -138,7 +138,98 @@ def calibrate_pack(folder, data, cancel=None, progress=None):
                     process.terminate()
                     process.join()
             process.close()
+    return levels
+
+
+def calibrate_pack(folder, data, cancel=None, progress=None):
+    """Return measured corrections by program for a previously validated pack."""
+    files = _runtime_files(data)
+    if not files or (cancel is not None and cancel.is_set()):
+        return {}
+    folder = Path(folder).resolve()
+    levels = _probe_presets(folder, data, files, cancel, progress, directory=folder.parent)
+    gains = {}
+    for program, level in levels.items():
+        if level is not None:
+            gain = REFERENCE_DBFS - level
+            gains[str(program)] = round(max(MIN_SOURCE_GAIN_DB, min(MAX_SOURCE_GAIN_DB, gain)), 1) or 0.0
     return gains
+
+
+def calibrate_tracks(settings, cancel=None, progress=None):
+    """Return final track gains, skipped roles and roles limited by the gain range."""
+    from lingfeng.audio.soundbanks import is_synth_source, pack
+
+    if cancel is not None and cancel.is_set():
+        return {}, {}, ()
+    groups = {}
+    skipped = {}
+    if progress:
+        progress(0, len(TRACK_ROLES))
+    for role in TRACK_ROLES:
+        spec = settings.get(role, {})
+        device = spec.get('device')
+        if not is_synth_source(device):
+            skipped[role] = 'unsupported'
+            continue
+        try:
+            data = pack(device)
+            program = spec.get('program')
+            item = next(preset for preset in data['presets'] if preset['program'] == program)
+            gain = source_gain_db(spec)
+        except (OSError, ValueError, StopIteration):
+            skipped[role] = 'unavailable'
+            continue
+        files = _runtime_files(data)
+        if not files:
+            skipped[role] = 'untrusted'
+            continue
+        if device not in groups:
+            groups[device] = (data, files, {}, {})
+        _, _, presets, tracks = groups[device]
+        presets[program] = item
+        tracks[role] = (program, gain)
+
+    levels = {}
+    done = len(skipped)
+    if progress and done:
+        progress(done, len(TRACK_ROLES))
+    if sum(len(tracks) for _, _, _, tracks in groups.values()) < 2:
+        return {}, skipped, ()
+    for data, files, presets, tracks in groups.values():
+        if cancel is not None and cancel.is_set():
+            return {}, skipped, ()
+        try:
+            measured = _probe_presets(Path(data['path']).resolve(), dict(data, presets=list(presets.values())),
+                                      files, cancel, None)
+        except (OSError, RuntimeError):
+            measured = {}
+        for role, (program, gain) in tracks.items():
+            if program not in measured:
+                skipped[role] = 'unavailable'
+            elif measured[program] is None:
+                skipped[role] = 'silent'
+            else:
+                preset_db = data.get('preset_gain_db', {}).get(str(program), 0)
+                levels[role] = (measured[program] + preset_db + gain, gain)
+        done += len(tracks)
+        if progress:
+            progress(done, len(TRACK_ROLES))
+
+    if len(levels) < 2 or (cancel is not None and cancel.is_set()):
+        return {}, skipped, ()
+    target = max(level for level, _ in levels.values())
+    gains = {}
+    capped = []
+    for role, (level, current) in levels.items():
+        required = current + (target - level)
+        # Stay below the target at the gain field's precision so repeated
+        # measurements of the same levels cannot keep raising the reference.
+        rounded = math.floor((required + 1e-9) * 10) / 10
+        gains[role] = max(current, min(MAX_SOURCE_GAIN_DB, rounded))
+        if required > MAX_SOURCE_GAIN_DB:
+            capped.append(role)
+    return gains, skipped, tuple(capped)
 
 
 def write_calibration(folder, gains):

@@ -769,6 +769,18 @@ class WorkspaceMixin:
     def chord_command(self,command,payload,source=None):
         from lingfeng.music.chord_operations import blank_chord, change_chords, split_chords, merge_chords, move_chords, ChordClipboard
         source=source or self.active_roll()
+        if command=='quality_picker':
+            from PySide6.QtWidgets import QDialog
+            from lingfeng.ui.chord_settings_dialog import ChordQualityPickerDialog
+            if len(payload)!=1:return
+            chord=next((c for c in self.project.chords if c.id in payload),None)
+            if chord is None or not chord.recognized or chord.recognition_disabled:return
+            parent=source.window();dialog=ChordQualityPickerDialog(chord.root,chord.quality,parent)
+            code=dialog.value() if dialog.exec()==QDialog.DialogCode.Accepted else None
+            dialog.deleteLater()
+            self.restore_dialog_origin(parent,source)
+            if code is None:return
+            command='quality:'+code
         if command=='recognition_name':
             from lingfeng.music.recognition import choose_chord_candidate
             cid,candidate=payload

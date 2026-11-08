@@ -34,7 +34,7 @@
 
 0.57 新增本机布尔偏好 `rhythm_recognition`，缺省为 true。关闭后所有自动节奏型分析返回无识别结果，和弦轨不显示节奏型；根音／性质变换与区间编辑按实际 MIDI 处理，不借识别结果重建节奏。显式选择节奏型、重新生成和弦或应用和弦进行仍可按指定方案生成。开关不改写工程的 `pattern`、`custom_rhythm` 或 `recognition_disabled`，重新开启后按原有独立设置分析。节奏型合成与 MIDI 播放不依赖此识别偏好。
 
-小节右键的“段落标识”继续写入 `measures[].section`；“跳转小节”按小节顺序列出现有标识与小节号，仅定位和浏览，不改工程。导航器用无文字边界线显示这些小节起点，原时间轴仍显示标识文字。
+小节右键的“段落标识”写入 `measures[].section`。从 0.60.7 起，旧 `link` 标识读取为 `interlude`，保留小节位置和编号。YuE2 兼容 ABC 使用 `% interlude`。“跳转小节”按小节顺序列出现有标识与小节号，仅定位和浏览。导航器用无文字边界线显示这些小节起点，原时间轴仍显示标识文字。
 
 Since 0.57, the local boolean preference `rhythm_recognition` defaults to true. Turning it off bypasses every automatic rhythm analysis and hides pattern labels in chord lanes. Root/quality and region edits use performed MIDI rather than inferred patterns. Explicit pattern application, chord regeneration and progression generation remain available. The switch preserves project pattern and per-chord recognition flags; playback and synthesis do not depend on recognition. Bar context menus list marked sections in time order for navigation; navigators show their boundaries without text.
 

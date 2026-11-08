@@ -25,11 +25,6 @@ def valid_yue2_chord(symbol):
     return isinstance(symbol, str) and (not symbol or _YUE2_CHORD.fullmatch(symbol) is not None)
 
 
-def yue2_link_replacement(label):
-    match = re.fullmatch(r'link([ -]+\d+)?', section_name(label))
-    return 'interlude' + (match[1] or '') if match else None
-
-
 def abc_location(project, tick):
     starts = project.starts
     bar = min(len(project.measures), bisect_right(starts, tick))
@@ -258,7 +253,7 @@ def _voice_bars(notes, starts):
 
 
 def serialize_abc(project, *, sheetsage=False, section_mapping=None, which='both',
-                  chord_overrides=None, rewrite_links=True, convert_chords=True):
+                  chord_overrides=None, convert_chords=True):
     from lingfeng.audio.midi import selected_roles
     roles = selected_roles(which)
     project = abc_track_project(project, roles)
@@ -311,11 +306,8 @@ def serialize_abc(project, *, sheetsage=False, section_mapping=None, which='both
         bar_key = keys.get(start, key)
         changes = {tick: symbol for tick, symbol in keys.items() if start < tick < end}
         if measure.section:
-            label = labels.get(section_key(measure.section), section_name(measure.section))
-            if sheetsage and (replacement := yue2_link_replacement(label)):
-                if not rewrite_links:
-                    raise ValueError(tr('YuE2 不支持 link。请改用 interlude 或启用导出替换。'))
-                label = replacement
+            section = section_name(measure.section)
+            label = labels.get(section_key(section), section)
             prefix = '% ' if sheetsage else '% section: '
             lines.append(prefix + ' '.join(label.split()))
         for track, (ident, _) in enumerate(voices):

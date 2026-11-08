@@ -40,7 +40,7 @@ class ProjectInsertionTests(unittest.TestCase):
         self.assertEqual(source.to_dict(), original)
         self.assertEqual((target.title, target.author, target.bpm, target.melody_names, target.audio, target.volumes), metadata)
         self.assertEqual(target.starts, [0, 3840, 5760, 8640, 12480, 15360])
-        self.assertEqual([m.section for m in target.measures], ['verse', 'intro', 'link', 'chorus', ''])
+        self.assertEqual([m.section for m in target.measures], ['verse', 'intro', 'interlude', 'chorus', ''])
         self.assertEqual(target.marks, [0, 1, 2, 4])
         self.assertEqual([(c.start, c.end, c.tonic) for c in target.contexts],
                          [(0, 3840, 48), (3840, 5760, 55), (5760, 8640, 57), (8640, 15360, 48)])

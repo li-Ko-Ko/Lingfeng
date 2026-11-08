@@ -83,7 +83,7 @@ def verify(destination=None,*,archive=False):
                 sha256=None,archive_files=0,source_files=len(source_files),
                 bundled_packs=packs,checks=['standalone source matches workspace','all application modules included',
                 'frozen catalog and icon match source','synth binary and sampled-asset checksums',
-                'Greg, STK and YDP included in the bundled inventory','preset loudness calibration files',
+                'Greg, STK, GeneralUser GS and PFSynth included in the bundled inventory','preset loudness calibration files',
                 'excluded local development and user data','excluded local design and maintenance records','categorized help included'])
     if archive:
         report.update(verify_archive(folder,ROOT/'dist'/f'Lingfeng-{__version__}-Windows-x64.zip',info['bundled_packs']))

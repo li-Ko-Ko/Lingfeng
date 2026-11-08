@@ -577,7 +577,7 @@ def self_test(folder):
     assert analyze_performed(probe.chords[0],probe).pattern=='quarters'
     dialog=ChordDialog(probe.chords[0],probe);assert dialog.regenerate.isChecked() and dialog.pattern.currentData()=='quarters'
     rebuilt=dialog.value();probe.put_chord(rebuilt);dialog.deleteLater()
-    assert {n.pitch%12 for n in probe.chords[0].render_notes()}=={0,4,7} and is_chord_tone(probe,64,320)
+    assert {n.pitch%12 for n in probe.chords[0].render_notes()}=={10,2,5} and is_chord_tone(probe,62,320)
     window.switch_workspace('compose');window.open_harmony();window.grid.setCurrentIndex(6);window.grid.set_triplet(True)
     assert all(roll.grid==40 for roll in (window.main_roll,window.roll,window.harmony_window.roll))
     window.harmony_window.setFloating(True);window.set_timeline_sync(False,window.harmony_window.roll);window.harmony_window.grid.setCurrentIndex(7);window.harmony_window.grid.set_triplet(False)
@@ -709,11 +709,9 @@ def self_test(folder):
     migrated=Project.from_dict(legacy).chords[0]
     assert migrated.quality=='add2' and migrated.notes is None and migrated.pitches==[36,48,50,52,55]
     probe.contexts=[Context(0,probe.end,53)]
-    defaults=dict(quality='mM7',pattern='quarters',gate=70,velocity=82)
-    dialog=ChordDialog(Chord(3840,1920),probe,defaults=defaults)
-    assert dialog.root.itemText(0)=='1 · F' and dialog.options()=={k:v for k,v in defaults.items() if k!='velocity'}
-    from lingfeng.platform.chord_preferences import default_velocity
-    assert dialog.velocity.value()==default_velocity('harmony')
+    defaults=dict(root=7,quality='mM7',bass=11,pattern='quarters',gate=70,velocity=82,octave=1)
+    dialog=ChordDialog(Chord(3840,1920,notes=[],recognized=False),probe,defaults=defaults)
+    assert dialog.root.itemText(0)=='1 · F' and dialog.options()==defaults
     assert (dialog.value().start,dialog.value().duration)==(3840,1920)
     dialog.close();dialog.deleteLater()
     from lingfeng.music.rhythm import ALTERNATING, regenerate, supports
@@ -770,7 +768,7 @@ def self_test(folder):
     assert Project.from_dict(probe.to_dict()).chords[0].quality=='7b5'
     # Score width follows density, with one global font and linear spatial time.
     from lingfeng.audio.synthesis import SynthEngine
-    from lingfeng.audio.soundbanks import available_programs, DEFAULT_DEVICE, pack
+    from lingfeng.audio.soundbanks import available_programs, credits_text, DEFAULT_DEVICE, GENERALUSER_GS_DEVICE, pack
     PROGRAMS=available_programs(DEFAULT_DEVICE)
     from lingfeng.ui.dialogs import SoundSettingsDialog
     import numpy as np
@@ -836,9 +834,8 @@ def self_test(folder):
         manager=ProgressionManagerDialog([make_preset('ii V I')],tonic=48,mode=mode)
         for combo in (edit.root,edit.bass,capture.tonic,apply_dialog.tonic,manager.tonic):
             assert [combo.itemText(i).split(' · ')[0] for i in range(12)]==wanted.split()
-        assert edit.root.currentIndex()==edit.bass.currentIndex()==0 and edit.bass.findData(None)==-1
-        assert edit.options()==dict(quality='m7',pattern='quarters',gate=70)
-        assert edit.velocity.value()==default_velocity('harmony')
+        assert edit.root.currentData()==7 and edit.bass.currentData()==10 and edit.bass.findData(None)==-1
+        assert edit.options()==dict(root=7,quality='m',bass=10,pattern='block',gate=90,velocity=72,octave=0)
         assert edit.regenerate.isChecked() and edit.octave.value()==0
         edit.root.setCurrentIndex(edit.root.findData(5));assert edit.bass.currentData()==5
         edit.bass.setCurrentIndex(edit.bass.findData(9));assert edit.root.currentData()==5 and edit.value().bass==9
@@ -1338,20 +1335,32 @@ def self_test(folder):
         assert midi_events(same_music)==original_events
     layered=copy.deepcopy(beat_song);layered.notes=[Note(0,PPQ,60),Note(0,PPQ,64)]
     assert len(set(ScoreLayout(layered).systems[0].voices.values()))==2
-    # Exercise every bundled piano preset with its actual sample engine.
+    # Verify the primary General MIDI bank and exercise the bundled renderers.
     electric=pack('synth:piano-electric')
     fresh=Project()
-    assert fresh.audio=={role:dict(device='synth:ydp-grand',program=0) for role in ('melody','chords','instrument')}
+    assert fresh.audio=={role:dict(device=GENERALUSER_GS_DEVICE,program=0) for role in ('melody','chords','instrument')}
+    gm=pack(GENERALUSER_GS_DEVICE)
+    assert len(gm['presets'])==128
+    assert all(item.get('bank',0)==0 and item['model']==item['program'] for item in gm['presets'])
+    notice=(Path(gm['path'])/'GeneralUser-GS-LICENSE.txt').read_text('utf-8').strip()
+    assert notice in credits_text(Project(notes=[Note(0,960,60)]),'melody',0,960,'offline')
     piano_peaks={}
-    for device,renderer,programs in (('synth:piano-electric','sfz',{2,5,6}),('synth:ydp-grand','sf2',{0})):
-        assert pack(device)['engine']==renderer and set(available_programs(device))==programs
+    for device,renderer,programs,probes in (
+            ('synth:piano-electric','sfz',{2,5,6},(2,5,6)),
+            (GENERALUSER_GS_DEVICE,'sf2',set(range(128)),(0,1,2,24,40,73)),
+            ('synth:pfsynth','native',{0},(0,))):
+        assert pack(device).get('engine','native')==renderer and set(available_programs(device))==programs
         engine=SynthEngine(device,offline=True)
         try:
-            for program in sorted(programs):
-                engine.send(0xc0,program);engine.send(0x90,60,96);data=engine.render(16384)
-                peak=float(abs(data).max());assert np.isfinite(data).all() and 1e-5<peak<=.950001
-                piano_peaks[f'{device}:{program}']=peak
-                engine.stop();assert not engine.render(512).any()
+            for program in probes:
+                engine.send(0xc0,program)
+                peaks=[]
+                for note in ((21,60,108) if device=='synth:pfsynth' else (60,)):
+                    engine.send(0x90,note,96);data=engine.render(16384)
+                    peak=float(abs(data).max());assert np.isfinite(data).all() and 1e-5<peak<=.950001
+                    peaks.append(peak)
+                    engine.stop();assert not engine.render(512).any()
+                piano_peaks[f'{device}:{program}']=max(peaks)
         finally:engine.close()
     from lingfeng.audio.piano_catalog import DOWNLOADS
     from lingfeng.ui.sound_library import SoundLibraryDialog
@@ -1365,11 +1374,15 @@ def self_test(folder):
     measured={}
     if getattr(sys,'frozen',False):
         from lingfeng.audio.calibration import calibrate_pack
-        measured=calibrate_pack(Path(electric['path']),electric)
-        assert set(measured)=={'2','5','6'}
-        for program,db in measured.items():
-            shipped=banks.preset_calibration_db(int(program),'synth:piano-electric')
-            assert shipped is not None and abs(db-shipped)<=.3
+        for name,data,programs in (('greg',electric,{2,5,6}),('generaluser',gm,{0,24,40,73}),
+                                   ('pfsynth',pack('synth:pfsynth'),{0})):
+            sample=dict(data,presets=[item for item in data['presets'] if item['program'] in programs])
+            gains=calibrate_pack(Path(data['path']),sample)
+            assert set(gains)=={str(program) for program in programs}
+            for program,db in gains.items():
+                shipped=banks.preset_calibration_db(int(program),'synth:'+data['id'])
+                assert shipped is not None and abs(db-shipped)<=.3
+            measured[name]=gains
     assert len({entry['id'] for entry in DOWNLOADS})==len(DOWNLOADS)
     for entry in DOWNLOADS:
         assets=entry.get('assets') or [entry]
@@ -1397,6 +1410,7 @@ def self_test(folder):
     # Exercise the actual modal loading UI with a delayed, cancellable local
     # substitute. This never opens a device or downloads/loads optional banks.
     import threading
+    from time import monotonic
     from unittest.mock import patch
     from lingfeng.ui.audio_loading import AudioLoadingDialog,AudioLoadCancelled
     class AcceptanceRouter:
@@ -1405,16 +1419,23 @@ def self_test(folder):
     router=AcceptanceRouter();release=threading.Event();loading_ticks=[];painted=[];loader_threads=[]
     def delayed_router(settings,cancel):
         loader_threads.append(threading.current_thread() is not threading.main_thread())
+        deadline=monotonic()+5
         while not release.wait(.01):
             if cancel.is_set():raise RuntimeError('acceptance loader cancelled')
+            if monotonic()>=deadline:raise RuntimeError('acceptance loading GUI timed out')
         return router
     def capture_loading():
         dialogs=[widget for widget in app.topLevelWidgets() if isinstance(widget,AudioLoadingDialog) and widget.isVisible()]
         if dialogs:
-            current=dialogs[-1];painted.append(current.progress.isVisible() and current.progress.maximum()==0)
-            current.grab().save(str(folder/'v53-audio-loading.png'))
-    heartbeat=QTimer();heartbeat.setInterval(10);heartbeat.timeout.connect(lambda:loading_ticks.append(True));heartbeat.start()
-    QTimer.singleShot(60,capture_loading);QTimer.singleShot(180,release.set)
+            current=dialogs[-1]
+            if current.progress.isVisible() and current.progress.maximum()==0:
+                current.grab().save(str(folder/'v53-audio-loading.png'))
+                painted.append(True)
+    def loading_tick():
+        loading_ticks.append(True)
+        if not painted:capture_loading()
+        if len(loading_ticks)>=3 and painted:release.set()
+    heartbeat=QTimer();heartbeat.setInterval(10);heartbeat.timeout.connect(loading_tick);heartbeat.start()
     try:
         with patch('lingfeng.ui.audio_loading.ProcessRouter',side_effect=delayed_router):
             opened=AudioLoadingDialog.open_router(fresh.audio,window)
@@ -1498,10 +1519,10 @@ def self_test(folder):
     marked_roll.close();marked_roll.deleteLater()
     assert midi_events(probe)==actual
     edit=ChordDialog(marked,probe,defaults=dict(velocity=12))
-    assert edit.velocity.value()==99 and 'velocity' not in edit.options()
+    assert edit.velocity.value()==marked.velocity and edit.options()['velocity']==marked.velocity
     assert [edit.quality.itemData(i) for i in range(edit.quality.count())]==['m7','','7']
     edit.velocity.setValue(21);confirmed=edit.options();edit.close();edit.deleteLater()
-    edit=ChordDialog(marked,probe,defaults=confirmed);assert edit.velocity.value()==99
+    edit=ChordDialog(marked,probe,defaults=confirmed);assert edit.velocity.value()==marked.velocity
     edit.close();edit.deleteLater()
     settings=ChordSettingsDialog();assert settings.preview.rowCount()==len(QUALITIES)
     settings.show();app.processEvents();settings.grab().save(str(folder/'v56-chord-settings.png'))
@@ -1708,7 +1729,8 @@ def self_test(folder):
     from lingfeng.music.abc_export import write_abc
     from lingfeng.music.abc_import import read_abc, project_from_abc
     probe=Project(notes=[Note(0,480,60)],instrument_notes=[Note(480,480,67)],chords=[Chord(0,3840)])
-    probe.measures[0].section='Link'
+    data=probe.to_dict();data['measures'][0]['section']='Link'
+    probe=Project.from_dict(data);assert probe.measures[0].section=='interlude'
     abc_path=folder/'v581-sheetsage2.abc'
     write_abc(probe,abc_path,sheetsage=True)
     abc=read_abc(abc_path);restored=project_from_abc(abc,**abc.defaults())
@@ -1747,7 +1769,7 @@ def self_test(folder):
     report={'status':'passed','version':__version__,'frozen':bool(getattr(sys,'frozen',False)),
             'python':sys.version.split()[0],'pdf_pages':pages,'melody_notes':len(q.notes),
             'harmony_notes':len(q.harmony_notes()),'checks':['project v5 roundtrip','patterns','recognition','MIDI','sound program','DAW bundle','PDF','two windows','8-bar score','compact folded editor','polyphony','marker inheritance','measure insertion','dark theme','icon transport','zero system gap','automatic top-aligned score','return to beginning','English catalog','720px layout','docked chord editor','retrograde clipboard','continuous ties','Lingfeng About and help','LFS','repeat compression preserves MIDI','local systems','custom palettes','chord structure frames','v0.11 workspace','both rolls floating','shared score tabs','two-region repeat validation','stacked lyrics below grid','empty chord insertion','single bottom scrollbar','shared roll settings','three score tabs','actual bass tooltip','symbol hit delete restores score','symbol-first validation','multiple structure drafts','dual-track overview','unified float/dock controls','melody sync option','paused replay stays paused','cached score playback','continuous barline time mapping','independent duration and snap','exclusive dotted and triplet','previous note duration','MIDI track import','disjoint bar broadcast','suppressed duplicate markers','binary 64th triplet split','triplet-aware import quantization','structure preserves MIDI coverage','MIDI input device enumeration','synthetic keyboard recording','independent lyrics roundtrip','orphan lyric x rendering','WinMM callback decoding'],'midi_input_devices':devices(),'physical_keyboard_tested':False}
-    report['checks']+=['SheetSage2 dual melody ABC roundtrip','Link and interlude section mapping','three track mixer controls']
+    report['checks']+=['SheetSage2 dual melody ABC roundtrip','legacy Link migration to native Interlude','three track mixer controls']
     report['checks']+=['ABC bar insertion and undo','section progression previews follow inserted sections']
     report['checks']+=['cut and paste across melody tabs selects the new note']
     report['checks']+=['compressed MusicXML retains all three tracks and chord symbols','light chord strings synthesize a sustained chord']
@@ -1812,9 +1834,9 @@ def self_test(folder):
     report['checks']+=['live score title author undo redo and PDF','section command retained on timeline only','visible cursor browsing keeps follow without snapping back','offscreen browsing cancels shared follow','score selected chord tab follows main cursor','score floating roll follows independently']
     report['checks']+=['floating score melody exposes its timeline sync menu']
     report['checks']+=['score scrollbar owns camera while held','score measure leaving viewport cancels even with visible roll cursor','score browsing does not snap back after release','roll browsing ignores visible score and does not pin cursor at left edge']
-    report['checks']+=['busiest-beat 4:2 measure widths in all engraving styles','density layout preserves MIDI bytes and global glyph safety','bundled Greg Sullivan and YDP presets render finite audible bounded audio and stop','fresh projects prefer YDP Grand Piano','optional grand download pinned by revision size and SHA-256','bilingual sound-library UI and installed signal without network']
+    report['checks']+=['busiest-beat 4:2 measure widths in all engraving styles','density layout preserves MIDI bytes and global glyph safety','bundled Greg Sullivan, GeneralUser GS and PFSynth presets render finite audible bounded audio and stop','fresh projects prefer the GeneralUser GS grand piano','GeneralUser GS exposes all 128 bank-0 programs and exports retain the upstream license','optional grand download pinned by revision size and SHA-256','bilingual sound-library UI and installed signal without network']
     report['checks']+=['2/4 and 4/4 equal-density beats allocate 1:2 measure widths in all styles','mixed-meter width correction preserves MIDI bytes','every optional catalog entry has pinned HTTPS metadata and a valid manifest without requiring bank installation','sound loading paints and processes GUI events before returning the ready router','sound loading cancel reaches its worker and waits for cleanup']
-    report['checks']+=['independent melody and chord default velocities','chord edit velocity ignores last edit','selected ordered quick qualities','complete chord quality and degree preview','manual Roman and letter annotations preserve MIDI performance','disabled chords bypass chord and pattern recognition','resuming recognition removes annotations','recognition and annotation project roundtrip']
+    report['checks']+=['independent melody and chord default velocities','chord editor uses creation history or the current chord','selected ordered quick qualities','complete chord quality and degree preview','manual Roman and letter annotations preserve MIDI performance','disabled chords bypass chord and pattern recognition','resuming recognition removes annotations','recognition and annotation project roundtrip']
     report['checks']+=['first Score entry closes every tab','Score tabs preserve later visibility','cross-region adjacent notes merge as one sustained event','note velocity menus use saved defaults','unified generated chord velocity','common chord velocity project roundtrip','harmony creation follows chord velocity with blank-region default fallback','custom inclusive piano-roll pitch range preserves MIDI','annotation panel adds one multi-note slur without MIDI edits','manual slur renders in score','score annotation undo redo and persistent panel state']
     report['checks']+=['marked chord symbols drive melody-roll matching and selected pitch-class highlights without MIDI changes']
     report['checks']+=['manual chord labels guide score circles and glyph reserve in all three styles and PDF without MIDI changes','resuming recognition restores performed-tone circles']
@@ -1823,8 +1845,8 @@ def self_test(folder):
     report['checks']+=['marked chords resume recognition via actual QAction trigger','recognition checkbox preserves MIDI and supports undo redo','marked chord appearance differs from automatic chords','copy paste split and merge stay at menu root','context-menu ordering and optional advanced grouping','context-menu settings offer all retained blocks','alternating bass labels consistently use 底五交替']
     report['piano_sample_peaks']=piano_peaks
     if measured:
-        report['greg_loudness_compensation_db']=measured
-        report['checks'].append('frozen calibration worker reproduces bundled Greg preset gain')
+        for name,gains in measured.items():report[f'{name}_loudness_compensation_db']=gains
+        report['checks'].append('frozen calibration worker reproduces sampled Greg, GeneralUser GS and PFSynth preset gains')
     report['checks']+=['full-bar bass and full denominator-beat upper chords','copied actual voicing dynamics and timing are exact','copied cross-region sustains retain independent rearticulations','fixed movement arrows migrate old preferences and leave camera keys blank']
     report['checks']+=['different-meter chord pastes crop at destination boundaries','project-end chord pastes crop or safely do nothing','lyric slurs block conflicting new manual arcs and silently hide existing ones without deleting data']
     report['checks']+=['automatic lyric slurs continue across intervening rest rows in all three score styles']

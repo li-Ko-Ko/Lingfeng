@@ -133,11 +133,12 @@ class PerBeatWidthTests(unittest.TestCase):
             p.notation['style']=style;layout=ScoreLayout(p);render(layout)
             self.assertEqual({ident for ident,_,_ in layout.tie_paths},{n.id for n in p.notes})
         p=song([(2,4),(4,4)],[[1]*2,[2]*4])
+        self.assert_widths(p,[2,8])
         for n in p.notes:
             if n.start<p.starts[1]:n.duration=PPQ//2
-        # Each short first-bar note is followed by a notated rest; both occupy
-        # a column, matching the two attacks in every beat of the second bar.
-        self.assert_widths(p,[4,8])
+        # The first bar still has one attack per beat. Its new rests are
+        # engraved without contributing attacks or widening the bar.
+        self.assert_widths(p,[2,8])
 
     def test_linear_beat_spacing_and_click_playhead_roundtrip_in_mixed_meter(self):
         p=song([(2,4),(6,8)],[[2]*2,[2]*6]);p.notation['font_size']=8

@@ -1,0 +1,30 @@
+{
+  "repository": "https://github.com/olaugh/pfsynth",
+  "revision": "2989410f821ef15e4992c2e092fdf07d57d54796",
+  "commit_date_utc": "2026-10-08",
+  "archive_url": "https://codeload.github.com/olaugh/pfsynth/tar.gz/2989410f821ef15e4992c2e092fdf07d57d54796",
+  "archive_sha256": "b2361c9c6d34bee85428adf3db947fa98eb728bc3fe56991041b8084c84e04f5",
+  "upstream_file_sha256": {
+    "experiments/attack-ptq/patch_attack.h": "ccdce35c6fe45cfc10b7831481df999825ee7707bb67e01549530ec790e1b02e",
+    "experiments/partial-piano-wide/pianoteq.h": "98a7b9ebd1d4c84401ebc1050fb85ba790458fb13a02758581f89622afe029a7",
+    "experiments/partial-piano-wide/salamander.h": "87a9d72d25821feaebf32f946413e0e6ec9dc2d24c039dbc8d07ff1c4161cea3",
+    "src/core/pf_attack.c": "450fff22cf231ec0431cb32aa480af320f12ef82d69d40c0fa779fe2296a5b5d",
+    "src/core/pf_attack.h": "c179caf0b476d234eaa1eabc535956742f05d2e2d3fde293955e2f5048ef3789",
+    "src/core/pf_partial.c": "d5d776fdc824481d491843e604db24f78aa28da91fa6b8eabd9a07a4644ff32c",
+    "src/core/pf_partial.h": "24caf7f16c58462e93919a23af050f0824d85b11db47fce0584f7b83f70daf36",
+    "src/core/pf_resonance.c": "1af08a682b69e52e0e69df1e818dacd388a031027e8c62587bf553751bcee79b",
+    "src/core/pf_resonance.h": "bf642930916b21237548ad58c377d3bcae1d1b8ccb6a20c3dad93894bea24f7c",
+    "src/host/midi.h": "3d7e0b45fb3c1e091161ab078f951d56eca520a6adcf321eeb95854f4e8e816d",
+    "src/host/pfplayer.c": "ab16201d21ea431a0525c6ade9ebc4b3d378b5b6d8e52cf1afc089e38ea165a5",
+    "src/host/pfplayer.h": "89b6453e3fc19c7fcc42fe3633b5d6e6c290a9a65b6ca08aefde42418763605d",
+    "LICENSE": "973c3cd87b57dbb8665d868daab4295d06d4cdc35b6c618f0bca87ac62798d56"
+  },
+  "build": "Zig 0.14.1; see source/BUILD.txt",
+  "modifications": [
+    "Integrate the PFSynth piano engine with Lingfeng via the native MIDI/render ABI.",
+    "Expose the current-frame MIDI dispatch and immediate stop, and respect the host voice limit.",
+    "Use 64-bit frame and envelope counters on Windows and engage the captured damper at sostenuto press.",
+    "Route mono to stereo with MIDI pan, volume and expression; use the Lingfeng mix limiter.",
+    "The source subset includes the piano’s fitted parameters and omits the guitar, demos and audio files."
+  ]
+}

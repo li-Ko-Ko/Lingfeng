@@ -73,56 +73,80 @@ class NoteDialog(QDialog):
         return self.note
 
 
-CHORD_EDIT_OPTION_KEYS=('quality','pattern','gate')
-
 def chord_edit_defaults(options,legacy=False):
-    """Keep musical editing choices; velocity always uses its saved default."""
-    result={key:options[key] for key in CHORD_EDIT_OPTION_KEYS if key in options} if isinstance(options,dict) else {}
-    if legacy and result.get('quality')=='add9':result['quality']='add2'
+    """Load only musical fields, including partial options from older versions."""
+    if not isinstance(options,dict):return {}
+    result={}
+    for key,low,high in (('root',0,11),('bass',0,11),('gate',5,100),('velocity',1,127),('octave',-1,2)):
+        value=options.get(key)
+        if type(value) is int and low<=value<=high:result[key]=value
+    quality=options.get('quality')
+    if isinstance(quality,str) and quality in QUALITIES:result['quality']='add2' if legacy and quality=='add9' else quality
+    pattern=options.get('pattern')
+    if isinstance(pattern,str) and pattern in PATTERNS:result['pattern']=pattern
     return result
 
 
 class ChordDialog(QDialog):
     def __init__(self,chord,project,parent=None,defaults=None):
         super().__init__(parent);self.setWindowTitle(tr('编辑和弦'));self.chord=copy.deepcopy(chord);self.project=project
+        symbol=None if chord.empty else chord.display_symbol
+        self.creating=symbol is None
+        options=chord_edit_defaults(defaults) if self.creating else {}
+        tonic=project.context_at(chord.start).tonic%12
+        root=options.get('root',tonic) if symbol is None else symbol.root%12
+        quality=options.get('quality',chord.quality) if symbol is None else symbol.quality
+        bass=options.get('bass',root) if symbol is None else root if symbol.bass is None else symbol.bass%12
         form=QFormLayout(self);form.setSpacing(14)
         self.root=QComboBox()
         for pc,name in enumerate(SHARP):self.root.addItem(name,pc)
-        tonic=project.context_at(chord.start).tonic%12
-        self.root.setCurrentIndex(self.root.findData(tonic));form.addRow(tr('根音'),self.root)
+        self.root.setCurrentIndex(self.root.findData(root));form.addRow(tr('根音'),self.root)
         self.quality=QComboBox()
         from lingfeng.music.chord_operations import quality_items
         from lingfeng.platform.chord_preferences import quick_qualities
-        labels=dict(quality_items())
+        self.quality_labels=dict(quality_items())
         from lingfeng.music.quality_catalog import yue2_lossless_quality
         codes=quick_qualities()
-        legacy_quality=yue2_lossless_quality(chord.quality) is None
+        legacy_quality=yue2_lossless_quality(quality) is None
         if legacy_quality and not codes:codes=['']
-        if chord.quality not in codes:codes=codes+[chord.quality]
-        for code in codes:self.quality.addItem(labels[code],code)
-        current=self.quality.findData(chord.quality)
+        if quality not in codes:codes=codes+[quality]
+        for code in codes:self.quality.addItem(self.quality_labels[code],code)
+        current=self.quality.findData(quality)
         self.quality.setCurrentIndex(current)
-        if legacy_quality:
+        if legacy_quality and 'quality' not in options:
             item=self.quality.model().item(current)
             item.setEnabled(False)
             item.setToolTip(tr('工程原有和弦，导出 YuE2 时可确认替换。'))
-        form.addRow(tr('和弦性质'),self.quality)
+        quality_controls=QHBoxLayout()
+        quality_controls.addWidget(self.quality,1)
+        self.full_quality_button=QPushButton(tr('从完整和弦列表选择…'))
+        self.full_quality_button.setAutoDefault(False)
+        self.full_quality_button.clicked.connect(self.choose_full_quality)
+        quality_controls.addWidget(self.full_quality_button)
+        form.addRow(tr('和弦性质'),quality_controls)
         self.bass=QComboBox()
         for pc,name in enumerate(SHARP):self.bass.addItem(name,pc)
-        self.bass.setCurrentIndex(self.bass.findData(tonic));form.addRow(tr('指定低音 / 转位'),self.bass)
+        self.bass.setCurrentIndex(self.bass.findData(bass));form.addRow(tr('指定低音 / 转位'),self.bass)
         self.bass.setToolTip(tr('改变根音时低音同步跟随；单独改变低音不会改变根音。'))
-        self.start=QDoubleSpinBox();self.start.setRange(0,project.end/PPQ-.0625);self.start.setDecimals(4);self.start.setSingleStep(.25);self.start.setValue(chord.start/PPQ);self.start.setToolTip(tr('从项目起点 0 开始，以四分音符为单位。'));form.addRow(tr('起点（四分音符）'),self.start)
+        self.start=QDoubleSpinBox();self.start.setDecimals(4);self.start.setRange(0,(project.end-1)/PPQ);self.start.setSingleStep(.25);self.start.setValue(chord.start/PPQ);self.start.setToolTip(tr('从项目起点 0 开始，以四分音符为单位。'));form.addRow(tr('起点（四分音符）'),self.start)
         self.start.valueChanged.connect(self.update_root_labels);self.update_root_labels()
-        self.duration=QDoubleSpinBox();self.duration.setRange(.0625,project.end/PPQ);self.duration.setDecimals(4);self.duration.setSingleStep(.25);self.duration.setValue(chord.duration/PPQ);form.addRow(tr('时长（四分音符）'),self.duration)
+        self.duration=QDoubleSpinBox();self.duration.setDecimals(4);self.duration.setRange(1/PPQ,project.end/PPQ);self.duration.setSingleStep(.25);self.duration.setValue(chord.duration/PPQ);form.addRow(tr('时长（四分音符）'),self.duration)
         self.pattern=QComboBox()
         for code,label in PATTERNS.items():self.pattern.addItem(tr(label),code)
         from lingfeng.music.rhythm import analyze_performed
         rhythm=analyze_performed(chord,project);self.recognized_rhythm=rhythm
-        self.pattern.setCurrentIndex(self.pattern.findData(rhythm.pattern if rhythm else chord.pattern));form.addRow(tr('节奏型'),self.pattern)
-        self.gate=QSpinBox();self.gate.setRange(5,100);self.gate.setValue(round((rhythm.gate if rhythm else chord.gate)*100));self.gate.setSuffix('%');form.addRow(tr('发音长度'),self.gate)
+        if self.creating:
+            pattern=options.get('pattern',chord.pattern)
+        elif rhythm is not None:
+            pattern=rhythm.pattern
+        else:
+            pattern=chord.pattern if chord.notes is None else 'block'
+        self.pattern.setCurrentIndex(self.pattern.findData(pattern));form.addRow(tr('节奏型'),self.pattern)
+        self.gate=QSpinBox();self.gate.setRange(5,100);self.gate.setValue(options.get('gate',round((rhythm.gate if rhythm else chord.gate)*100)));self.gate.setSuffix('%');form.addRow(tr('发音长度'),self.gate)
         from lingfeng.platform.chord_preferences import default_velocity
-        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(default_velocity('harmony'));self.velocity.setToolTip(tr('MIDI 力度（1–127）'));form.addRow(tr('和弦默认力度'),self.velocity)
-        self.octave=QSpinBox();self.octave.setRange(-1,2);self.octave.setValue(chord.octave);form.addRow(tr('伴奏八度'),self.octave)
+        velocity=options.get('velocity',default_velocity('harmony')) if self.creating else chord.velocity
+        self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(velocity);self.velocity.setToolTip(tr('MIDI 力度（1–127）'));form.addRow(tr('力度'),self.velocity)
+        self.octave=QSpinBox();self.octave.setRange(-1,2);self.octave.setValue(options.get('octave',chord.octave));form.addRow(tr('伴奏八度'),self.octave)
         self.regenerate=QCheckBox(tr('重新生成和弦'));self.regenerate.setChecked(True);form.addRow(self.regenerate)
         self.pattern.currentIndexChanged.connect(lambda:self.regenerate.setChecked(True))
         self.regenerate.toggled.connect(self.update_patterns)
@@ -135,49 +159,58 @@ class ChordDialog(QDialog):
             signal=combo.currentIndexChanged if isinstance(combo,QComboBox) else combo.valueChanged
             signal.connect(self.update_preview)
         if rhythm is not None and chord.recognized:self.root.currentIndexChanged.connect(lambda:self.regenerate.setChecked(True))
-        self.apply_options(defaults)
+        self.initial_options=self.options()
         self.update_preview()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);form.addRow(buttons);self.setMinimumWidth(340)
 
     def options(self):
-        """Velocity is a preference, independent of the last editing operation."""
-        return dict(quality=self.quality.currentData(),pattern=self.pattern.currentData(),
-                    gate=self.gate.value())
+        return dict(root=self.root.currentData(),quality=self.quality.currentData(),bass=self.bass.currentData(),
+                    pattern=self.pattern.currentData(),gate=self.gate.value(),velocity=self.velocity.value(),
+                    octave=self.octave.value())
+
+    def choose_full_quality(self):
+        from lingfeng.ui.chord_settings_dialog import ChordQualityPickerDialog
+        dialog=ChordQualityPickerDialog(self.root.currentData(),self.quality.currentData(),self)
+        code=dialog.value() if dialog.exec()==QDialog.DialogCode.Accepted else None
+        dialog.deleteLater()
+        if code is None:return
+        index=self.quality.findData(code)
+        if index<0:
+            self.quality.addItem(self.quality_labels[code],code)
+            index=self.quality.count()-1
+        self.quality.model().item(index).setEnabled(True)
+        self.quality.setCurrentIndex(index)
 
     def follow_root(self):
         self.bass.setCurrentIndex(self.bass.findData(self.root.currentData()))
 
-    def apply_options(self,options):
-        if not isinstance(options,dict):return
-        for name in CHORD_EDIT_OPTION_KEYS:
-            if name not in options:continue
-            control=getattr(self,name);value=options[name];blocked=control.blockSignals(True)
-            try:
-                if isinstance(control,QComboBox):
-                    index=control.findData(value)
-                    if index>=0:control.setCurrentIndex(index)
-                elif isinstance(control,QCheckBox):
-                    if type(value) is bool:control.setChecked(value)
-                elif type(value) is int and control.minimum()<=value<=control.maximum():control.setValue(value)
-            finally:control.blockSignals(blocked)
-        self.update_patterns()
-
     def value(self):
         from lingfeng.music.chord_operations import change_root, change_quality, replace_bass
         chord=copy.deepcopy(self.chord)
-        root=self.root.currentData();quality=self.quality.currentData();bass=self.bass.currentData()
+        options=self.options();initial=self.initial_options
+        root,quality,bass=options['root'],options['quality'],options['bass']
+        rebuild=self.regenerate.isChecked() or (self.recognized_rhythm is not None and (root,quality)!=(initial['root'],initial['quality']))
+        if not rebuild and (self.creating or chord.instrument_analysis is not None):
+            # Template values and a symbol derived from the instrument roll are
+            # suggestions here. Only fields the user changed should edit MIDI.
+            if (root,bass)==(initial['root'],initial['bass']):bass=chord.bass
+            if root==initial['root']:root=chord.root%12
+            if quality==initial['quality']:quality=chord.quality
         if bass==root:bass=None # Root-position bass keeps the existing project representation.
-        rebuild=self.regenerate.isChecked() or (self.recognized_rhythm is not None and chord.recognized and (root!=chord.root%12 or quality!=chord.quality))
+        symbol_changed=(root,quality,bass)!=(chord.root%12,chord.quality,chord.bass)
         from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
         if not rebuild and not rhythm_recognition_enabled():chord.materialize()
         if not rebuild and not chord.recognition_disabled:
             if root!=chord.root%12:change_root(chord,root,self.project,regenerate_notes=False)
             if quality!=chord.quality:change_quality(chord,quality,self.project,regenerate_notes=False)
             if bass!=chord.bass:replace_bass(chord,root if bass is None else bass,self.project)
-        chord.root=48+root;chord.quality=quality;chord.bass=bass;chord.start=round(self.start.value()*PPQ);chord.duration=round(self.duration.value()*PPQ)
-        chord.gate=self.gate.value()/100;chord.velocity=self.velocity.value();chord.octave=self.octave.value();chord.recognized=True
-        chord.recognition_disabled=False;chord.marked=False
-        if rebuild or (root,quality,bass)!=(self.chord.root%12,self.chord.quality,self.chord.bass):
+        chord.start=round(self.start.value()*PPQ);chord.duration=round(self.duration.value()*PPQ)
+        for name in ('gate','velocity','octave'):
+            if rebuild or not self.creating or options[name]!=initial[name]:
+                setattr(chord,name,options[name]/100 if name=='gate' else options[name])
+        if rebuild or symbol_changed:
+            chord.root=48+root;chord.quality=quality;chord.bass=bass;chord.recognized=True
+            chord.marked=chord.marked and not rebuild;chord.recognition_disabled=chord.marked
             chord.instrument_symbol_preference=None
         if rebuild:chord.pattern=self.pattern.currentData();chord.notes=None;chord.custom_rhythm=False
         if chord.notes is not None:

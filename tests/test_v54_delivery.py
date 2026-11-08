@@ -54,6 +54,7 @@ class StandaloneDeliveryTests(unittest.TestCase):
         for path,state in self.old_bytes.items():self.assertEqual((path.read_bytes(),path.stat().st_mtime_ns),state)
 
     def test_default_prepares_complete_folder_without_opening_any_archive(self):
+        legacy_pack=self.write('synths/ydp-grand/synth.json',b'previous default still available in the checkout')
         archive,checksum=packaging.archive_paths()
         archive.write_bytes(b'current archive also preserved');checksum.write_bytes(b'current checksum preserved')
         before={p:(p.read_bytes(),p.stat().st_mtime_ns) for p in (archive,checksum)}
@@ -62,7 +63,10 @@ class StandaloneDeliveryTests(unittest.TestCase):
         self.assertIsNone(result['archive']);self.assertIsNone(report['archive']);self.assertIsNone(report['sha256'])
         info=json.loads((self.folder/'build-info.json').read_text('utf-8'))
         self.assertEqual(info['delivery'],'local-standalone');self.assertFalse(info['archive_requested'])
-        self.assertEqual(set(info['bundled_packs']),{'piano-electric','stk-essentials','stk-colors','stk-acoustic','ydp-grand'})
+        self.assertEqual(set(info['bundled_packs']),
+                         {'piano-electric','stk-essentials','stk-colors','stk-acoustic','generaluser-gs','pfsynth'})
+        self.assertTrue(legacy_pack.is_file())
+        self.assertFalse((self.folder/'synths/ydp-grand').exists())
         self.assertEqual(self.validator.call_count,len(policy.APPROVED_PACKS))
         self.assertEqual(self.calibration.call_count,len(policy.APPROVED_PACKS))
         for ident in policy.APPROVED_PACKS:
@@ -85,12 +89,15 @@ class StandaloneDeliveryTests(unittest.TestCase):
 
     def test_explicit_archive_creates_only_main_zip_and_checks_it(self):
         self.write('dist/'+self.version+'/Lingfeng/synths/user-installed/engine.dll',b'user pack preserved locally')
+        self.write('dist/'+self.version+'/Lingfeng/synths/generaluser-gs-bank-001/synth.json',b'optional GS variation bank')
+        self.write('dist/'+self.version+'/Lingfeng/synths/generaluser-gs-drums/synth.json',b'optional GS drums')
         result=packaging.package(archive=True);archive,checksum=packaging.archive_paths()
         self.assertEqual(result['archive'],str(archive));self.assertTrue(checksum.is_file())
         self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(),checksum.read_text('ascii').split()[0])
         self.assertTrue(json.loads((self.folder/'build-info.json').read_text('utf-8'))['archive_requested'])
         with zipfile.ZipFile(archive) as source:
             self.assertFalse(any('user-installed' in name for name in source.namelist()))
+            self.assertFalse(any('generaluser-gs-bank-' in name or 'generaluser-gs-drums/' in name for name in source.namelist()))
             self.assertTrue(all('Lingfeng/synths/'+ident+'/synth.json' in source.namelist() for ident in policy.APPROVED_PACKS))
         self.assertTrue((self.folder/'synths/user-installed/engine.dll').is_file())
         report=verification.verify(archive=True);self.assertEqual(report['status'],'passed')

@@ -90,7 +90,7 @@ class DialogTests(unittest.TestCase):
                 try:
                     self.assertEqual(d.root.itemData(0),tonic);self.assertTrue(d.root.itemText(0).startswith('1 · '))
                     self.assertEqual([d.root.itemData(i) for i in range(12)],[(tonic+i)%12 for i in range(12)])
-                    self.assertEqual(d.root.currentData(),tonic);self.assertEqual(d.bass.currentData(),tonic)
+                    self.assertEqual(d.root.currentData(),10);self.assertEqual(d.bass.currentData(),4)
                 finally:d.close();d.deleteLater()
 
     def test_moving_start_reorders_without_changing_chord_or_regenerate(self):
@@ -104,23 +104,54 @@ class DialogTests(unittest.TestCase):
         finally:d.close();d.deleteLater()
 
     def test_defaults_do_not_copy_target_time_id_or_notes(self):
-        p=Project();c=Chord(3840,2*PPQ,notes=[Note(0,480,60)],custom_rhythm=True);before=copy.deepcopy(c)
-        opts=dict(root=7,quality='mM7',bass=11,pattern='up',gate=65,velocity=81,octave=1,regenerate=False,start=0,duration=1)
-        d=ChordDialog(c,p,defaults=opts)
+        p=Project();musical=dict(root=7,quality='mM7',bass=11,pattern='up',gate=65,velocity=81,octave=1)
+        for c in (Chord(3840,2*PPQ,notes=[Note(0,480,60)],recognized=False,custom_rhythm=True),
+                  Chord(p.end-17,17,notes=[],recognized=False)):
+            before=copy.deepcopy(c)
+            d=ChordDialog(c,p,defaults=dict(musical,regenerate=False,start=0,duration=1))
+            try:
+                self.assertEqual(d.options(),musical);self.assertTrue(d.regenerate.isChecked())
+                result=d.value();self.assertEqual((result.id,result.start,result.duration),(c.id,c.start,c.duration))
+                self.assertIsNone(result.notes);self.assertEqual(c,before)
+                d.regenerate.setChecked(False)
+                self.assertEqual(d.value(),before)
+            finally:d.close();d.deleteLater()
+
+    def test_known_chord_uses_its_symbol_but_unknown_performance_opens_as_block(self):
+        p=Project();c=Chord(0,PPQ,55,'m',bass=10,pattern='eighths',gate=.61,velocity=88,octave=1,
+                           notes=[Note(120,250,46),Note(180,370,55),Note(270,100,62)])
+        d=ChordDialog(c,p,defaults=dict(root=0,quality='7',bass=4,pattern='quarters',gate=25,velocity=31,octave=-1))
         try:
-            for key,value in d.options().items():self.assertEqual(value,opts[key],key)
-            result=d.value();self.assertEqual((result.id,result.start,result.duration),(c.id,c.start,c.duration))
-            self.assertEqual(c,before)
+            self.assertIsNone(d.recognized_rhythm)
+            self.assertEqual(d.options(),dict(root=7,quality='m',bass=10,pattern='block',gate=61,velocity=88,octave=1))
+            self.assertEqual(d.value().pattern,'block')
+            d.regenerate.setChecked(False)
+            self.assertEqual(d.value().notes,c.notes)
+        finally:d.close();d.deleteLater()
+
+    def test_instrument_assisted_symbol_does_not_transpose_preserved_notes(self):
+        p=Project();c=Chord(0,PPQ,notes=[Note(0,PPQ,pitch) for pitch in (60,64,67)],
+                           include_instrument_in_recognition=True)
+        p.chords=[c];p.instrument_notes=[Note(0,PPQ,46)];p.rescan_instrument_recognition()
+        d=ChordDialog(c,p)
+        try:
+            self.assertEqual((d.root.currentData(),d.quality.currentData(),d.bass.currentData()),(0,'7',10))
+            d.regenerate.setChecked(False)
+            self.assertEqual(d.value().notes,c.notes)
+            self.assertEqual((d.value().root,d.value().quality,d.value().bass),(c.root,c.quality,c.bass))
+            d.bass.setCurrentIndex(d.bass.findData(2))
+            self.assertEqual([n.pitch for n in d.value().notes],[62,64,67])
+            self.assertEqual(d.value().quality,c.quality)
         finally:d.close();d.deleteLater()
 
     def test_unsupported_remembered_pattern_falls_back(self):
         p=Project();p.change_meter(0,3,4)
-        d=ChordDialog(Chord(0,PPQ),p,defaults=dict(pattern='bass_chord',regenerate=True))
+        d=ChordDialog(Chord(0,PPQ,notes=[],recognized=False),p,defaults=dict(pattern='bass_chord',regenerate=True))
         try:self.assertEqual(d.pattern.currentData(),'block')
         finally:d.close();d.deleteLater()
 
     def test_invalid_preferences_are_ignored(self):
-        d=ChordDialog(Chord(0,PPQ),Project(),defaults=dict(root='bad',quality='bad',velocity='loud',gate=500,regenerate='no'))
+        d=ChordDialog(Chord(0,PPQ,notes=[],recognized=False),Project(),defaults=dict(root='bad',quality='bad',velocity='loud',gate=500,regenerate='no'))
         try:
             self.assertEqual(d.root.currentData(),0);self.assertEqual(d.velocity.value(),72)
             self.assertEqual(d.gate.value(),90);self.assertTrue(d.regenerate.isChecked())
@@ -138,16 +169,24 @@ class ApplicationTests(unittest.TestCase):
         with patch.object(ChordDialog,'exec',callback),patch.object(self.w.transport,'audition'):
             self.w.edit_chord(c.id,c.start)
 
-    def test_confirmed_options_follow_different_chords_cancel_and_restart(self):
-        opts=dict(quality='mM7',pattern='quarters',gate=70)
+    def test_last_creation_survives_recognized_edits_cancel_and_restart(self):
+        opts=dict(root=7,quality='mM7',bass=11,pattern='quarters',gate=70,velocity=82,octave=1)
         def accept(d):
-            d.apply_options(dict(opts,velocity=82));self.assertEqual(d.velocity.value(),72)
-            d.velocity.setValue(82);return QDialog.DialogCode.Accepted
+            self.assertEqual(d.velocity.value(),72)
+            for name in ('root','quality','bass','pattern'):
+                combo=getattr(d,name);combo.setCurrentIndex(combo.findData(opts[name]))
+            for name in ('gate','velocity','octave'):getattr(d,name).setValue(opts[name])
+            return QDialog.DialogCode.Accepted
         self.edit(0,accept);self.assertEqual(self.w.chord_edit_options,opts)
+        def update_known(d):
+            self.assertFalse(d.creating);d.velocity.setValue(45)
+            return QDialog.DialogCode.Accepted
+        self.edit(0,update_known)
+        self.assertEqual(self.w.project.chords[0].velocity,45)
+        self.assertEqual(self.w.chord_edit_options,opts)
         target=copy.deepcopy(self.w.project.chords[1]);before=self.w.project.to_dict();history=len(self.w.undo_history)
         def cancel(d):
             self.assertEqual(d.options(),opts)
-            self.assertEqual(d.velocity.value(),72)
             self.assertEqual((d.value().start,d.value().duration),(target.start,target.duration))
             d.quality.setCurrentIndex(d.quality.findData('sus2'));return QDialog.DialogCode.Rejected
         self.edit(1,cancel)

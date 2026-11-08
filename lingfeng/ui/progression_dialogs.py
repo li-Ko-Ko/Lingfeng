@@ -5,7 +5,8 @@ from lingfeng.music.model import PATTERNS, PPQ, Chord
 from lingfeng.music.progressions import tokens, resolve, progression_label, progression_key, preset_label, make_preset, presets, load_library, root_identity, matches_roots, targets, common_patterns, apply, capture, selection_root_query, search_recipe, DEFAULT_PRESETS
 
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QFormLayout,QComboBox,QLabel,QLineEdit,QCheckBox,
-    QSpinBox,QDialogButtonBox,QPushButton,QTableWidget,QTableWidgetItem,QAbstractItemView,QHeaderView)
+    QSpinBox,QDialogButtonBox,QPushButton,QTableWidget,QTableWidgetItem,QAbstractItemView,QHeaderView,
+    QFrame,QListView,QScrollArea,QWidget)
 
 from PySide6.QtCore import Qt
 
@@ -134,9 +135,27 @@ ProgressionSettingsDialog=ProgressionManagerDialog
 class ProgressionDialog(QDialog):
     def __init__(self,project,cid,values,parent=None):
         super().__init__(parent);self.setWindowTitle(tr('应用和弦进行'));self.project=project;self.cid=cid
-        self.setMinimumWidth(490);layout=QVBoxLayout(self);form=QFormLayout();layout.addLayout(form)
+        self.setMinimumWidth(490);layout=QVBoxLayout(self)
+        self.scroll=QScrollArea();self.scroll.setWidgetResizable(True);self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        body=QWidget();form=QFormLayout(body);form.setContentsMargins(0,0,0,0)
+        self.scroll.setWidget(body);layout.addWidget(self.scroll,1)
         self.preset=QComboBox()
-        for entry in presets(values):self.preset.addItem(preset_label(entry),entry['sequence'])
+        # The menu-style popup can ignore maxVisibleItems and fill the screen.
+        self.preset.setStyleSheet('QComboBox { combobox-popup: 0; }')
+        self.preset.setMaxVisibleItems(10)
+        self.preset.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.preset.setMinimumContentsLength(24)
+        view=QListView(self.preset)
+        view.setStyleSheet('QListView::item { padding: 4px 6px; }')
+        view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.preset.setView(view)
+        for entry in presets(values):
+            label=preset_label(entry)
+            self.preset.addItem(label,entry['sequence'])
+            self.preset.setItemData(self.preset.count()-1,label,Qt.ItemDataRole.ToolTipRole)
+        if self.preset.count()>self.preset.maxVisibleItems():
+            view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         form.addRow(tr('预设'),self.preset)
         dest=targets(project,cid,1);context=project.context_at(dest[0].start if dest else 0)
         self.tonic=tonic_selector(context.tonic,context.mode)
@@ -150,9 +169,10 @@ class ProgressionDialog(QDialog):
         from lingfeng.platform.chord_preferences import default_velocity
         self.velocity_check=QCheckBox(tr('统一力度'));self.velocity=QSpinBox();self.velocity.setRange(1,127);self.velocity.setValue(default_velocity('harmony'));form.addRow(self.velocity_check,self.velocity)
         self.gate_check=QCheckBox(tr('统一发音长度'));self.gate=QSpinBox();self.gate.setRange(5,100);self.gate.setValue(90);self.gate.setSuffix('%');form.addRow(self.gate_check,self.gate)
-        self.info=QLabel();self.info.setWordWrap(True);layout.addWidget(self.info)
+        self.info=QLabel();self.info.setWordWrap(True);form.addRow(self.info)
         self.buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);layout.addWidget(self.buttons);self.buttons.accepted.connect(self.accept);self.buttons.rejected.connect(self.reject)
         self.sequence.textChanged.connect(self.refresh);self.tonic.currentIndexChanged.connect(self.refresh);self.refresh()
+        self.resize(550,min(430,int(self.screen().availableGeometry().height()*.7)))
     def refresh(self):
         try:
             seq=tokens(self.sequence.text());dest=targets(self.project,self.cid,len(seq));available=common_patterns(self.project,dest)

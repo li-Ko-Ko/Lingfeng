@@ -100,10 +100,12 @@ class SourceBundleTests(unittest.TestCase):
             self.write(f'synths/{ident}/source/synth.cpp','reviewed source')
         self.write('synths/unreviewed/synth.json','user-installed pack')
         self.write('synths/ydp-grand/synth.json','downloaded build input')
+        self.write('synths/musescore-lite-piano-test/synth.json','downloaded build input')
         names={path.relative_to(self.root).as_posix() for path in policy.repository_files(self.root)}
         self.assertTrue(all(f'synths/{ident}/source/synth.cpp' in names for ident in policy.REPOSITORY_PACKS))
         self.assertIn('synths/piano-small/synth.json',names)
         self.assertNotIn('synths/ydp-grand/synth.json',names)
+        self.assertNotIn('synths/musescore-lite-piano-test/synth.json',names)
         self.assertNotIn('synths/unreviewed/synth.json',names)
         policy.verify_repository_paths(self.root,names)
         with self.assertRaisesRegex(RuntimeError,'Public repository inventory mismatch:.*ARCHITECTURE'):

@@ -1,0 +1,6 @@
+Build from the pack root with Zig 0.14.1:
+
+zig cc -target x86_64-windows-gnu -std=c11 -O3 -Werror=constant-conversion -shared -static source/lingfeng-pfsynth.c source/src/core/pf_partial.c source/src/core/pf_attack.c source/src/core/pf_resonance.c source/src/host/pfplayer.c -o lingfeng-pfsynth.dll
+
+If the rebuilt DLL hash differs, update sha256 in synth.json before rescanning.
+Runtime notices: licenses/zig-runtime/. Toolchain: https://ziglang.org/download/0.14.1/

@@ -32,7 +32,7 @@ PATTERNS = {'block':'持续柱式', 'quarters':'四分柱式', 'eighths':'八分
             'alternating_offbeat':'底五交替 · 反拍柱式'}
 SHARP = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 FLAT = ('C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B')
-SECTIONS = ('intro','verse','pre-chorus','chorus','interlude','link','bridge','solo','refrain','tag','post-chorus','super-chorus','coda','outro')
+SECTIONS = ('intro','verse','pre-chorus','chorus','interlude','bridge','solo','refrain','tag','post-chorus','super-chorus','coda','outro')
 MELODY_NAMES = ('人声旋律', '乐器旋律')
 
 def section_name(value):
@@ -40,6 +40,7 @@ def section_name(value):
     label=value.strip().casefold().replace('_','-')
     label=re.sub(r'^(pre|post|super)[ -]?chorus',r'\1-chorus',label)
     base=re.sub(r'[ -]+\d+$','',label)
+    if base=='link':return 'interlude'+label[len(base):]
     return label if base in SECTIONS else value
 COLORS = {'both':'#247F70','scale':'#456DB1','chord':'#B27632','other':'#A84E62'}
 # Background emphasis decreases; note contrast increases in the same category order.

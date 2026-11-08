@@ -104,12 +104,16 @@ class MusicTests(unittest.TestCase):
 
     def test_midi_round_trip_and_tracks(self):
         p=demo_project()
+        # Test the configured GM programs independently of installed sound packs.
+        p.audio['melody']=dict(device='default',program=40)
+        p.audio['chords']=dict(device='default',program=17)
         with tempfile.TemporaryDirectory(dir=TEST_TEMP) as folder:
             assert Path(folder).resolve().is_relative_to(TEST_TEMP.resolve())
             path=Path(folder)/'demo.mid';export_midi(p,path)
             fmt,ppq,tracks=read_midi(path)
             self.assertEqual((fmt,ppq,len(tracks)),(1,960,3))
-            self.assertIn((0,0xC0,b'\x01'),tracks[1]);self.assertIn((0,0xC1,b'\x00'),tracks[2])
+            self.assertEqual([event for event in tracks[1] if event[1]==0xC0],[(0,0xC0,b'\x28')])
+            self.assertEqual([event for event in tracks[2] if event[1]==0xC1],[(0,0xC1,b'\x11')])
             actual=[(t,data[0],data[1]) for t,status,*tail in tracks[1] if status==0x90 for data in tail]
             self.assertEqual(actual,[(n.start,n.pitch,n.velocity) for n in p.notes])
             endings=[(t,tail[0][0]) for t,status,*tail in tracks[1] if status==0x80]

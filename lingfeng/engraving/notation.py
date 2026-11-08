@@ -847,7 +847,7 @@ class ScoreLayout:
                 if self.ink_fits(descriptors,middle*ratio):low=middle
                 else:high=middle
             advice=low
-        return max(1,advice)
+        return max(.0001,advice)
 
     @staticmethod
     def traditional_beat_cell(system,bar,tick):

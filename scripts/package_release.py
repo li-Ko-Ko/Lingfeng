@@ -119,7 +119,7 @@ def package(destination=None,*,archive=False):
     (DEST/'Start-here.txt').write_text(f"""伶风 Lingfeng {__version__}
 
 运行本文件夹中的 Lingfeng.exe，保留 _internal 和 synths。
-已附带 Greg Sullivan 电钢琴、三套 STK 音源与 YDP 原声三角钢琴，可直接运行。
+已附带 Greg Sullivan 电钢琴、三组 STK、GeneralUser GS 主包（128 个基础 GM 音色）和 PFSynth 物理建模钢琴。
 新增音源：复制完整文件夹到 synths，进入 设置 → 音源与输入 → 音源与音色 → 重新扫描并保存。
 扫描结果和默认选择自动保存，下次启动直接读取；也可以添加其它扫描目录。
 设置 → 音源与输入 → 音源与音色 → 下载／添加音源，可下载其他音源或添加本地音源 ZIP。下载支持进度、取消和校验。
@@ -129,8 +129,8 @@ source/ 提供程序源码；每个音源包内含源码和许可。详见 docs/
 分级中英文帮助见 docs/HELP.md。升级解压到新目录后会沿用用户偏好与和弦进行。
 旧目录内自行添加的音源请复制到新版 synths/；额外扫描目录与音色默认值会迁移。
 
-Run Lingfeng.exe in this folder and keep _internal and synths. Greg Sullivan
-E-Pianos, three STK packs and YDP Grand Piano are included with their licenses.
+Run Lingfeng.exe in this folder and keep _internal and synths. The included sounds are
+Greg Sullivan E-Pianos, three STK packs, 128 GeneralUser GS GM presets and PFSynth.
 Download more sounds or add a local pack ZIP in Settings > Sound and input >
 Sound sources and instruments > Download / add sounds. Downloads show progress
 and verify checksums. You can also copy complete folders into synths/ and use

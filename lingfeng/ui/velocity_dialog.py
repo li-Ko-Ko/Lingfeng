@@ -89,7 +89,7 @@ class DynamicsSettingsDialog(VelocityOptionsDialog):
         form.addRow(tr('人声默认力度'), self.melody_velocity)
         form.addRow(tr('乐器默认力度'), self.instrument_velocity)
         form.addRow(tr('和弦默认力度'), self.chord_velocity)
-        info = QLabel(tr('和弦各声部共用力度。和弦卷帘新建音符跟随所在和弦的力度；空白处使用和弦默认力度。编辑和弦每次使用和弦默认力度。'))
+        info = QLabel(tr('和弦各声部共用力度。和弦卷帘新建音符跟随所在和弦的力度，空白处使用和弦默认力度。没有创建记录时，空和弦和未识别和弦也使用默认力度。'))
         info.setWordWrap(True); form.addRow(info)
         box = self.layout()
         box.removeWidget(self.options)

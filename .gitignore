@@ -57,6 +57,8 @@
 !/synths/stk-colors/
 !/synths/stk-acoustic/
 !/synths/piano-small/
+!/synths/generaluser-gs/
+!/synths/pfsynth/
 
 **/__pycache__/
 *.py[cod]

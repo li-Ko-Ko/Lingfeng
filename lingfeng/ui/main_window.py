@@ -958,7 +958,11 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         if dialog.exec()==QDialog.DialogCode.Accepted:
             new=dialog.value()
             if self.mutate(tr('已更新和弦'),lambda p:p.put_chord(new),source=origin):
-                self.chord_edit_options=dialog.options();self.save_preferences();self.transport.audition(new.pitches,True)
+                if dialog.creating and dialog.regenerate.isChecked():
+                    committed=next(c for c in self.project.chords if c.id==new.id)
+                    if committed.render_notes():
+                        self.chord_edit_options=dialog.options();self.save_preferences()
+                self.transport.audition(new.pitches,True)
         self.restore_dialog_origin(parent,origin)
 
     def delete_chord(self,cid):self.mutate(tr('已删除和弦'),lambda p:setattr(p,'chords',[c for c in p.chords if c.id!=cid]))

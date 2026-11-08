@@ -132,6 +132,7 @@ class ChordLane(QWidget):
         self.pan_state=None;self.right_press=False;self.context_handled=0
         self.aux_ruler_scale=1;self.paint_offset=None
         self.chord_height=CHORD_LANE_DEFAULT_HEIGHT
+        self.height_splitter=None
         self.height_handles=[]
         self.height_handle_cursors={}
         self.height_drag_neighbor=None
@@ -200,6 +201,10 @@ class ChordLane(QWidget):
     def layout_velocity(self):
         self.velocity_lane.setGeometry(0,self.card_height(),self.width(),CHORD_VELOCITY_HEIGHT)
 
+    def layout_height_grip(self):
+        bottom=self.height_drag_direction()>0
+        self.height_grip.move(0,max(0,self.height()-self.height_grip.height()) if bottom else 0)
+
     def resizeEvent(self,event):
         super().resizeEvent(event);self.layout_velocity();self.watch_height_handles()
 
@@ -209,8 +214,15 @@ class ChordLane(QWidget):
 
     def watch_height_handles(self):
         """Only the left end of a chord divider is a height adjustment area."""
-        splitter=self.parentWidget();handles=[]
-        if isinstance(splitter,QSplitter) and splitter.orientation()==Qt.Orientation.Vertical and self.isVisible():
+        splitter=self.parentWidget()
+        if not (isinstance(splitter,QSplitter) and splitter.orientation()==Qt.Orientation.Vertical and self.isVisible()):splitter=None
+        if splitter is not self.height_splitter:
+            if self.height_splitter is not None:self.height_splitter.removeEventFilter(self)
+            if splitter is not None:splitter.installEventFilter(self)
+            self.height_splitter=splitter
+        self.layout_height_grip()
+        handles=[]
+        if splitter is not None:
             # Hidden siblings may be revealed without resizing this fixed-height
             # lane. Watch potential dividers and resolve visible adjacency live.
             handles=[splitter.handle(i) for i in range(1,splitter.count())]
@@ -237,6 +249,8 @@ class ChordLane(QWidget):
         return (splitter,index,adjacent) if adjacent is not None else None
 
     def eventFilter(self,watched,event):
+        if watched is self.height_splitter and event.type()==QEvent.Type.LayoutRequest:
+            self.layout_height_grip()
         if watched in self.height_handles:
             kind=event.type()
             if kind not in (QEvent.Type.Enter,QEvent.Type.MouseMove,QEvent.Type.MouseButtonPress,
@@ -682,7 +696,8 @@ class ChordLane(QWidget):
         for quality in quick_qualities():
             label=labels[quality]
             a=quick.addAction(label,lambda checked=False,q=quality:e.chordCommand.emit('quality:'+q,ids));a.setData(quality);a.setCheckable(True);a.setChecked(bool(single and chord and chord.quality==quality))
-        quick.setEnabled(known and bool(quick.actions()))
+        if quick.actions():quick.addSeparator()
+        quick.addAction(tr('从完整和弦列表选择…'),lambda:e.chordCommand.emit('quality_picker',ids))
         bass=menu.addMenu(tr('替换低音'));menu.bass_menu=bass;bass.setEnabled(known)
         for label,pc in theme.pitch_class_choices(tonic,context.mode):
             a=bass.addAction(label,lambda checked=False,v=pc:e.chordCommand.emit('bass:'+str(v),ids));a.setData(pc)

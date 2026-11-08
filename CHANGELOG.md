@@ -6,6 +6,19 @@ Versions with generated release archives only; local work is recorded in `CHANGE
 
 ## 0.6 系列 / 0.6 family
 
+### 0.60.9 — 音源与和弦编辑 / Sound sources and chord editing
+
+日期 / Date: 2026-11-08。
+
+- Windows 独立版随附 Greg Sullivan 电钢琴、三组 STK、GeneralUser GS 2.0.3 主包与 PFSynth 物理建模钢琴。GeneralUser GS 保留原版 SF2，伶风提供 128 个基础 GM 音色。新工程优先采用 GeneralUser GS 原声钢琴，已保存且可用的默认音色优先。
+- 音源设置可自动测量三轨音色并提高较轻的轨道增益。PFSynth 参与测量，计算计入已有的预设补偿。
+- `interlude` 与 YuE2 的 ABC 间奏标记一致。旧工程的 `link` 自动迁移，保留段落位置和编号。
+- 编辑空和弦或未识别和弦时预填上次创建的音乐参数，保留当前起点和时长。已识别和弦显示当前信息，无法识别的节奏预选持续柱式。和弦性质可从完整列表搜索，并查看 YuE2 兼容性。
+
+The Windows standalone includes Greg Sullivan electric pianos, three STK packs, the GeneralUser GS 2.0.3 main pack and the PFSynth modeled piano. Lingfeng exposes 128 base GM presets from the original GeneralUser GS SF2. Fresh settings prefer its acoustic piano. Auto-calibration measures compatible track sounds, including PFSynth, and raises the quieter tracks.
+
+Old `link` markers migrate to `interlude` for YuE2-compatible ABC. Empty and unrecognized chords reuse the musical settings of the last chord created, while recognized chords show their own settings and use Block for unknown rhythms. The full chord-quality picker includes search and YuE2 compatibility details.
+
 ### 0.60.1 — 双旋律、ABC 与 YuE2 交接 / Dual melodies, ABC and YuE2 handoff
 
 日期 / Date: 2026-11-07。上一 GitHub 发布版 / Previous GitHub release: 0.57.1。

@@ -37,26 +37,24 @@ class ImportAndToolsTests(unittest.TestCase):
     def action(self,menu,title):
         return next(action for action in menu.actions() if action.text()==tr(title))
 
-    def test_yue2_preflight_lists_optional_rules_and_warns_only_for_link(self):
+    def test_yue2_preflight_accepts_interlude_without_section_replacement(self):
         project = self.window.project
         project.chords[0].quality = 'maj9'
-        project.measures[0].section = 'link'
+        project.measures[0].section = 'interlude'
         dialog = AbcExportDialog(project, self.window)
         report = dialog.compatibility_report()
         self.assertIn(tr('必须修改')+'\n'+tr('无'), report)
-        self.assertIn('link → interlude', report)
+        self.assertNotIn('interlude', report)
         self.assertIn('Cmaj9 → Cmaj7', report)
         dialog.convert_chords.setChecked(False)
-        dialog.rewrite_links.setChecked(False)
-        self.assertTrue(dialog.issues)
+        self.assertFalse(dialog.issues)
         self.assertIn(tr('可选处理')+'\n'+tr('无'), dialog.compatibility_report())
-        dialog.rewrite_links.setChecked(True)
         with patch.object(QMessageBox, 'information', return_value=QMessageBox.StandardButton.Ok) as notice:
             with patch.object(dialog, 'confirm_replacements', return_value=True):
                 dialog.accept()
-            notice.assert_called_once()
-            self.assertIn('link', notice.call_args.args[2])
-        self.assertEqual(project.measures[0].section, 'link')
+            notice.assert_not_called()
+        self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
+        self.assertEqual(project.measures[0].section, 'interlude')
 
     def test_abc_insertion_from_file_menu_undo_and_redo_in_score(self):
         window=self.window
@@ -65,7 +63,7 @@ class ImportAndToolsTests(unittest.TestCase):
         window.dirty=True
         with TemporaryDirectory(dir='tmp') as temp:
             path=Path(temp)/'score.abc'
-            source=Project(bpm=120,measures=[Measure(3,4,section='Link')],contexts=[Context(0,2880)],
+            source=Project(bpm=120,measures=[Measure(3,4,section='Interlude')],contexts=[Context(0,2880)],
                            notes=[Note(0,480,62)],instrument_notes=[Note(480,480,69)],chords=[Chord(0,2880,50)])
             write_abc(source,path)
             def accept(dialog):
@@ -87,7 +85,7 @@ class ImportAndToolsTests(unittest.TestCase):
         self.assertEqual((window.project.title,window.project.bpm),('Target',85))
         self.assertEqual([(note.start,note.duration,note.pitch) for note in window.project.notes],
                          [(3600,240,60),(3840,480,62),(6720,240,60)])
-        self.assertEqual([measure.section for measure in window.project.measures],['verse','link','chorus'])
+        self.assertEqual([measure.section for measure in window.project.measures],['verse','interlude','chorus'])
         self.assertEqual(window.playhead,3840)
         self.assertEqual(window.score_view.canvas.project.starts,window.project.starts)
         window.undo()

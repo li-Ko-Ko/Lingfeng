@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt
 
 from lingfeng.music.abc_export import (
     abc_location, abc_track_project, sheetsage_chord_changes, sheetsage_issues,
-    valid_yue2_chord, yue2_link_replacement,
+    valid_yue2_chord,
 )
 from lingfeng.platform.i18n import tr
 from lingfeng.ui.track_picker import TrackPicker
@@ -17,9 +17,6 @@ class AbcExportDialog(QDialog):
         super().__init__(parent)
         self.project = project
         self.overrides = {}
-        self.links = [(bar, label, replacement)
-                      for bar, measure in enumerate(project.measures, 1)
-                      if (label := measure.section) and (replacement := yue2_link_replacement(label))]
         self.setWindowTitle(tr('导出 ABC'))
         self.setMinimumWidth(460)
         layout = QVBoxLayout(self)
@@ -32,12 +29,10 @@ class AbcExportDialog(QDialog):
         self.details = QLabel()
         self.details.setWordWrap(True)
         layout.addWidget(self.details)
-        self.rewrite_links = QCheckBox(tr('导出时将 link 替换为 interlude'))
         self.convert_chords = QCheckBox(tr('预填不兼容和弦的替换建议'))
-        for rule in (self.rewrite_links, self.convert_chords):
-            rule.setChecked(True)
-            rule.toggled.connect(self._update)
-            layout.addWidget(rule)
+        self.convert_chords.setChecked(True)
+        self.convert_chords.toggled.connect(self._update)
+        layout.addWidget(self.convert_chords)
         self.check = QPushButton(tr('检查 YuE2 兼容性'))
         self.check.clicked.connect(self.check_compatibility)
         layout.addWidget(self.check)
@@ -54,11 +49,9 @@ class AbcExportDialog(QDialog):
         selected = abc_track_project(self.project, roles) if roles else None
         self.issues = sheetsage_issues(selected) if selected else [tr('请选择至少一个导出轨道。')]
         self.changes = sheetsage_chord_changes(selected) if selected else []
-        if self.links and not self.rewrite_links.isChecked():
-            self.issues.append(tr('YuE2 不支持 link。请改用 interlude 或启用导出替换。'))
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(bool(roles))
         compatible = self.format.currentData()
-        for widget in (self.rewrite_links, self.convert_chords, self.check):
+        for widget in (self.convert_chords, self.check):
             widget.setVisible(compatible)
         if compatible:
             details = tr('Vocal 和 Ins 各为单声部。未选的旋律用休止填充，和弦符号写在 Vocal 的实际变更时点。')
@@ -76,13 +69,6 @@ class AbcExportDialog(QDialog):
     def compatibility_report(self):
         required = list(self.issues)
         optional = []
-        if self.links:
-            labels = [tr('第 {0} 小节', bar) + f'  {label} → {replacement}'
-                      for bar, label, replacement in self.links]
-            if self.rewrite_links.isChecked():
-                optional.extend([tr('YuE2 不支持 link，导出时将按以下方案替换。'), *labels])
-            else:
-                required.extend(labels)
         if self.changes:
             omitted = tr('省略')
             if self.convert_chords.isChecked():
@@ -115,14 +101,6 @@ class AbcExportDialog(QDialog):
             if self.issues:
                 self.check_compatibility()
                 return
-            if self.links:
-                bars = '、'.join(str(bar) for bar, _, _ in self.links)
-                result = QMessageBox.information(
-                    self, tr('YuE2 段落替换'),
-                    tr('YuE2 不支持 link。以下小节的 link 将在导出时替换为 interlude：{0}。', bars),
-                    QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-                if result != QMessageBox.StandardButton.Ok:
-                    return
             if self.changes and not self.confirm_replacements():
                 return
         super().accept()
@@ -168,4 +146,4 @@ class AbcExportDialog(QDialog):
 
     def value(self):
         return dict(sheetsage=self.format.currentData(), which=self.tracks.roles(), chord_overrides=self.overrides,
-                    rewrite_links=self.rewrite_links.isChecked(), convert_chords=self.convert_chords.isChecked())
+                    convert_chords=self.convert_chords.isChecked())

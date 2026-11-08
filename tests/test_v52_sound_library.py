@@ -190,8 +190,7 @@ class SoundLibraryTests(unittest.TestCase):
             dialog=SoundSettingsDialog(settings)
             try:
                 self.assertEqual(dialog.value(),settings)
-                self.assertEqual(dialog.calibration_labels['melody'].text(),'+6.5 dB')
-                self.assertEqual(dialog.calibration_labels['chords'].text(),'—')
+                self.assertTrue(dialog.calibration_button.isEnabled())
                 self.assertFalse(dialog.gain_fields['chords'].isEnabled())
                 dialog.gain_fields['instrument'].setValue(-3.5)
                 dialog.scan()
@@ -203,7 +202,7 @@ class SoundLibraryTests(unittest.TestCase):
                 device.setCurrentIndex(device.findData('default'))
                 self.assertFalse(dialog.gain_fields['instrument'].isEnabled())
                 self.assertEqual(dialog.gain_fields['instrument'].value(),0)
-                self.assertEqual(dialog.calibration_labels['instrument'].text(),'—')
+                self.assertFalse(dialog.calibration_button.isEnabled())
                 self.assertNotIn('gain_db',dialog.value()['instrument'])
                 self.assertEqual(dialog.value()['melody']['gain_db'],2.5)
             finally:dialog.reject();dialog.deleteLater();APP.processEvents()

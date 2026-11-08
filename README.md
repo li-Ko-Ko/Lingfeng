@@ -6,7 +6,7 @@
 
 A lightweight Windows app for pop songwriting and jianpu engraving. Write separate vocal and instrumental melodies, add chords and lyrics, and prepare a score.
 
-**当前源码 0.60.1 · Windows x64 / Current source 0.60.1**
+**当前源码 0.60.9 · Windows x64 / Current source 0.60.9**
 
 [已发布的便携版 / Published portable builds](https://github.com/li-Ko-Ko/Lingfeng/releases) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
@@ -14,9 +14,9 @@ A lightweight Windows app for pop songwriting and jianpu engraving. Write separa
 
 Extract the download completely, then run `Lingfeng.exe`. Keep the `_internal/` and `synths/` folders beside it.
 
-独立程序无需安装 Python。按当前源码构建的便携版随附 YDP 原声三角钢琴、Greg Sullivan 电钢琴和三组 STK 音源，共有 38 个 STK 音色。Salamander 音乐会钢琴和 FluidR3 GM 可按需下载。程序为可测量的音色提供响度补偿，并支持逐轨调整合成音源增益。
+独立程序无需安装 Python。便携版随附 Greg Sullivan 电钢琴、三组 STK 音源、GeneralUser GS 主包和 PFSynth 物理建模钢琴。GeneralUser GS 在伶风中提供 128 个基础 GM 音色，初次使用时默认选用原声大钢琴。Salamander 音乐会钢琴和 FluidR3 GM 可按需下载。可以一键提高三轨中较轻的合成音源增益，再逐轨微调和试听。
 
-The standalone application needs no Python installation. Portable builds from the current source include the YDP acoustic grand, Greg Sullivan electric pianos and three STK packs with 38 STK presets. Salamander Concert Grand and FluidR3 GM are optional downloads. Measurable presets receive loudness compensation, and each track has its own synth gain.
+The standalone application needs no Python installation. Portable builds include Greg Sullivan electric pianos, three STK packs, the main GeneralUser GS pack and the PFSynth physically modeled piano. GeneralUser GS provides 128 standard GM sounds in Lingfeng, with Grand Piano selected in fresh settings. Salamander Concert Grand and FluidR3 GM are optional downloads. Auto-calibration boosts quieter synth tracks, and each track's gain can be edited and previewed.
 
 ## 主要功能 / Features
 

@@ -1,4 +1,4 @@
-"""One modal display policy and chord-edit memory (velocity moved to defaults)."""
+"""One modal display policy and saved chord creation settings."""
 import copy,json,os,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -48,7 +48,7 @@ class ModalTests(unittest.TestCase):
                                 self.assertEqual([combo.itemData(i) for i in range(12)],[(tonic+i)%12 for i in range(12)])
                             actual=[ascii_degree(PianoRoll.note_degree_label(type('Roll',(),{'project':p})(),tonic+i,0,960)) for i in range(12)]
                             self.assertEqual(actual,wanted)
-                            self.assertEqual(edit.root.currentIndex(),0);self.assertEqual(edit.bass.currentIndex(),0)
+                            self.assertEqual(edit.root.currentData(),c.root%12);self.assertEqual(edit.bass.currentData(),c.bass)
                         finally:
                             for d in (edit,capture,apply,search):d.close();d.deleteLater()
                     APP.sendPostedEvents(None,QEvent.Type.DeferredDelete)
@@ -58,17 +58,17 @@ class ModalTests(unittest.TestCase):
             d.tonic.setCurrentIndex(d.tonic.findData(5));self.assertEqual(d.tonic.currentText(),'4 · F')
             self.assertEqual(labels(d.tonic),EXPECTED['Aeolian'][0].split())
         finally:d.close();d.deleteLater()
-    def test_chord_root_bass_memory_and_one_way_binding(self):
+    def test_existing_symbol_ignores_creation_memory_and_keeps_one_way_binding(self):
         p=project(50,'Dorian');c=p.chords[0];c.octave=2;before=copy.deepcopy(c)
         legacy=dict(root=8,bass=11,quality='mM7',pattern='quarters',gate=65,velocity=83,octave=-1,regenerate=False)
         d=ChordDialog(c,p,defaults=legacy)
         try:
-            self.assertEqual(d.options(),dict(quality='mM7',pattern='quarters',gate=65))
+            self.assertEqual(d.options(),dict(root=7,quality='m',bass=10,pattern='block',gate=90,velocity=72,octave=2))
             self.assertEqual(d.velocity.value(),72)
-            self.assertEqual((d.root.currentData(),d.bass.currentData()),(2,2))
-            self.assertEqual(d.octave.value(),2);self.assertTrue(d.regenerate.isChecked());self.assertIsNone(d.value().bass)
+            self.assertEqual((d.root.currentData(),d.bass.currentData()),(7,10))
+            self.assertEqual(d.octave.value(),2);self.assertTrue(d.regenerate.isChecked());self.assertEqual(d.value().bass,10)
             self.assertEqual(d.bass.count(),12);self.assertEqual(d.bass.findData(None),-1)
-            for root,bass in ((7,11),(5,8),(2,9)):
+            for root,bass in ((8,11),(5,8),(2,9)):
                 d.root.setCurrentIndex(d.root.findData(root));self.assertEqual(d.bass.currentData(),root)
                 d.bass.setCurrentIndex(d.bass.findData(bass));self.assertEqual(d.root.currentData(),root)
                 self.assertEqual(d.value().bass,bass)
@@ -84,19 +84,21 @@ class ModalTests(unittest.TestCase):
             self.assertEqual(d.root.itemText(0),'1 · F');self.assertEqual(labels(d.root),EXPECTED['Lydian'][0].split())
             self.assertEqual((d.root.currentData(),d.bass.currentData()),(11,6))
         finally:d.close();d.deleteLater()
-    def test_only_three_fields_survive_preferences_migration(self):
+    def test_musical_fields_survive_preferences_migration(self):
         with tempfile.TemporaryDirectory(dir='tmp') as folder:
             path=Path(folder);legacy=dict(root=8,bass=11,quality='m7',pattern='up',gate=60,velocity=75,octave=2,regenerate=False)
             (path/'preferences.json').write_text(json.dumps(dict(chord_edit_options=legacy)),'utf-8')
             with patch('lingfeng.ui.main_window.user_data_dir',return_value=path):
                 w=MainWindow(project());w.timer.stop();w.autosave.stop()
                 try:
-                    expected=dict(quality='m7',pattern='up',gate=60)
+                    expected=dict(root=8,bass=11,quality='m7',pattern='up',gate=60,velocity=75,octave=2)
                     self.assertEqual(w.chord_edit_options,expected);w.save_preferences()
                     self.assertEqual(json.loads((path/'preferences.json').read_text('utf-8'))['chord_edit_options'],expected)
                 finally:w.dirty=False;w.close();w.deleteLater()
             APP.sendPostedEvents(None,QEvent.Type.DeferredDelete)
         self.assertEqual(chord_edit_defaults(None),{})
+        self.assertEqual(chord_edit_defaults({'quality':'add9','pattern':'up','gate':60},legacy=True),
+                         {'quality':'add2','pattern':'up','gate':60})
     def test_context_menus_and_search_use_anchor_mode_and_global_preference(self):
         p=project(53,'Aeolian')
         with patch.object(MainWindow,'save_preferences'):

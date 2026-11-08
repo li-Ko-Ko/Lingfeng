@@ -11,6 +11,26 @@ _OUTPUT = {label: label for label in SECTIONS}
 _INPUT = dict(_OUTPUT)
 
 
+def _migrate_link(label):
+    return section_name(label) if section_key(label).partition(' ')[0] == 'link' else label
+
+
+def _export_mappings(mapping):
+    current = {}
+    legacy = {}
+    for source, target in mapping.items():
+        migrated = _migrate_link(source)
+        entries = current if migrated == source else legacy
+        entries[section_key(migrated)] = (migrated, _migrate_link(target))
+    for key, (source, target) in legacy.items():
+        # A customized old entry can replace a current identity mapping.
+        # An explicit current replacement wins if both entries are customized.
+        current_entry = current.get(key)
+        if current_entry is None or (section_key(current_entry[1]) == key and section_key(target) != key):
+            current[key] = (source, target)
+    return dict(current.values())
+
+
 def normalize_section_mappings(value=None):
     value = value if isinstance(value, dict) else {}
     result = {}
@@ -18,15 +38,12 @@ def normalize_section_mappings(value=None):
         raw = value.get(direction)
         if not isinstance(raw, dict):
             raw = defaults
-        # Migrate the old built-in alias while preserving custom mappings.
-        raw = {source: target for source, target in raw.items()
-               if (direction, source, target) not in (
-                   ('export', 'Link', 'interlude'), ('import', 'interlude', 'Link'))}
-        result[direction] = {
+        mapping = {
             ' '.join(source.split()): ' '.join(target.split())
             for source, target in raw.items()
             if isinstance(source, str) and source.strip() and isinstance(target, str) and target.strip()
         }
+        result[direction] = _export_mappings(mapping) if direction == 'export' else mapping
     return result
 
 

@@ -77,7 +77,10 @@ class InterfaceTests(unittest.TestCase):
             single=self.menu(lane,{w.project.chords[0].id});self.assertTrue(self.find(single).isEnabled());self.find(single).trigger()
             ids={w.project.chords[i].id for i in (4,0,2)};multi=self.menu(lane,ids);self.assertTrue(self.find(multi).isEnabled());self.find(multi).trigger()
         self.assertEqual([x[0] for x in calls],['I','I – IV – III']);self.assertTrue(all(x[1] is w for x in calls))
-        self.assertEqual([a.text() for a in single.actions()],[a.text() for a in multi.actions()]);self.assertEqual(lane.editor.selected_chords,ids)
+        single_labels=[a.text() for a in single.actions()]
+        self.assertIn('其他识别名称',single_labels)
+        self.assertEqual([label for label in single_labels if label!='其他识别名称'],[a.text() for a in multi.actions()])
+        self.assertEqual(lane.editor.selected_chords,ids)
     def test_unknown_nc_mixed_and_empty_disable_search(self):
         w=self.w;lane=w.chord_lane;w.project.chords[1].recognized=False
         nc=Chord(5*3840,3840,notes=[]);w.project.chords.append(nc);w.refresh()

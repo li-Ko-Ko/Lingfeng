@@ -9,6 +9,8 @@ from lingfeng import __version__
 from lingfeng.platform.i18n import tr
 
 DEFAULT_DEVICE='synth:stk-essentials'
+GENERALUSER_GS_DEVICE='synth:generaluser-gs'
+MUSESCORE_LITE_DEVICE='synth:musescore-lite-piano-test'
 CALIBRATION_FILE='calibration.json'
 _state=None
 _identity=None
@@ -255,8 +257,10 @@ def default_audio():
             try:source_gain_db(settings[role])
             except ValueError:settings[role].pop('gain_db',None)
         if len(settings)==len(TRACK_ROLES):return settings
-    if 0 in available_programs('synth:ydp-grand'):
-        device='synth:ydp-grand';melody_program=0
+    for device in (GENERALUSER_GS_DEVICE,MUSESCORE_LITE_DEVICE,'synth:ydp-grand'):
+        if 0 in available_programs(device):
+            melody_program=0
+            break
     else:
         piano=available_programs('synth:piano-small')
         if 0 in piano:
@@ -293,6 +297,14 @@ def commercial_notice(project,which='both',start=0,end=None,mode='offline'):
 def credits_text(project,which,start,end,mode):
     lines=['Lingfeng audio export — synthesis source credits / 合成音源许可说明','',commercial_notice(project,which,start,end,mode),'']
     if mode!='windows':
+        notice_files={GENERALUSER_GS_DEVICE:'GeneralUser-GS-LICENSE.txt',
+                      MUSESCORE_LITE_DEVICE:'MuseScore_General_Lite.copyright'}
+        notices={}
         for item in export_instruments(project,which,start,end):
             p=item['pack'];lines.extend([item['name_en'],p['author'],'License: '+p['license'],'Source: '+p['source'],'Pack: '+p['id']+' '+p['version'],''])
+            name=notice_files.get('synth:'+p['id'])
+            if name: notices[p['id']]=(Path(p['path']).resolve(),name)
+        for root,name in notices.values():
+            notice=_inside(root,name)
+            lines.extend([notice.read_text('utf-8').strip(),''])
     return '\n'.join(lines)+'\n'

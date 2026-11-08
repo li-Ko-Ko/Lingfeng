@@ -23,13 +23,13 @@ py -3.13 -m venv .venv
 
 `requirements-build.txt` pins direct runtime and build dependencies, including PySide6/shiboken6 6.9.2 and PyInstaller 6.20.0. For runtime-only use, `requirements.txt` allows a compatible Qt range. Run every command from the repository root; no maintainer-specific environment, cache or installation path is required. These inputs reproduce the application version and functionality. Transitive dependencies, Windows and build-tool environments can still affect outputs; byte-for-byte identical executables are not promised.
 
-默认构建随附 YDP 原声三角钢琴、Greg Sullivan 电钢琴合集及三组 STK 原生合成包，共 38 个 STK 预设。YDP 使用包内 FluidSynth 播放 SF2，Greg 使用包内 sfizz 播放 SFZ。保留预编译音源的完整文件夹。重建 STK 音源需要 STK 5.0.1、Zig 0.14.1 和 `scripts/build_synth_packs.py` 的显式 `--stk`、`--zig` 路径。Windows MIDI 使用本机已安装的输出设备。音源接口与构建说明见 [SOUNDBANKS](docs/SOUNDBANKS.md)。
+默认构建随附 Greg Sullivan 电钢琴、三组 STK 原生合成包、GeneralUser GS 主包和 PFSynth 物理建模钢琴。Greg 使用包内 sfizz 播放 SFZ。GeneralUser GS 使用 FluidSynth 播放原版 SF2，在伶风中提供 128 个基础 GM 音色。保留预编译音源的完整文件夹。重建 STK 音源需要 STK 5.0.1、Zig 0.14.1 和 `scripts/build_synth_packs.py` 的显式 `--stk`、`--zig` 路径。PFSynth 的重建命令位于音源包的 `source/BUILD.txt`。Windows MIDI 使用本机已安装的输出设备。音源接口与构建说明见 [SOUNDBANKS](docs/SOUNDBANKS.md)。
 
-首次从源码打包，先运行 `python scripts/build_piano_packs.py --pack electric --download` 和 `python scripts/build_piano_packs.py --pack ydp --download` 准备 Greg 和 YDP。脚本仅在显式指定 `--download` 时访问网络。已有完整音源目录时可直接构建。
+首次从源码打包，先运行 `python scripts/build_piano_packs.py --pack electric --download` 准备 Greg。脚本仅在显式指定 `--download` 时访问网络。仓库提供 STK、GeneralUser GS 主包和 PFSynth 的完整目录。已有完整 Greg 音源目录时可直接构建。
 
-Default builds include the YDP acoustic grand, Greg Sullivan electric pianos and three native STK packs with 38 presets. YDP uses FluidSynth for SF2 and Greg uses sfizz for SFZ. Keep each prebuilt pack folder complete. Rebuilding the STK packs uses STK 5.0.1, Zig 0.14.1 and explicit `--stk`/`--zig` paths for `scripts/build_synth_packs.py`. Windows MIDI uses locally installed devices. See [SOUNDBANKS](docs/SOUNDBANKS.md) for pack interfaces and build instructions.
+Default builds include Greg Sullivan electric pianos, three native STK packs, the main GeneralUser GS pack and the PFSynth physically modeled piano. Greg uses sfizz for SFZ. GeneralUser GS uses FluidSynth to play the original SF2 and exposes 128 standard GM sounds in Lingfeng. Keep each prebuilt pack folder complete. Rebuilding the STK packs uses STK 5.0.1, Zig 0.14.1 and explicit `--stk`/`--zig` paths for `scripts/build_synth_packs.py`. PFSynth rebuild instructions are in its `source/BUILD.txt`. Windows MIDI uses locally installed devices. See [SOUNDBANKS](docs/SOUNDBANKS.md) for pack interfaces and build instructions.
 
-Before packaging from a fresh checkout, run `python scripts/build_piano_packs.py --pack electric --download` and `python scripts/build_piano_packs.py --pack ydp --download` to prepare Greg and YDP. Network access requires `--download`. You can build directly when both complete pack folders are already present.
+Before packaging from a fresh checkout, run `python scripts/build_piano_packs.py --pack electric --download` to prepare Greg. Network access requires `--download`. The repository supplies complete STK, GeneralUser GS main and PFSynth pack folders. You can build directly when a complete Greg pack is already present.
 
 若要手动直接重建原生 STK 包，先创建仓库 `tmp/`；该脚本把编译子进程的 `TEMP`／`TMP` 指向此目录。将下面两个工具路径替换为已准备好的完整 STK 5.0.1 源码目录与 Zig 0.14.1 可执行文件。常规程序构建使用仓库已有的完整音源包，不要求重新编译它们。
 
@@ -74,13 +74,13 @@ The repository and release source bundle contain the inputs needed to run, rebui
 | --- | --- |
 | `main.py`、`lingfeng/`、审核后的 `assets/` | 启动入口、应用代码、语言目录与界面资源 / Launcher, application code, translations and UI assets |
 | `requirements*.txt`、`build.ps1`、审核后的 `scripts/` | 运行依赖、程序打包、音源重建与校验 / Dependencies, packaging, sound rebuilds and checks |
-| `native/`、五组随附 `synths/` | 原生合成接口、离线声音、引擎及对应重建输入 / Native synthesis, offline sounds, runtimes and their rebuild inputs |
+| `native/`、审核后的 `synths/` | 原生合成接口、离线声音、引擎及对应重建输入 / Native synthesis, offline sounds, runtimes and their rebuild inputs |
 | `tests/`、审核后的 `examples/` | 回归用例、测试辅助模块与可公开示例 / Regression tests, test helpers and shareable examples |
 | `README.md`、`CONTRIBUTING.md`、`CHANGELOG.md`、审核后的 `docs/`、`licenses/`、`LICENSE` | 用户说明、格式、发行记录、来源及第三方条款 / Guides, format, archive history, sources and license terms |
 
-五组随附音源是 `piano-electric`、`stk-essentials`、`stk-colors`、`stk-acoustic` 和 `ydp-grand`。公开源码保留三组 STK 与旧版 `piano-small` 的音源文件。独立程序从本地完整目录读取 Greg 和 YDP 及其引擎源码与许可。生成的 EXE、`dist/`、虚拟环境、缓存、验证输出、个人工程及用户偏好排除在源码交付清单外。
+六组随附音源是 `piano-electric`、`stk-essentials`、`stk-colors`、`stk-acoustic`、`generaluser-gs` 和 `pfsynth`。公开源码保留三组 STK、GeneralUser GS 主包、PFSynth 和旧版 `piano-small` 的音源文件。打包时从完整目录复制音源、引擎源码及许可。生成的 EXE、`dist/`、虚拟环境、缓存、验证输出、个人工程及用户偏好排除在源码交付清单外。
 
-The five bundled packs are `piano-electric`, `stk-essentials`, `stk-colors`, `stk-acoustic` and `ydp-grand`. The public source inventory retains the three STK packs and the legacy `piano-small` assets. The standalone build takes Greg and YDP, including runtime sources and licenses, from their complete local pack folders. Generated executables, `dist/`, environments, caches, validation outputs, personal scores and user preferences are excluded from the source delivery inventory.
+The six bundled packs are `piano-electric`, `stk-essentials`, `stk-colors`, `stk-acoustic`, `generaluser-gs` and `pfsynth`. The public source inventory retains the three STK packs, the main GeneralUser GS pack, PFSynth and the legacy `piano-small` assets. The standalone build copies sounds, runtime sources and licenses from the complete pack folders. Generated executables, `dist/`, environments, caches, validation outputs, personal scores and user preferences are excluded from the source delivery inventory.
 
 保持每次修改围绕一个问题。音乐时间与演奏数据归模型所有，谱面排版不应改写 MIDI；普通编辑通过现有事务/撤销路径提交。界面文案需同时维护中文与英文，不使用显示标签作为稳定数据值。
 
@@ -135,9 +135,9 @@ After editing help, run `python scripts/export_help.py` with the project environ
 .\build.ps1 -Python '.\.venv\Scripts\python.exe'
 ```
 
-默认构建只更新 `dist/<版本>/Lingfeng/` 独立程序文件夹，包含源码、许可及上文列出的五组音源。ZIP 和 `.sha256` 由显式归档命令生成。运行独立 EXE 的 `--self-test <输出目录>`，再执行 `python scripts/verify_release.py` 检查文件夹的源码、运行资源和音源一致性。可把文件夹路径作为位置参数传入。
+默认构建只更新 `dist/<版本>/Lingfeng/` 独立程序文件夹，包含源码、许可及上文列出的六组音源。ZIP 和 `.sha256` 由显式归档命令生成。运行独立 EXE 的 `--self-test <输出目录>`，再执行 `python scripts/verify_release.py` 检查文件夹的源码、运行资源和音源一致性。可把文件夹路径作为位置参数传入。
 
-The default output is the standalone folder `dist/<version>/Lingfeng/`, including source, licenses and the five sound packs listed above. An explicit archive command produces the ZIP and `.sha256`. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the folder's source, frozen resources and sounds. An explicit folder path may be supplied as a positional argument.
+The default output is the standalone folder `dist/<version>/Lingfeng/`, including source, licenses and the six sound packs listed above. An explicit archive command produces the ZIP and `.sha256`. Run the executable with `--self-test <output-directory>`, then use `python scripts/verify_release.py` to check the folder's source, frozen resources and sounds. An explicit folder path may be supplied as a positional argument.
 
 在单独的 PowerShell 终端中验证当前源码版本的构建。等待窗口版 EXE 的自检进程结束后读取报告。
 

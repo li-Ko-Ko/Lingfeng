@@ -1,0 +1,1175 @@
+{
+  "schema": 1,
+  "abi": 1,
+  "platform": "windows-x64",
+  "engine": "sf2",
+  "library": "bin/libfluidsynth-3.dll",
+  "sha256": "d2819955444d4b44217be9c431f2b7e38fd4062ef71341de8725eed4e31c4957",
+  "library_hashes": {
+    "bin/libfluidsynth-3.dll": "d2819955444d4b44217be9c431f2b7e38fd4062ef71341de8725eed4e31c4957",
+    "bin/sndfile.dll": "4e3bd2de8e1485110eaebef8e1239471f73d608773831c323bf528e05645655e"
+  },
+  "id": "generaluser-gs",
+  "name": "GeneralUser GS · 通用 MIDI",
+  "name_en": "GeneralUser GS · General MIDI",
+  "version": "2.0.3",
+  "license": "GeneralUser GS License v2.0; LGPL and permissive runtime notices",
+  "license_file": "LICENSE-SAMPLES.txt",
+  "author": "S. Christian Collins and upstream sample contributors",
+  "source": "https://www.schristiancollins.com/generaluser.php",
+  "voices": 256,
+  "presets": [
+    {
+      "program": 0,
+      "model": 0,
+      "bank": 0,
+      "name": "原声大钢琴",
+      "name_en": "Grand Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 1,
+      "model": 1,
+      "bank": 0,
+      "name": "明亮钢琴",
+      "name_en": "Bright Grand Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 2,
+      "model": 2,
+      "bank": 0,
+      "name": "电声三角钢琴",
+      "name_en": "Electric Grand Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 3,
+      "model": 3,
+      "bank": 0,
+      "name": "酒吧钢琴",
+      "name_en": "Honky-Tonk Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 4,
+      "model": 4,
+      "bank": 0,
+      "name": "电钢琴 1",
+      "name_en": "Tine Electric Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 5,
+      "model": 5,
+      "bank": 0,
+      "name": "电钢琴 2",
+      "name_en": "FM Electric Piano",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 6,
+      "model": 6,
+      "bank": 0,
+      "name": "羽管键琴",
+      "name_en": "Harpsichord",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 7,
+      "model": 7,
+      "bank": 0,
+      "name": "击弦古钢琴",
+      "name_en": "Clavinet",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 8,
+      "model": 8,
+      "bank": 0,
+      "name": "钢片琴",
+      "name_en": "Celeste",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 9,
+      "model": 9,
+      "bank": 0,
+      "name": "钟琴",
+      "name_en": "Glockenspiel",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 10,
+      "model": 10,
+      "bank": 0,
+      "name": "音乐盒",
+      "name_en": "Music Box",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 11,
+      "model": 11,
+      "bank": 0,
+      "name": "颤音琴",
+      "name_en": "Vibraphone",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 12,
+      "model": 12,
+      "bank": 0,
+      "name": "马林巴",
+      "name_en": "Marimba",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 13,
+      "model": 13,
+      "bank": 0,
+      "name": "木琴",
+      "name_en": "Xylophone",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 14,
+      "model": 14,
+      "bank": 0,
+      "name": "管钟",
+      "name_en": "Tubular Bells",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 15,
+      "model": 15,
+      "bank": 0,
+      "name": "扬琴",
+      "name_en": "Dulcimer",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 16,
+      "model": 16,
+      "bank": 0,
+      "name": "拉杆风琴",
+      "name_en": "Tonewheel Organ",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 17,
+      "model": 17,
+      "bank": 0,
+      "name": "打击风琴",
+      "name_en": "Percussive Organ",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 18,
+      "model": 18,
+      "bank": 0,
+      "name": "摇滚风琴",
+      "name_en": "Rock Organ",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 19,
+      "model": 19,
+      "bank": 0,
+      "name": "教堂管风琴",
+      "name_en": "Pipe Organ",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 20,
+      "model": 20,
+      "bank": 0,
+      "name": "簧风琴",
+      "name_en": "Reed Organ",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 21,
+      "model": 21,
+      "bank": 0,
+      "name": "手风琴",
+      "name_en": "Accordion",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 22,
+      "model": 22,
+      "bank": 0,
+      "name": "口琴",
+      "name_en": "Harmonica",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 23,
+      "model": 23,
+      "bank": 0,
+      "name": "探戈手风琴",
+      "name_en": "Bandoneon",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 24,
+      "model": 24,
+      "bank": 0,
+      "name": "尼龙弦吉他",
+      "name_en": "Nylon Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 25,
+      "model": 25,
+      "bank": 0,
+      "name": "钢弦吉他",
+      "name_en": "Steel Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 26,
+      "model": 26,
+      "bank": 0,
+      "name": "爵士电吉他",
+      "name_en": "Jazz Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 27,
+      "model": 27,
+      "bank": 0,
+      "name": "清音电吉他",
+      "name_en": "Clean Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 28,
+      "model": 28,
+      "bank": 0,
+      "name": "闷音电吉他",
+      "name_en": "Muted Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 29,
+      "model": 29,
+      "bank": 0,
+      "name": "过载电吉他",
+      "name_en": "Overdrive Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 30,
+      "model": 30,
+      "bank": 0,
+      "name": "失真电吉他",
+      "name_en": "Distortion Guitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 31,
+      "model": 31,
+      "bank": 0,
+      "name": "吉他泛音",
+      "name_en": "Guitar Harmonics",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 32,
+      "model": 32,
+      "bank": 0,
+      "name": "原声贝斯",
+      "name_en": "Acoustic Bass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 33,
+      "model": 33,
+      "bank": 0,
+      "name": "指弹电贝斯",
+      "name_en": "Finger Bass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 34,
+      "model": 34,
+      "bank": 0,
+      "name": "拨片电贝斯",
+      "name_en": "Pick Bass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 35,
+      "model": 35,
+      "bank": 0,
+      "name": "无品贝斯",
+      "name_en": "Fretless Bass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 36,
+      "model": 36,
+      "bank": 0,
+      "name": "击弦贝斯 1",
+      "name_en": "Slap Bass 1",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 37,
+      "model": 37,
+      "bank": 0,
+      "name": "击弦贝斯 2",
+      "name_en": "Slap Bass 2",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 38,
+      "model": 38,
+      "bank": 0,
+      "name": "合成贝斯 1",
+      "name_en": "Synth Bass 1",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 39,
+      "model": 39,
+      "bank": 0,
+      "name": "合成贝斯 2",
+      "name_en": "Synth Bass 2",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 40,
+      "model": 40,
+      "bank": 0,
+      "name": "小提琴",
+      "name_en": "Violin",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 41,
+      "model": 41,
+      "bank": 0,
+      "name": "中提琴",
+      "name_en": "Viola",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 42,
+      "model": 42,
+      "bank": 0,
+      "name": "大提琴",
+      "name_en": "Cello",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 43,
+      "model": 43,
+      "bank": 0,
+      "name": "低音提琴",
+      "name_en": "Double Bass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 44,
+      "model": 44,
+      "bank": 0,
+      "name": "颤弓弦乐",
+      "name_en": "Tremolo Strings",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 45,
+      "model": 45,
+      "bank": 0,
+      "name": "拨弦弦乐",
+      "name_en": "Pizzicato Strings",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 46,
+      "model": 46,
+      "bank": 0,
+      "name": "管弦竖琴",
+      "name_en": "Orchestral Harp",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 47,
+      "model": 47,
+      "bank": 0,
+      "name": "定音鼓",
+      "name_en": "Timpani",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 48,
+      "model": 48,
+      "bank": 0,
+      "name": "弦乐合奏 1",
+      "name_en": "Fast Strings",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 49,
+      "model": 49,
+      "bank": 0,
+      "name": "弦乐合奏 2",
+      "name_en": "Slow Strings",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 50,
+      "model": 50,
+      "bank": 0,
+      "name": "合成弦乐 1",
+      "name_en": "Synth Strings 1",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 51,
+      "model": 51,
+      "bank": 0,
+      "name": "合成弦乐 2",
+      "name_en": "Synth Strings 2",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 52,
+      "model": 52,
+      "bank": 0,
+      "name": "合唱 啊",
+      "name_en": "Concert Choir",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 53,
+      "model": 53,
+      "bank": 0,
+      "name": "人声 呜",
+      "name_en": "Voice Oohs",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 54,
+      "model": 54,
+      "bank": 0,
+      "name": "合成人声",
+      "name_en": "Synth Voice",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 55,
+      "model": 55,
+      "bank": 0,
+      "name": "管弦齐奏",
+      "name_en": "Orchestra Hit",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 56,
+      "model": 56,
+      "bank": 0,
+      "name": "小号",
+      "name_en": "Trumpet",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 57,
+      "model": 57,
+      "bank": 0,
+      "name": "长号",
+      "name_en": "Trombone",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 58,
+      "model": 58,
+      "bank": 0,
+      "name": "大号",
+      "name_en": "Tuba",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 59,
+      "model": 59,
+      "bank": 0,
+      "name": "弱音小号",
+      "name_en": "Muted Trumpet",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 60,
+      "model": 60,
+      "bank": 0,
+      "name": "圆号",
+      "name_en": "French Horns",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 61,
+      "model": 61,
+      "bank": 0,
+      "name": "铜管合奏",
+      "name_en": "Brass Section",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 62,
+      "model": 62,
+      "bank": 0,
+      "name": "合成铜管 1",
+      "name_en": "Synth Brass 1",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 63,
+      "model": 63,
+      "bank": 0,
+      "name": "合成铜管 2",
+      "name_en": "Synth Brass 2",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 64,
+      "model": 64,
+      "bank": 0,
+      "name": "高音萨克斯",
+      "name_en": "Soprano Sax",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 65,
+      "model": 65,
+      "bank": 0,
+      "name": "中音萨克斯",
+      "name_en": "Alto Sax",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 66,
+      "model": 66,
+      "bank": 0,
+      "name": "次中音萨克斯",
+      "name_en": "Tenor Sax",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 67,
+      "model": 67,
+      "bank": 0,
+      "name": "上低音萨克斯",
+      "name_en": "Baritone Sax",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 68,
+      "model": 68,
+      "bank": 0,
+      "name": "双簧管",
+      "name_en": "Oboe",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 69,
+      "model": 69,
+      "bank": 0,
+      "name": "英国管",
+      "name_en": "English Horn",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 70,
+      "model": 70,
+      "bank": 0,
+      "name": "巴松",
+      "name_en": "Bassoon",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 71,
+      "model": 71,
+      "bank": 0,
+      "name": "单簧管",
+      "name_en": "Clarinet",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 72,
+      "model": 72,
+      "bank": 0,
+      "name": "短笛",
+      "name_en": "Piccolo",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 73,
+      "model": 73,
+      "bank": 0,
+      "name": "长笛",
+      "name_en": "Flute",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 74,
+      "model": 74,
+      "bank": 0,
+      "name": "竖笛",
+      "name_en": "Recorder",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 75,
+      "model": 75,
+      "bank": 0,
+      "name": "排箫",
+      "name_en": "Pan Flute",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 76,
+      "model": 76,
+      "bank": 0,
+      "name": "吹瓶",
+      "name_en": "Bottle Blow",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 77,
+      "model": 77,
+      "bank": 0,
+      "name": "尺八",
+      "name_en": "Shakuhachi",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 78,
+      "model": 78,
+      "bank": 0,
+      "name": "口哨",
+      "name_en": "Whistle",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 79,
+      "model": 79,
+      "bank": 0,
+      "name": "陶笛",
+      "name_en": "Ocarina",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 80,
+      "model": 80,
+      "bank": 0,
+      "name": "方波主音",
+      "name_en": "Square Lead",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 81,
+      "model": 81,
+      "bank": 0,
+      "name": "锯齿波主音",
+      "name_en": "Saw Lead",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 82,
+      "model": 82,
+      "bank": 0,
+      "name": "汽笛风琴主音",
+      "name_en": "Synth Calliope",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 83,
+      "model": 83,
+      "bank": 0,
+      "name": "气声主音",
+      "name_en": "Chiffer Lead",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 84,
+      "model": 84,
+      "bank": 0,
+      "name": "电弦主音",
+      "name_en": "Charang",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 85,
+      "model": 85,
+      "bank": 0,
+      "name": "人声主音",
+      "name_en": "Solo Vox",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 86,
+      "model": 86,
+      "bank": 0,
+      "name": "五度主音",
+      "name_en": "5th Saw Wave",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 87,
+      "model": 87,
+      "bank": 0,
+      "name": "贝斯与主音",
+      "name_en": "Bass & Lead",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 88,
+      "model": 88,
+      "bank": 0,
+      "name": "新世纪铺底",
+      "name_en": "Fantasia",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 89,
+      "model": 89,
+      "bank": 0,
+      "name": "温暖铺底",
+      "name_en": "Warm Pad",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 90,
+      "model": 90,
+      "bank": 0,
+      "name": "复合合成铺底",
+      "name_en": "Polysynth",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 91,
+      "model": 91,
+      "bank": 0,
+      "name": "合唱铺底",
+      "name_en": "Space Voice",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 92,
+      "model": 92,
+      "bank": 0,
+      "name": "弓弦铺底",
+      "name_en": "Bowed Glass",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 93,
+      "model": 93,
+      "bank": 0,
+      "name": "金属铺底",
+      "name_en": "Metal Pad",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 94,
+      "model": 94,
+      "bank": 0,
+      "name": "光晕铺底",
+      "name_en": "Halo Pad",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 95,
+      "model": 95,
+      "bank": 0,
+      "name": "扫频铺底",
+      "name_en": "Sweep Pad",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 96,
+      "model": 96,
+      "bank": 0,
+      "name": "雨声效果",
+      "name_en": "Ice Rain",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 97,
+      "model": 97,
+      "bank": 0,
+      "name": "配乐效果",
+      "name_en": "Soundtrack",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 98,
+      "model": 98,
+      "bank": 0,
+      "name": "水晶效果",
+      "name_en": "Crystal",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 99,
+      "model": 99,
+      "bank": 0,
+      "name": "氛围效果",
+      "name_en": "Atmosphere",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 100,
+      "model": 100,
+      "bank": 0,
+      "name": "明亮效果",
+      "name_en": "Brightness",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 101,
+      "model": 101,
+      "bank": 0,
+      "name": "精灵效果",
+      "name_en": "Goblin",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 102,
+      "model": 102,
+      "bank": 0,
+      "name": "回声效果",
+      "name_en": "Echo Drops",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 103,
+      "model": 103,
+      "bank": 0,
+      "name": "科幻效果",
+      "name_en": "Star Theme",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 104,
+      "model": 104,
+      "bank": 0,
+      "name": "西塔琴",
+      "name_en": "Sitar",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 105,
+      "model": 105,
+      "bank": 0,
+      "name": "班卓琴",
+      "name_en": "Banjo",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 106,
+      "model": 106,
+      "bank": 0,
+      "name": "三味线",
+      "name_en": "Shamisen",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 107,
+      "model": 107,
+      "bank": 0,
+      "name": "筝",
+      "name_en": "Koto",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 108,
+      "model": 108,
+      "bank": 0,
+      "name": "卡林巴",
+      "name_en": "Kalimba",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 109,
+      "model": 109,
+      "bank": 0,
+      "name": "风笛",
+      "name_en": "Bagpipes",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 110,
+      "model": 110,
+      "bank": 0,
+      "name": "民间小提琴",
+      "name_en": "Fiddle",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 111,
+      "model": 111,
+      "bank": 0,
+      "name": "唢呐",
+      "name_en": "Shenai",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 112,
+      "model": 112,
+      "bank": 0,
+      "name": "铃铛",
+      "name_en": "Tinker Bell",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 113,
+      "model": 113,
+      "bank": 0,
+      "name": "阿戈戈铃",
+      "name_en": "Agogo",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 114,
+      "model": 114,
+      "bank": 0,
+      "name": "钢鼓",
+      "name_en": "Steel Drums",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 115,
+      "model": 115,
+      "bank": 0,
+      "name": "木鱼",
+      "name_en": "Wood Block",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 116,
+      "model": 116,
+      "bank": 0,
+      "name": "太鼓",
+      "name_en": "Taiko Drum",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 117,
+      "model": 117,
+      "bank": 0,
+      "name": "有调通鼓",
+      "name_en": "Melodic Tom",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 118,
+      "model": 118,
+      "bank": 0,
+      "name": "合成鼓",
+      "name_en": "Synth Drum",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 119,
+      "model": 119,
+      "bank": 0,
+      "name": "反向镲",
+      "name_en": "Reverse Cymbal",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 120,
+      "model": 120,
+      "bank": 0,
+      "name": "吉他换把声",
+      "name_en": "Fret Noise",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 121,
+      "model": 121,
+      "bank": 0,
+      "name": "呼吸声",
+      "name_en": "Breath Noise",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 122,
+      "model": 122,
+      "bank": 0,
+      "name": "海浪",
+      "name_en": "Seashore",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 123,
+      "model": 123,
+      "bank": 0,
+      "name": "鸟鸣",
+      "name_en": "Birds",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 124,
+      "model": 124,
+      "bank": 0,
+      "name": "电话铃",
+      "name_en": "Telephone 1",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 125,
+      "model": 125,
+      "bank": 0,
+      "name": "直升机",
+      "name_en": "Helicopter",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 126,
+      "model": 126,
+      "bank": 0,
+      "name": "掌声",
+      "name_en": "Applause",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    },
+    {
+      "program": 127,
+      "model": 127,
+      "bank": 0,
+      "name": "枪声",
+      "name_en": "Gun Shot",
+      "gain": 0.65,
+      "sf2": "GeneralUser-GS.sf2"
+    }
+  ]
+}

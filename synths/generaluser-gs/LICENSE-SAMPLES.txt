@@ -1,0 +1,10 @@
+GeneralUser GS 2.0.3
+S. Christian Collins and upstream sample contributors
+https://www.schristiancollins.com/generaluser.php
+
+The complete upstream SoundFont is installed byte-for-byte. GeneralUser-GS-LICENSE.txt
+contains the original GeneralUser GS License v2.0 and its sample terms.
+
+Renderer: FluidSynth 2.6.1 and libsndfile 1.2.2, LGPL-2.1-or-later. Statically linked MPEG codecs include mpg123 1.31.3 (LGPL-2.1-or-later) and LAME 3.100 (LGPL-2.0-or-later). BSD-style codec notices for Ogg, Vorbis, FLAC and Opus are included.
+Complete corresponding LGPL source archives and readable notices are in runtime/. The upstream Windows workflow records the official binary build. The mpg123 source SHA512 matches the vcpkg source archive identifier embedded in sndfile.dll; source patch inputs are included.
+The DLL files remain separate and replaceable. Compatible modified libraries may replace them; reverse engineering for debugging such modifications is not prohibited. No audio/MIDI device driver, SDL3 runtime or command-line executable is distributed or started.

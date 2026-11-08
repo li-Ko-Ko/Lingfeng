@@ -56,7 +56,8 @@ class TerminologyTests(unittest.TestCase):
                             dialogs[3].melody_velocity,dialogs[3].chord_velocity):
                 self.assertEqual(control.toolTip(),'MIDI 力度（1–127）');self.assertEqual((control.minimum(),control.maximum()),(1,127))
             self.assertFalse(any(hasattr(dialog,'bass_velocity') for dialog in dialogs))
-            self.assertIn('和弦默认力度',{label.text() for label in dialogs[1].findChildren(QLabel)})
+            self.assertIn('力度',{label.text() for label in dialogs[1].findChildren(QLabel)})
+            self.assertIn('和弦默认力度',{label.text() for label in dialogs[3].findChildren(QLabel)})
             self.assertEqual(p.to_dict(),before)
         finally:
             for dialog in dialogs:dialog.deleteLater()

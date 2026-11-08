@@ -9,6 +9,7 @@ from PySide6.QtTest import QTest
 from lingfeng.music.model import Project, Chord, Note, PPQ, PATTERNS, Measure
 from lingfeng.music.chord_operations import blank_chord, pattern_template, ChordClipboard, split_chords, merge_chords, can_merge_chords, move_chords
 from lingfeng.music.note_operations import repartition_chord
+from lingfeng.music.rhythm import analyze
 from lingfeng.ui.main_window import MainWindow
 from lingfeng.ui.keybindings import normalized, validate, KeyBindingsDialog
 from lingfeng.engraving.notation import ScoreLayout
@@ -116,6 +117,42 @@ class InterfaceTests(unittest.TestCase):
         box,c=lane.boxes[0];a=QPoint(round(box.right()-2),round(box.center().y()));b=QPoint(round(lane.x_at(4800)),a.y())
         QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=a);QTest.qWait(300);QTest.mouseMove(lane,b);QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=b)
         self.assertEqual(w.project.chords[0].end,4800);self.assertEqual(w.project.chords[1].start,4800)
+    def test_drag_resizing_rescans_cropped_arpeggio_before_extending(self):
+        w=self.w
+        w.visibility_actions['chords'].setChecked(True)
+        chord_id=w.project.chords[0].id
+        w.chord_command('pattern:up',{chord_id},w.roll)
+        template=copy.deepcopy(w.project.chords[0])
+
+        def drag_end(lane,end):
+            APP.processEvents()
+            box=next(box for box,chord in lane.boxes if chord.id==chord_id)
+            start_pos=QPoint(round(box.right()-2),round(box.center().y()))
+            end_pos=QPoint(round(lane.x_at(end)),start_pos.y())
+            QTest.mousePress(lane,Qt.MouseButton.LeftButton,pos=start_pos)
+            QTest.qWait(lane.hold_timer.interval()+50)
+            QTest.mouseMove(lane,end_pos)
+            QTest.mouseRelease(lane,Qt.MouseButton.LeftButton,pos=end_pos)
+
+        drag_end(w.chord_lane,PPQ)
+        cropped=w.project.chords[0]
+        self.assertEqual((cropped.id,cropped.end),(chord_id,PPQ))
+        performed=bar_events(template,w.project,0,PPQ)
+        self.assertEqual(events(cropped.render_notes()),performed)
+        self.assertFalse(cropped.recognized)
+        self.assertIsNone(analyze(cropped,w.project))
+        before_expand=w.project.to_dict()
+
+        w.harmony_window.setFloating(True)
+        drag_end(w.harmony_window.roll.lane,5*PPQ)
+        expanded=w.project.chords[0]
+        self.assertEqual((expanded.id,expanded.end),(chord_id,5*PPQ))
+        self.assertEqual(events(expanded.render_notes()),performed)
+        self.assertFalse(expanded.recognized)
+        self.assertIsNone(analyze(expanded,w.project))
+        self.assertEqual(w.project.chords[1].start,5*PPQ)
+        w.undo()
+        self.assertEqual(w.project.to_dict(),before_expand)
     def test_empty_hover_arrow_selection_cross_only(self):
         r=self.w.roll;r.center_pitch(72);pos=QPoint(round(r.x_at(2400)+20),round(r.y_at(72)+10));QTest.mouseMove(r.viewport(),pos)
         self.assertEqual(r.viewport().cursor().shape(),Qt.CursorShape.ArrowCursor)
