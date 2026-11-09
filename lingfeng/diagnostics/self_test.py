@@ -333,9 +333,10 @@ def self_test(folder):
     lane.selection_event({x.id for x in probe.chords});menu=lane.context_menu(QPoint(round(lane.x_at(480)),25))
     assert [a.text() for a in menu.actions()]==single and not menu.root_menu.isEnabled()
     r.selected_ids={probe.notes[0].id};r.refresh();assert not r.selected_chords
-    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==9
+    timeline=r.timeline_menu(QPoint(round(r.x_at(480)),10));assert len([a for a in timeline.actions() if not a.isSeparator()])==10
     assert timeline.section_action.text()==tr('段落标识') and timeline.section_jump_action.text()==tr('跳转小节')
-    assert timeline.section_selection_action.text()==tr('选中此段落')
+    assert timeline.section_selection_action.text()==tr('选中本小节所在段落的所有小节')
+    assert not timeline.section_selection_action.isEnabled() and timeline.measure_selection_action.isEnabled()
     window.switch_workspace('score');window.show_score_panel('logic');head=window.playhead
     window.open_score_roll('chords',3840);app.processEvents();assert window.score_tabs.currentWidget() is window.score_harmony_page and window.playhead==head
     window.audition_chord(probe.chords[1].id);assert window.transport.audition_notes[3]==probe.chords[1].pitches
@@ -1683,12 +1684,34 @@ def self_test(folder):
         assert probe.to_dict()==snapshot
     finally:rhythm_preferences.set_enabled(original_enabled)
     assert analyze(probe.chords[0],probe).pattern=='quarters'
+    ticks=probe.starts
+    probe.notes=[Note(ticks[3]-240,720,60),Note(ticks[4],480,62),Note(ticks[5],480,64)]
+    probe.instrument_notes=[Note(ticks[i],480,67) for i in (3,4,5)]
+    for start,duration in ((ticks[3]-480,960),(ticks[4],480),(ticks[5],480)):
+        probe.put_chord(Chord(start,duration))
     window.replace_project(probe);menu=window.main_roll.timeline_menu(QPoint(KEY_W+1,10))
     assert [a.data() for a in menu.section_jump_menu.actions()]==[0,3,5]
     assert [a.text() for a in menu.section_jump_menu.actions()]==[tr('{0} · 第 {1} 小节',name,bar+1) for name,bar in [('intro',0),('verse',3),('verse',5)]]
     selection=copy.deepcopy(window.main_roll.selection);snapshot=probe.to_dict()
     menu.section_jump_menu.actions()[1].trigger()
     assert window.playhead==probe.starts[3] and window.main_roll.selection==selection and probe.to_dict()==snapshot
+    menu.deleteLater()
+    def measure_menu(bar):
+        return window.main_roll.timeline_menu(QPoint(round(window.main_roll.x_at(ticks[bar]+120)),10))
+    menu=measure_menu(4);menu.section_selection_action.trigger();menu.deleteLater()
+    assert window.main_roll.selection==[ticks[3:5],ticks[4:6]]
+    menu=measure_menu(3)
+    choices={a.data():a for a in menu.measure_selection_menu.actions()}
+    choices['melody'].trigger()
+    assert window.roll.selected_ids=={n.id for n in probe.notes[:2]}
+    choices['chords'].trigger()
+    assert window.chord_lane.editor.selected_chords=={probe.chords[2].id} and not window.roll.selected_ids
+    menu.deleteLater()
+    window.selection_changed([ticks[3:5],ticks[5:7]])
+    menu=measure_menu(5)
+    next(a for a in menu.measure_selection_menu.actions() if a.data()=='instrument').trigger()
+    assert window.roll.selected_ids=={probe.instrument_notes[i].id for i in (0,2)}
+    assert window.main_roll.selection==[ticks[3:5],ticks[5:7]] and probe.to_dict()==snapshot
     menu.deleteLater()
     # 0.57.1: camera updates do not rebuild music; undo retains shared records.
     from lingfeng.ui.history import HistoryState

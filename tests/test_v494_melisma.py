@@ -100,7 +100,9 @@ class MelismaTests(unittest.TestCase):
         self.assertFalse(matching_issues(p));self.assertEqual(len(entry.render(p).melisma_paths),6)
         self.assertTrue(any(e.get('skip') and not e.get('melisma') for e in events(p)))
         self.assertTrue(any(e.get('kind')=='rap_note' for e in events(p)))
-        self.assertEqual(export_midi(p,None),Path('examples/lingfeng-melisma.mid').read_bytes())
+        # The companion MIDI retains its original GM program.
+        with patch.dict(p.audio['melody'],program=1):
+            self.assertEqual(export_midi(p,None),Path('examples/lingfeng-melisma.mid').read_bytes())
 
     def test_tiny_large_font_and_forced_row_paths_follow_scaled_notes(self):
         from lingfeng.engraving.presentation import apply_forced_row

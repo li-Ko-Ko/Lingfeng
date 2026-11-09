@@ -1,6 +1,6 @@
 """Quick-chord selection and the complete quality reference."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox,
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
                                QHBoxLayout, QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QPushButton,
                                QTableWidget, QTableWidgetItem, QTabWidget,
@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 
 from lingfeng.music.model import QUALITIES, SHARP
 from lingfeng.music.quality_catalog import yue2_lossless_quality
-from lingfeng.platform.chord_preferences import (DEFAULT_QUICK_QUALITIES,
+from lingfeng.platform.chord_preferences import (DEFAULT_QUICK_QUALITIES, degree_chord_sizes,
                                                normalize_qualities,
                                                settings_dict)
 from lingfeng.platform.i18n import tr
@@ -18,6 +18,31 @@ def quality_formula(code):
     """Written chord degrees, retaining compound and double-altered degrees."""
     from lingfeng.music.quality_catalog import degree_formula
     return degree_formula(code)
+
+
+class ChordDegreeShortcutsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tr('和弦音级快捷键'))
+        form = QFormLayout(self)
+        hint = QLabel(tr('在和弦轨选中和弦后，按 1–7 按各和弦起点的调性输入调内和弦。'))
+        hint.setWordWrap(True)
+        form.addRow(hint)
+        self.fields = []
+        for degree, size in enumerate(degree_chord_sizes(), 1):
+            field = QComboBox()
+            field.addItem(tr('三和弦'), 3)
+            field.addItem(tr('七和弦'), 4)
+            field.setCurrentIndex(field.findData(size))
+            form.addRow(str(degree), field)
+            self.fields.append(field)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def value(self):
+        return tuple(field.currentData() for field in self.fields)
 
 
 class ChordQualityReference(QWidget):

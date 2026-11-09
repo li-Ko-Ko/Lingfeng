@@ -24,7 +24,7 @@ PUBLIC_DOCS=(
     'docs/SOUNDBANKS.md','docs/THIRD_PARTY.md',
 )
 PUBLIC_SCREENSHOTS=(
-    'docs/screenshots/compose.png','docs/screenshots/spatial-score.png',
+    'docs/screenshots/compose.png','docs/screenshots/chord-degree-shortcuts.png','docs/screenshots/spatial-score.png',
     'docs/screenshots/lyrics-rap.png','docs/screenshots/progression-library.png',
 )
 PUBLIC_SCRIPTS=(

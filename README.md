@@ -6,7 +6,7 @@
 
 A lightweight Windows app for pop songwriting and jianpu engraving. Write separate vocal and instrumental melodies, add chords and lyrics, and prepare a score.
 
-**当前源码 0.60.9 · Windows x64 / Current source 0.60.9**
+**当前源码 0.60.10 · Windows x64 / Current source 0.60.10**
 
 [已发布的便携版 / Published portable builds](https://github.com/li-Ko-Ko/Lingfeng/releases) · [操作帮助 / User guide](docs/HELP.md) · [问题反馈 / Issues](https://github.com/li-Ko-Ko/Lingfeng/issues)
 
@@ -20,12 +20,14 @@ The standalone application needs no Python installation. Portable builds include
 
 ## 主要功能 / Features
 
-- **创作 / Compose.** 人声、乐器和和弦分轨编辑，支持独立悬浮卷帘、量化、复制粘贴、剪切和撤销。剪切和弦在原处留下保有原区间与节奏设置的 N.C. / Edit separate vocal, instrumental and chord tracks in floating piano rolls with quantization, copy, paste, cut and undo. Cutting a chord leaves an N.C. region with the original span and rhythm settings.
-- **导航 / Navigate.** 按段落跳转、选择音符并定位到对应卷帘。导航器可按轨显示、自动隐藏空轨和调整高度。 / Jump to marked sections and reveal selected notes in the corresponding roll. Choose which tracks appear in the resizable navigator, which automatically hides empty tracks.
+- **创作 / Compose.** 人声、乐器和和弦分轨编辑，支持独立悬浮卷帘。选中一个或多个和弦，按 `1`–`7` 即可按各块起点的调性写入调内和弦。每个数字键可设为三和弦或七和弦。 / Edit separate vocal, instrumental and chord tracks in docked or floating piano rolls. Select one or more chord regions and press `1`–`7` to enter a diatonic chord in the key at each region’s start. Assign a triad or seventh chord to each digit.
+- **导航 / Navigate.** 按段落跳转或选中整段小节，再从所选小节批量选取卷帘音符或和弦块。导航器可按轨显示，卷帘的纵向滚轮速度可调。 / Jump to a section or select all its bars, then select piano-roll notes or chord regions across those bars. Choose the tracks shown in the navigator and adjust the piano rolls’ vertical wheel speed.
 - **制谱 / Engrave.** 立体与紧凑简谱支持多声部。传统简谱只检查已勾选的旋律是否为单声部。支持两轨歌词、说唱、连音弧与 PDF 导出。 / Spatial and compact jianpu support polyphony. Traditional jianpu checks only the selected melody tracks for monophony. Engrave lyrics on both tracks, rap and slurs, and export to PDF.
 - **乐谱交换 / Exchange scores.** 按小节导入 MIDI、ABC 和 MusicXML，选择轨道导出 ABC、MusicXML/MXL、MIDI 或 DAW 迁移包。 / Import MIDI, ABC and MusicXML at a selected bar. Choose tracks to export as ABC, MusicXML/MXL, MIDI or a DAW transfer bundle.
 - **伴奏与音频 / Accompaniment and audio.** 使用和弦进行库和伴奏节奏型，单独调整三轨的音色、音量与合成增益，并离线渲染 MP3。 / Use the chord progression library and accompaniment patterns, control each track’s sound, volume and synth gain, and render MP3 offline.
 - **本地工程 / Local projects.** 用 `.lfs` 保存创作和制谱内容，可切换中英文与浅深主题。 / Save composition and engraving in `.lfs` projects, with a Chinese or English interface and light or dark themes.
+
+[示例工程 / Example projects](examples) 可直接在 0.60.10 中打开，查看段落、和弦编辑、歌词和谱面排版。 / Open the example projects in 0.60.10 to explore sections, chord editing, lyrics and score layout.
 
 ## ABC 与 YuE2 / ABC and YuE2
 
@@ -41,7 +43,7 @@ In a separately configured ComfyUI setup, connect the exported ABC to `score_abc
 
 <table>
   <tr>
-    <td width="50%"><strong>旋律与和弦编辑 / Piano rolls</strong><br><a href="docs/screenshots/compose.png"><img src="docs/screenshots/compose.png" alt="旋律与和弦双卷帘、音级配色及伴奏区间" width="640"></a></td>
+    <td width="50%"><strong>旋律与和弦编辑 / Piano rolls</strong><br><a href="docs/screenshots/compose.png"><img src="docs/screenshots/compose.png" alt="0.60.10 旋律与和弦双卷帘 / Melody and chord piano rolls in 0.60.10" width="640"></a></td>
     <td width="50%"><strong>立体简谱 / Spatial jianpu</strong><br><a href="docs/screenshots/spatial-score.png"><img src="docs/screenshots/spatial-score.png" alt="原创示例的立体简谱、和弦标记与歌词" width="640"></a></td>
   </tr>
   <tr>
@@ -49,6 +51,10 @@ In a separately configured ComfyUI setup, connect the exported ABC to `score_abc
     <td width="50%"><strong>和弦进行库 / Chord progressions</strong><br><a href="docs/screenshots/progression-library.png"><img src="docs/screenshots/progression-library.png" alt="内置和弦进行库的罗马数字、实际和弦及根音序列检索" width="640"></a></td>
   </tr>
 </table>
+
+**和弦音级快捷键 / Chord degree shortcuts**
+
+<a href="docs/screenshots/chord-degree-shortcuts.png"><img src="docs/screenshots/chord-degree-shortcuts.png" alt="数字键 1 至 7 可分别设为三和弦或七和弦 / Triad and seventh chord assignments for digits 1 through 7" width="640"></a>
 
 ## 从源码运行 / Run from source
 

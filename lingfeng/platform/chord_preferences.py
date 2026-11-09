@@ -1,4 +1,4 @@
-"""Creation defaults and the selected, ordered quick chord catalogue.
+"""Creation defaults, quick chord catalogue and chord-degree shortcuts.
 
 These preferences belong to the user, not the project. Dialogs edit copies and
 the main window applies them only after confirmation.
@@ -13,6 +13,7 @@ DEFAULT_QUICK_QUALITIES = YUE2_QUALITIES
 _velocities = dict(DEFAULT_VELOCITIES)
 _quick = list(DEFAULT_QUICK_QUALITIES)
 _include_instrument = False
+_degree_chord_sizes = (3,) * 7
 
 
 def normalize_velocities(values):
@@ -37,6 +38,7 @@ def load_preferences(values):
     values = values if isinstance(values, dict) else {}
     _velocities = normalize_velocities(values.get('default_velocities'))
     set_include_instrument_in_recognition(values.get('include_instrument_in_recognition'))
+    set_degree_chord_sizes(values.get('degree_chord_sizes'))
     if isinstance(values.get('quick_chord_qualities'), list):
         _quick = normalize_qualities(values['quick_chord_qualities'])
     else:
@@ -51,7 +53,19 @@ def load_preferences(values):
 
 def set_preferences(values):
     values = values if isinstance(values, dict) else {}
-    load_preferences({'include_instrument_in_recognition': _include_instrument, **values})
+    load_preferences({'include_instrument_in_recognition': _include_instrument,
+                      'degree_chord_sizes': _degree_chord_sizes, **values})
+
+
+def set_degree_chord_sizes(values):
+    global _degree_chord_sizes
+    values = values if isinstance(values, (list, tuple)) else ()
+    _degree_chord_sizes = tuple(4 if i < len(values) and type(values[i]) is int and values[i] == 4 else 3
+                                for i in range(7))
+
+
+def degree_chord_sizes():
+    return _degree_chord_sizes
 
 
 def default_velocity(role):

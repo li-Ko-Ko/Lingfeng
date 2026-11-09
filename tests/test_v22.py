@@ -107,10 +107,10 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(labels(one),labels(many));self.assertTrue(find(one,'编辑音符…').isEnabled());self.assertFalse(find(many,'编辑音符…').isEnabled())
         self.assertFalse(find(one,'合并相邻音符').isEnabled());self.assertTrue(find(many,'合并相邻音符').isEnabled())
         blank=r.note_menu(QPoint(round(r.x_at(960)),r.ruler_height+10));self.assertFalse(any('小节' in x for x in labels(blank)))
-    def test_timeline_menu_has_only_bar_actions_and_disables_nonbroadcast_commands(self):
+    def test_timeline_menu_selects_bar_contents_and_disables_nonbroadcast_commands(self):
         r=self.w.roll;r.selected_ids={self.w.project.notes[0].id};r.refresh();point=QPoint(round(r.x_at(480)),10)
         r.selection=[[0,3840]];one=r.timeline_menu(point);r.selection=[[0,7680]];many=r.timeline_menu(point)
-        self.assertEqual(labels(one),labels(many));self.assertFalse(any('音符' in x or '和弦' in x for x in labels(many)))
+        self.assertEqual(labels(one),labels(many));self.assertTrue(find(many,'选中小节音符').isEnabled())
         self.assertTrue(find(many,'设置所选小节拍号与调性…').isEnabled())
         for text in ('将本小节调性应用至后续所有小节','将本小节拍号应用至后续所有小节','在此小节前插入…','在此小节后插入…'):
             self.assertTrue(find(one,text).isEnabled());self.assertFalse(find(many,text).isEnabled())

@@ -1,2 +1,2 @@
 """Lingfeng — For Pop Music: songwriting and numbered notation."""
-__version__ = '0.60.9'
+__version__ = '0.60.10'

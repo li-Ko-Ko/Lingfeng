@@ -133,6 +133,18 @@ class EditorKeys(QObject):
             while current:
                 if isinstance(current,(QLineEdit,QTextEdit,QPlainTextEdit,QAbstractSpinBox,QComboBox,QKeySequenceEdit,QMenu)):return False
                 current=current.parentWidget() if hasattr(current,'parentWidget') else None
+        key=event.key()
+        if Qt.Key.Key_1<=key<=Qt.Key.Key_7 and event.modifiers() in (Qt.KeyboardModifier.NoModifier,Qt.KeyboardModifier.KeypadModifier):
+            from lingfeng.platform.chord_preferences import degree_chord_sizes
+            from lingfeng.ui.piano_roll import ChordLane
+            roll=focus.editor if isinstance(focus,ChordLane) else w.active_roll()
+            if roll.edit_target=='chords' and roll.selected_chords and (isinstance(focus,ChordLane) or focus in (roll,roll.viewport())):
+                event.accept()
+                if event.type()==QEvent.Type.KeyPress and not event.isAutoRepeat():
+                    degree=key-Qt.Key.Key_1+1
+                    size=degree_chord_sizes()[degree-1]
+                    w.chord_command(f'degree_chord:{degree}:{size}',set(roll.selected_chords),roll)
+                return True
         sequence=QKeySequence(event.keyCombination()).toString(QKeySequence.SequenceFormat.PortableText)
         command=next((key for key,value in FIXED_COMMANDS.items() if value and value==sequence),None)
         if command is None:

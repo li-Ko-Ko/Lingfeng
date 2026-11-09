@@ -6,8 +6,8 @@ import time
 from fractions import Fraction
 from bisect import bisect_left, bisect_right
 from PySide6.QtCore import Qt, QRectF, QPointF, QPoint, Signal, QTimer, QEvent
-from PySide6.QtGui import QPainter, QPen, QColor, QFont, QFontMetrics, QKeySequence,QPainterPath,QAction,QActionGroup
-from PySide6.QtWidgets import QAbstractScrollArea, QWidget, QMenu, QApplication,QFrame,QInputDialog,QSplitter
+from PySide6.QtGui import QPainter, QPen, QColor, QFont, QFontMetrics, QKeySequence,QPainterPath,QAction,QActionGroup,QWheelEvent
+from PySide6.QtWidgets import QAbstractScrollArea, QWidget, QMenu, QApplication,QFrame,QInputDialog,QSplitter,QScrollBar
 from lingfeng.ui.theme import color as paint_color, roll_color, label_color, colored_category
 import lingfeng.ui.theme as theme
 from lingfeng.ui.painting import cached_layer, roll_view_key, time_view_key
@@ -30,6 +30,9 @@ CHORD_TITLE_HEIGHT = 23
 CHORD_SUBTITLE_HEIGHT = 18
 NAVIGATOR_MIN_HEIGHT = 28
 NAVIGATOR_MAX_HEIGHT = 180
+WHEEL_SCROLL_DEFAULT = 2.0
+WHEEL_SCROLL_MIN = 0.5
+WHEEL_SCROLL_MAX = 8.0
 
 
 def chord_title_font():
@@ -1029,6 +1032,22 @@ class TimelineNavigator(QWidget):
     def wheelEvent(self,event):self.editor.wheelEvent(event)
 
 
+class PitchScrollBar(QScrollBar):
+    def __init__(self,parent):
+        super().__init__(Qt.Orientation.Vertical,parent)
+        self.wheel_speed=WHEEL_SCROLL_DEFAULT
+
+    def wheelEvent(self,event):
+        scaled=QWheelEvent(
+            event.position(),event.globalPosition(),event.pixelDelta()*self.wheel_speed,
+            event.angleDelta()*self.wheel_speed,event.buttons(),event.modifiers(),
+            event.phase(),event.inverted(),event.source(),event.pointingDevice(),
+        )
+        scaled.setTimestamp(event.timestamp())
+        super().wheelEvent(scaled)
+        event.setAccepted(scaled.isAccepted())
+
+
 class PianoRoll(QAbstractScrollArea):
     MIN_ZOOM=32
     MAX_ZOOM=2048  # Pixels per quarter note: a 64th remains editable at 128 px.
@@ -1060,7 +1079,7 @@ class PianoRoll(QAbstractScrollArea):
     markerRequested=Signal(int)
     measureActivated=Signal(int)
     sectionRequested=Signal(object,str)
-    sectionSelectionRequested=Signal(int,int,str)
+    measureSelectionRequested=Signal(list,str)
     insertMeasureRequested=Signal(int)
     deleteMeasuresRequested=Signal(object)
     playRequested=Signal(int)
@@ -1074,6 +1093,7 @@ class PianoRoll(QAbstractScrollArea):
 
     def __init__(self,project,parent=None,role='melody'):
         super().__init__(parent)
+        self.setVerticalScrollBar(PitchScrollBar(self))
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.paint_revision=0;self.time_revision=0;self.music_revision=0;self.cache_renders=0
         self._note_indexes={};self.overview_harmony=None
@@ -1987,9 +2007,10 @@ class PianoRoll(QAbstractScrollArea):
 
     def timeline_menu(self,pos,preserve=False):
         tick=self.tick_at(pos.x());bar=self.project.measure_at(tick);menu=QMenu(self)
-        selected=copy.deepcopy(self.selection) if self.selection and (preserve or any(a<=tick<b for a,b in self.selection)) else [self.project.starts[bar:bar+2]]
+        starts=self.project.starts
+        selected=copy.deepcopy(self.selection) if self.selection and (preserve or any(a<=tick<b for a,b in self.selection)) else [starts[bar:bar+2]]
         from lingfeng.music.timing import selected_measures
-        bars=selected_measures(self.project,selected);selected=[self.project.starts[i:i+2] for i in bars]
+        bars=selected_measures(self.project,selected);selected=[starts[i:i+2] for i in bars]
         self.selection=selected;self.selectionChanged.emit(selected);self.refresh_timeline()
         menu.addAction(tr('设置所选小节拍号与调性…'),lambda:self.contextRequested.emit(selected))
         sections=QMenu(tr('段落标识'),menu);menu.section_menu=sections
@@ -1999,22 +2020,26 @@ class PianoRoll(QAbstractScrollArea):
         for name in SECTIONS:sections.addAction(name,lambda checked=False,n=name:self.sectionRequested.emit(bars,n))
         jumps=QMenu(tr('跳转小节'),menu);menu.section_jump_menu=jumps
         menu.section_jump_action=menu.addMenu(jumps);menu.section_jump_action.setParent(menu)
-        for name,index,_ in self.project.sections():
+        marked_sections=self.project.sections()
+        for name,index,_ in marked_sections:
             action=jumps.addAction(tr('{0} · 第 {1} 小节',name,index+1),lambda checked=False,i=index:self.jump_to_measure(i));action.setData(index)
         if not jumps.actions():jumps.addAction(tr('暂无段落标识')).setEnabled(False)
         jumps.action_refs=jumps.actions()
-        choose=QMenu(tr('选中此段落'),menu);menu.section_selection_menu=choose
-        menu.section_selection_action=menu.addMenu(choose);menu.section_selection_action.setParent(menu)
-        section=next(((a,b) for _,a,b in self.project.sections() if a<=bar<b),None)
-        choose.setEnabled(section is not None)
-        if section:
-            start,end=section
-            for key,label in (
-                ('bars','全部小节'),('chords','起点在段落内的和弦'),
-                ('all_notes','三个卷帘的音符'),('melody','旋律卷帘 1 的音符'),
-                ('instrument','旋律卷帘 2 的音符'),('harmony','和弦卷帘的音符'),
-            ):
-                choose.addAction(tr(label),lambda checked=False,k=key:self.sectionSelectionRequested.emit(start,end,k))
+        section=next((range(a,b) for _,a,b in marked_sections if a<=bar<b),())
+        section_ranges=[starts[i:i+2] for i in section]
+        menu.section_selection_action=menu.addAction(
+            tr('选中本小节所在段落的所有小节'),
+            lambda:self.measureSelectionRequested.emit(section_ranges,'bars'))
+        menu.section_selection_action.setEnabled(bool(section_ranges))
+        choose=QMenu(tr('选中小节音符'),menu);menu.measure_selection_menu=choose
+        menu.measure_selection_action=menu.addMenu(choose);menu.measure_selection_action.setParent(menu)
+        for key,label in (
+            ('all_notes','三个卷帘的音符'),('melody','旋律卷帘 1 的音符'),
+            ('instrument','旋律卷帘 2 的音符'),('harmony','和弦卷帘的音符'),
+            ('chords','起点在所选小节内的和弦'),
+        ):
+            action=choose.addAction(tr(label),lambda checked=False,k=key:self.measureSelectionRequested.emit(selected,k))
+            action.setData(key)
         choose.action_refs=choose.actions()
         source=bars[0]
         for label,kind in [('将本小节调性应用至后续所有小节','key'),('将本小节拍号应用至后续所有小节','meter')]:

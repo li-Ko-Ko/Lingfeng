@@ -1,8 +1,10 @@
 """Compact workspace containers; all views share one project and transport."""
+from bisect import bisect_right
 from PySide6.QtCore import Qt, QPointF, QPoint, QTimer
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QAction
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QToolButton, QMenu, QSplitter, QSizePolicy, QApplication, QScrollArea, QScrollBar, QInputDialog
 from lingfeng.platform.i18n import tr
+from lingfeng.music.model import merge_ranges
 
 from lingfeng.ui.controls import IconButton
 
@@ -225,7 +227,8 @@ class WorkspaceMixin:
         for _,r,_,controls in self.view_panes():controls.follow.toggled.connect(lambda value,r=r:self.sync_follow(value,r))
 
     def bind_workspace_roll(self,roll):
-        roll.sectionSelectionRequested.connect(self.select_section_contents)
+        roll.verticalScrollBar().wheel_speed=self.roll_wheel_speed
+        roll.measureSelectionRequested.connect(self.select_measure_contents)
         roll.elementSelection.connect(lambda kind:self.select_element(kind,roll))
         roll.notesSelectionChanged.connect(lambda:self.select_element('notes',roll) if roll.selected_ids else None)
         roll.has_chord_clipboard=self.chord_clipboard is not None
@@ -1012,19 +1015,30 @@ class WorkspaceMixin:
 
     def select_section_contents(self,start,end,target):
         starts=self.project.starts
-        left,right=starts[start],starts[end]
-        self.selection_changed([starts[i:i+2] for i in range(start,end)])
+        self.select_measure_contents([starts[i:i+2] for i in range(start,end)],target)
+
+    def select_measure_contents(self,ranges,target):
+        self.selection_changed(ranges)
         if target=='bars':
             self.select_element('notes',self.active_roll())
             for roll in self.editing_rolls():
                 roll.selected_ids.clear();roll.selected_note='';roll.edit_target='notes';roll.refresh_note_selection(notify=False)
             for ids,_,_ in self.melody_track_state.values():ids.clear()
             return
+        spans=merge_ranges(ranges)
+        ends=[right for _,right in spans]
+
+        def overlaps(start,end):
+            i=bisect_right(ends,start)
+            return i<len(spans) and spans[i][0]<end
+
         if target=='chords':
             lane=self.harmony_window.roll.lane if self.workspace=='score' else self.chord_lane
             if self.workspace=='score':self.show_score_panel('harmony')
             else:self.visibility_actions['chords'].setChecked(True)
-            lane.selection_event({c.id for c in self.project.chords if left<=c.start<right})
+            ids={c.id for c in self.project.chords if overlaps(c.start,c.start+1)}
+            if not ids:self.select_element('chords',lane.editor)
+            lane.selection_event(ids)
             lane.setFocus()
             return
         focus=self.active_roll() if target=='all_notes' else self.harmony_window.roll if target=='harmony' else self.roll
@@ -1036,9 +1050,9 @@ class WorkspaceMixin:
             if self.workspace=='score':self.show_score_panel('harmony')
             else:self.show_roll_in_place(self.harmony_window)
         self.select_element('notes',focus)
-        # Notes sustained into the section are part of its audible contents.
+        # Include notes sustained into any of the selected bars.
         def note_ids(notes):
-            return {n.id for n in notes if n.start<right and n.end>left}
+            return {n.id for n in notes if overlaps(n.start,n.end)}
         melody_views=[]
         for track,role in enumerate(('melody','instrument')):
             roll=self.melody_roll_for(track)
@@ -1057,7 +1071,7 @@ class WorkspaceMixin:
             roll.refresh_note_selection(notify=False)
         if target=='all_notes':
             # Prefer the current melody, but open a populated roll when that
-            # track has no notes in this section (including hidden tabs).
+            # track has no notes in the selected bars (including hidden tabs).
             if not focus.selected_ids:
                 track=next((track for track in (0,1) if note_ids(self.project.melody_notes(track))),None)
                 if track is not None:focus=self.melody_roll_for(track,reveal=True)
@@ -1065,10 +1079,10 @@ class WorkspaceMixin:
             if focus.selected_ids:
                 if self.workspace=='score':self.show_score_panel('harmony' if focus is harmony else 'melody')
                 else:self.show_roll_in_place(self.roll_pane(focus))
-        self.reveal_section_notes(focus,left,right)
+        self.reveal_measure_notes(focus,spans,ends)
         focus.setFocus()
 
-    def reveal_section_notes(self,roll,left,right):
+    def reveal_measure_notes(self,roll,spans,ends):
         """Reveal an audible part of the selection without moving a visible view."""
         notes=roll.selected_notes()
         if not notes:return
@@ -1076,14 +1090,16 @@ class WorkspaceMixin:
         edge=roll.viewport().width()
         candidates=[]
         for note in notes:
-            # A sustained note can begin before this section. Locate its
-            # selected section, rather than jumping back to its onset.
-            x1=roll.x_at(max(left,note.start));x2=roll.x_at(min(right,note.end))
             y=roll.y_at(note.pitch)
-            if note.pitch in roll.pitch_rows and x2>KEY_W and x1<edge and top<=y and y+roll.row_height<=bottom:return
-            dx=min(0,x2-KEY_W) if x2<=KEY_W else max(0,x1-edge+1)
             dy=min(0,y-top) if y<top else max(0,y+roll.row_height-bottom)
-            candidates.append((abs(dx)/max(1,edge-KEY_W)+abs(dy)/max(1,bottom-top),note,x1,x2,y))
+            for i in range(bisect_right(ends,note.start),len(spans)):
+                left,right=spans[i]
+                if left>=note.end:break
+                x1=roll.x_at(max(left,note.start));x2=roll.x_at(min(right,note.end))
+                if note.pitch in roll.pitch_rows and x2>KEY_W and x1<edge and top<=y and y+roll.row_height<=bottom:return
+                dx=min(0,x2-KEY_W) if x2<=KEY_W else max(0,x1-edge+1)
+                candidates.append((abs(dx)/max(1,edge-KEY_W)+abs(dy)/max(1,bottom-top),note,x1,x2,y))
+        if not candidates:return
         _,note,x1,x2,y=min(candidates,key=lambda item:item[0])
         if note.pitch not in roll.pitch_rows and roll.pitch_range is not None:
             # A manually restricted pitch range must include the selected note

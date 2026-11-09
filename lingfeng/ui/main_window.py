@@ -10,7 +10,7 @@ from lingfeng.music.model import Project, PPQ, FONT_SIZE_MAX, pitch_name, uid, d
 from lingfeng.engraving.compatibility import melody_overlap, traditional_conflicts
 from lingfeng.ui.piano_roll import (
     CHORD_LANE_DEFAULT_HEIGHT, CHORD_LANE_MAX_HEIGHT, PianoRoll, minimum_chord_lane_height,
-    NAVIGATOR_MIN_HEIGHT, NAVIGATOR_MAX_HEIGHT,
+    NAVIGATOR_MIN_HEIGHT, NAVIGATOR_MAX_HEIGHT, WHEEL_SCROLL_DEFAULT, WHEEL_SCROLL_MIN, WHEEL_SCROLL_MAX,
 )
 from lingfeng.ui.score_view import ScoreView
 from lingfeng.ui.dialogs import NoteDialog, ChordDialog, MarkerDialog, SoundSettingsDialog
@@ -98,6 +98,8 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         self.navigator_tracks=[key for key in ('vocal','instrument','chords') if key in tracks]
         height=preferences.get('navigator_height')
         self.navigator_height=max(NAVIGATOR_MIN_HEIGHT,min(NAVIGATOR_MAX_HEIGHT,height)) if type(height) is int else None
+        speed=preferences.get('roll_wheel_speed')
+        self.roll_wheel_speed=max(WHEEL_SCROLL_MIN,min(WHEEL_SCROLL_MAX,speed)) if type(speed) in (float,int) else WHEEL_SCROLL_DEFAULT
         self.language_filter=DialogLanguageFilter(self);QApplication.instance().installEventFilter(self.language_filter)
         self.build_ui();self.build_menu();self.refresh();self.set_theme(preferences.get('theme','light'));self.enable_native_frame()
         from lingfeng.audio.midi_input import MidiInputController
@@ -256,6 +258,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         action(settings,tr('音符与力度…'),self.velocity_preferences)
         chords=settings.addMenu(tr('和弦'))
         action(chords,tr('和弦性质…'),self.chord_preferences)
+        action(chords,tr('和弦音级快捷键…'),self.chord_degree_shortcuts)
         action(chords,tr('管理和弦进行…'),self.progression_settings)
         from lingfeng.platform.rhythm_preferences import enabled as rhythm_recognition_enabled
         self.rhythm_recognition_action=chords.addAction(tr('节奏型识别'))
@@ -270,6 +273,7 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         settings.addSeparator()
         roll_display=settings.addMenu(tr('卷帘显示'))
         action(roll_display,tr('和弦轨高度…'),self.choose_chord_lane_height)
+        action(roll_display,tr('卷帘滚轮速度…'),self.choose_roll_wheel_speed)
         navigator=roll_display.addMenu(tr('导航器'));navigator.setToolTipsVisible(True)
         self.navigator_track_actions={}
         for key,label in [('vocal','人声'),('instrument','乐器'),('chords','和弦')]:
@@ -401,6 +405,16 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
             self,tr('导航器高度'),tr('导航器高度（像素）'),self.navigator.preferred_height(),
             NAVIGATOR_MIN_HEIGHT,NAVIGATOR_MAX_HEIGHT)
         if accepted:self.set_navigator_height(height)
+
+    def choose_roll_wheel_speed(self):
+        speed,accepted=QInputDialog.getDouble(
+            self,tr('卷帘滚轮速度'),tr('纵向滚动倍率（默认 2 倍）'),self.roll_wheel_speed,
+            WHEEL_SCROLL_MIN,WHEEL_SCROLL_MAX,2,step=0.25,
+        )
+        if accepted:
+            self.roll_wheel_speed=speed
+            for roll in self.editing_rolls():roll.verticalScrollBar().wheel_speed=speed
+            self.save_preferences()
 
     def mutate(self,label,operation,keep_playing=True,recording=False,source=None,preserve_chord_move=False,score_spellings=False):
         location=self.history_location(source)
@@ -1129,13 +1143,16 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         from lingfeng.audio.velocity import options as velocity_options
         from lingfeng.ui.theme import CUSTOM_PALETTES, ROLL_COLORING, SHOW_NOTE_DEGREES, ACCIDENTAL_PREFERENCE
         from lingfeng.music.chord_operations import QUALITY_ORDER
-        from lingfeng.platform.chord_preferences import settings_dict
+        from lingfeng.platform.chord_preferences import degree_chord_sizes, settings_dict
         from lingfeng.platform.context_menu_preferences import settings_dict as menu_settings_dict
         from lingfeng.platform.rhythm_preferences import settings_dict as rhythm_settings_dict
         from lingfeng.music.progression_catalog import CATALOG_VERSION
         try:
             from lingfeng.platform.preferences import save_preferences
-            self._preferences=save_preferences(user_data_dir(),{'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_lane_height':self.chord_lane_height,'navigator_tracks':list(self.navigator_tracks),'navigator_height':self.navigator_height,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'chord_velocity_options':velocity_options(),'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE,**settings_dict(include_recognition=True),**menu_settings_dict(),**rhythm_settings_dict()},getattr(self,'_preferences',{}))
+            self._preferences=save_preferences(user_data_dir(),{
+                'degree_chord_sizes':list(degree_chord_sizes()),
+                'roll_wheel_speed':self.roll_wheel_speed,
+                'theme':'dark' if is_dark() else 'light','language':self.language,'colors':CUSTOM_PALETTES,'roll_coloring':ROLL_COLORING,'show_note_degrees':SHOW_NOTE_DEGREES,'show_information':self.show_information,'chord_ruler_scale':self.chord_ruler_scale,'chord_lane_height':self.chord_lane_height,'navigator_tracks':list(self.navigator_tracks),'navigator_height':self.navigator_height,'chord_order':QUALITY_ORDER,'chord_edit_options':self.chord_edit_options,'chord_velocity_options':velocity_options(),'keybindings':self.keybindings,'last_project_dir':self.last_project_dir,'progression_presets':self.progression_presets,'progression_catalog_version':CATALOG_VERSION,'accidental_preference':ACCIDENTAL_PREFERENCE,**settings_dict(include_recognition=True),**menu_settings_dict(),**rhythm_settings_dict()},getattr(self,'_preferences',{}))
         except OSError as exc:self.status_message(tr('偏好设置未保存：{0}',exc))
 
     def change_language(self,language,persist=True):
@@ -1625,6 +1642,13 @@ class MainWindow(HistoryMixin,WorkspaceMixin,QMainWindow):
         dialog=ChordSettingsDialog(self)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             set_preferences({**settings_dict(),**dialog.value()});self.save_preferences()
+
+    def chord_degree_shortcuts(self):
+        from lingfeng.ui.chord_settings_dialog import ChordDegreeShortcutsDialog
+        from lingfeng.platform.chord_preferences import set_degree_chord_sizes
+        dialog=ChordDegreeShortcutsDialog(self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            set_degree_chord_sizes(dialog.value());self.save_preferences()
 
     def context_menu_preferences(self):
         from lingfeng.ui.context_menu_settings_dialog import ContextMenuSettingsDialog

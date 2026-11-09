@@ -378,6 +378,41 @@ def can_move_diatonic(project,chords,steps):
     return True
 
 
+def chord_for_degree(project, old, degree, size):
+    """Build a root-position chord by stacking scale thirds at the region start."""
+    from lingfeng.music.note_operations import scale_pitch
+    from lingfeng.music.rhythm import analyze_performed, regenerate
+    from lingfeng.platform.chord_preferences import default_velocity
+
+    context = project.context_at(old.start)
+    index = degree - 1
+    root = scale_pitch(index, context)
+    intervals = tuple(scale_pitch(index + 2 * i, context) - root for i in range(size))
+    quality = next(q for q, tones in QUALITIES.items() if tones == intervals)
+    chord = copy.copy(old)
+    chord.root = 48 + root % 12
+    chord.quality = quality
+    chord.bass = None
+    chord.notes = None
+    chord.recognized = True
+    chord.recognition_disabled = chord.marked = chord.custom_rhythm = False
+    chord.instrument_symbol_preference = None
+    if old.notes == []:
+        chord.velocity = default_velocity('harmony')
+
+    rhythm = analyze_performed(old, project)
+    chord.pattern = rhythm.pattern if rhythm else 'block'
+    chord.gate = rhythm.gate if rhythm else old.gate
+    generated = regenerate(chord, chord.start, chord.end, project, explicit=True)
+    if generated and generated.end == old.end and generated.pcs == chord.pcs:
+        return generated
+    # An arpeggio can be too short to sound every degree, or a legacy region
+    # may span a meter change. A sustained voicing fills the original interval.
+    chord.pattern = 'block'
+    chord.bar_aligned = False
+    return chord
+
+
 @dataclass
 class ChordClipboard:
     chords:list
@@ -440,6 +475,14 @@ def set_chord_velocity(chord,value):
 
 def change_chords(project, ids, command):
     selected=[c for c in project.chords if c.id in ids]
+    if command.startswith('degree_chord:'):
+        _, degree, size = command.split(':')
+        degree, size = int(degree), int(size)
+        if degree not in range(1, 8) or size not in (3, 4):
+            raise ValueError(tr('和弦音级快捷键参数无效。'))
+        replacements = {c.id: chord_for_degree(project, c, degree, size) for c in selected}
+        project.chords = [replacements.get(c.id, c) for c in project.chords]
+        return
     if command.startswith('recognition_source:'):
         value=command.split(':',1)[1]
         sources={'default':None,'1':True,'0':False}

@@ -72,17 +72,17 @@ class MelodyEditorTests(unittest.TestCase):
         w.redo()
         self.assertIn(added.id,{n.id for n in w.roll.notes})
 
-    def test_section_selects_intersecting_notes_and_chords_by_onset(self):
+    def test_bar_selects_intersecting_notes_and_chords_by_onset(self):
         w=self.window
         r=w.roll
         menu=r.timeline_menu(QPoint(round(r.x_at(4000)),8))
-        section=menu.section_selection_menu
-        next(a for a in section.actions() if a.text()==tr('三个卷帘的音符')).trigger()
+        selection=menu.measure_selection_menu
+        next(a for a in selection.actions() if a.text()==tr('三个卷帘的音符')).trigger()
         self.assertEqual(r.selected_ids,{w.project.notes[0].id})
         self.assertEqual(len(w.harmony_window.roll.selected_ids),1)
         w.melody_tabs.setCurrentIndex(1)
         self.assertEqual(r.selected_ids,{w.project.instrument_notes[0].id})
-        next(a for a in section.actions() if a.text()==tr('起点在段落内的和弦')).trigger()
+        next(a for a in selection.actions() if a.text()==tr('起点在所选小节内的和弦')).trigger()
         self.assertEqual(w.chord_lane.highlight_ids,{c.id for c in w.project.chords if 3840<=c.start<7680})
         menu.deleteLater()
 

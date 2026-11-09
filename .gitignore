@@ -30,6 +30,7 @@
 !/docs/screenshots/
 /docs/screenshots/*
 !/docs/screenshots/compose.png
+!/docs/screenshots/chord-degree-shortcuts.png
 !/docs/screenshots/spatial-score.png
 !/docs/screenshots/lyrics-rap.png
 !/docs/screenshots/progression-library.png
