@@ -25,7 +25,7 @@ PUBLIC_DOCS=(
 )
 PUBLIC_SCREENSHOTS=(
     'docs/screenshots/compose.png','docs/screenshots/chord-degree-shortcuts.png','docs/screenshots/spatial-score.png',
-    'docs/screenshots/lyrics-rap.png','docs/screenshots/progression-library.png',
+    'docs/screenshots/lyrics-rap.png','docs/screenshots/measure-selection.png',
 )
 PUBLIC_SCRIPTS=(
     'scripts/audit_text.py','scripts/build_synth_packs.py','scripts/build_piano_packs.py','scripts/collect_qt_notices.py',

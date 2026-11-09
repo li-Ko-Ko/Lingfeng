@@ -41,6 +41,8 @@ In a separately configured ComfyUI setup, connect the exported ABC to `score_abc
 
 ## 精选截图 / Featured
 
+以下均为 0.60.10 的实际界面。 / All screenshots show the 0.60.10 interface.
+
 <table>
   <tr>
     <td width="50%"><strong>旋律与和弦编辑 / Piano rolls</strong><br><a href="docs/screenshots/compose.png"><img src="docs/screenshots/compose.png" alt="0.60.10 旋律与和弦双卷帘 / Melody and chord piano rolls in 0.60.10" width="640"></a></td>
@@ -48,7 +50,7 @@ In a separately configured ComfyUI setup, connect the exported ABC to `score_abc
   </tr>
   <tr>
     <td width="50%"><strong>歌词与 Rap / Lyrics and rap</strong><br><a href="docs/screenshots/lyrics-rap.png"><img src="docs/screenshots/lyrics-rap.png" alt="传统简谱中的歌词与Rap排版及编辑面板" width="640"></a></td>
-    <td width="50%"><strong>和弦进行库 / Chord progressions</strong><br><a href="docs/screenshots/progression-library.png"><img src="docs/screenshots/progression-library.png" alt="内置和弦进行库的罗马数字、实际和弦及根音序列检索" width="640"></a></td>
+    <td width="50%"><strong>小节批量选择 / Measure selection</strong><br><a href="docs/screenshots/measure-selection.png"><img src="docs/screenshots/measure-selection.png" alt="选中段落中的小节，再批量选取卷帘音符或和弦块 / Select piano-roll notes or chord regions across a section’s measures" width="640"></a></td>
   </tr>
 </table>
 

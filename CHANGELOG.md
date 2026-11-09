@@ -6,6 +6,19 @@ Versions with generated release archives only; local work is recorded in `CHANGE
 
 ## 0.6 系列 / 0.6 family
 
+### 0.60.10 — 小节选区与数字和弦 / Measure selection and chord shortcuts
+
+日期 / Date: 2026-11-10。
+
+- 小节右键可选中所在段落的所有小节。对已选小节，可批量选取指定卷帘的音符或起点落在其中的和弦块。
+- 和弦轨单选或多选后，按 `1`–`7` 按各块起点的调性输入调内和弦。每个数字键可独立设置为三和弦或七和弦，默认为三和弦。
+- 钢琴卷帘的纵向滚轮速度默认为原速度的两倍。可在「设置 → 卷帘显示 → 卷帘滚轮速度」中调整，停靠和浮动卷帘共用设置。
+- 更新 13 个示例工程，全部可用当前版本打开和制谱。示例人声轨使用 Greg Sullivan CP80 电钢琴，乐器与和弦轨使用 PFSynth 物理建模钢琴。
+
+Select all measures in a section from the bar menu, then select notes from a piano roll or chord regions starting in the selected bars. With one or more chord regions selected, press `1`–`7` to enter a diatonic chord in the key at each region’s start. Each digit can be set to a triad or seventh chord. Vertical wheel scrolling in the piano rolls defaults to twice the previous speed and can be adjusted in Settings.
+
+All 13 example projects open in the current version and can display their scores. The examples use Greg Sullivan CP80 electric piano for the vocal track and PFSynth modeled piano for the instrumental and chord tracks.
+
 ### 0.60.9 — 音源与和弦编辑 / Sound sources and chord editing
 
 日期 / Date: 2026-11-08。

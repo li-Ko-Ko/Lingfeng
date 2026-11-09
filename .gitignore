@@ -33,7 +33,7 @@
 !/docs/screenshots/chord-degree-shortcuts.png
 !/docs/screenshots/spatial-score.png
 !/docs/screenshots/lyrics-rap.png
-!/docs/screenshots/progression-library.png
+!/docs/screenshots/measure-selection.png
 /scripts/*
 !/scripts/audit_text.py
 !/scripts/build_synth_packs.py
